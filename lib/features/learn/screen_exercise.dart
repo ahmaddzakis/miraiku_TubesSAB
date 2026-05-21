@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-// PERBAIKAN: Jalur yang benar untuk naik dari features/learn/ ke root lib adalah 2 tingkat
 import '../../data/quiz_repository.dart';
 
 class ExerciseScreen extends StatefulWidget {
   final int unit;
   final String difficulty;
-  final int currentStars;
+  final int currentStars; // Menerima info bintang aktif saat ini (0, 1, atau 2)
   final VoidCallback? onQuizPassed;
 
   const ExerciseScreen({
@@ -13,7 +12,7 @@ class ExerciseScreen extends StatefulWidget {
     this.unit = 1,
     this.difficulty = 'basic',
     this.currentStars = 0,
-    this.onQuizPassed
+    this.onQuizPassed,
   });
 
   @override
@@ -33,7 +32,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   @override
   void initState() {
     super.initState();
-    _questions = QuizRepository.getQuestions(widget.unit, widget.difficulty);
+    // Mengambil set soal yang berbeda berdasarkan jumlah bintang saat ini
+    _questions = QuizRepository.getQuestions(widget.unit, widget.difficulty, widget.currentStars);
   }
 
   @override
@@ -42,29 +42,32 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     super.dispose();
   }
 
-  void _selectAnswer(int index) {
+  void _selectOption(int index) {
     if (_isAnswered) return;
     setState(() {
       selectedOption = index;
-      _isAnswered = true;
-      if (index == _questions[_currentQuestionIndex]['correctIndex']) {
-        _score++;
-      }
     });
   }
 
-  void _checkEssayAnswer() {
+  void _checkAnswer(bool isMultipleChoice) {
     if (_isAnswered) return;
-    String userAnswer = _essayController.text.trim().toLowerCase();
-    String correctAnswer = _questions[_currentQuestionIndex]['answer'].toString().toLowerCase();
 
     setState(() {
       _isAnswered = true;
-      if (userAnswer == correctAnswer) {
-        _isEssayCorrect = true;
-        _score++;
+
+      if (isMultipleChoice) {
+        if (selectedOption == _questions[_currentQuestionIndex]['correctIndex']) {
+          _score++;
+        }
       } else {
-        _isEssayCorrect = false;
+        String userAnswer = _essayController.text.trim().toLowerCase();
+        String correctAnswer = _questions[_currentQuestionIndex]['answer'].toString().toLowerCase();
+        if (userAnswer == correctAnswer) {
+          _isEssayCorrect = true;
+          _score++;
+        } else {
+          _isEssayCorrect = false;
+        }
       }
     });
   }
@@ -79,7 +82,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         _isEssayCorrect = false;
       });
     } else {
-      bool isPassed = _score >= 7;
+      // Kelulusan: Skor harus lebih besar dari 7 (> 7 berarti minimal benar 8 dari 10 soal)
+      bool isPassed = _score > 7;
+
       if (isPassed && widget.onQuizPassed != null) {
         widget.onQuizPassed!();
       }
@@ -88,6 +93,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _showResultDialog(bool isPassed) {
+    // Menghitung jumlah visualisasi bintang baru pada dialog hasil kuis (+1 jika lulus)
     int newStarsCount = isPassed ? (widget.currentStars + 1).clamp(0, 3) : widget.currentStars;
 
     showDialog(
@@ -125,8 +131,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               isPassed
                   ? (newStarsCount >= 3
                   ? "Selamat! Anda telah menguasai tahapan ini dengan total 3 bintang penuh."
-                  : "Anda berhasil mendapatkan bintang ke-$newStarsCount! Selesaikan latihan berikutnya untuk meraih bintang selanjutnya.")
-                  : "Skor minimal kelulusan adalah 7/10. Ayo coba lagi untuk meraih bintang berikutnya!",
+                  : "Anda berhasil mendapatkan bintang ke-$newStarsCount! Masuk kembali untuk menyelesaikan kuis berikutnya.")
+                  : "Skor kelulusan harus lebih besar dari 7 (>7). Ayo coba lagi untuk meraih bintang berikutnya!",
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFF666666), fontSize: 13),
             ),
@@ -140,8 +146,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+              Navigator.pop(context); // Tutup Dialog Pop-up
+              Navigator.pop(context); // Kembali ke Peta Belajar utama
             },
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -158,6 +164,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     final currentQuestion = _questions[_currentQuestionIndex];
     double progressPercent = (_currentQuestionIndex + 1) / _questions.length;
     bool isMultipleChoice = currentQuestion['type'] == 'multiple_choice';
+
+    bool isButtonEnabled = _isAnswered ||
+        (isMultipleChoice ? selectedOption != null : _essayController.text.isNotEmpty);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F6F0),
@@ -242,13 +251,20 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
               Expanded(
                 child: isMultipleChoice
-                    ? ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: currentQuestion['options'].length,
-                  itemBuilder: (context, index) {
-                    final option = currentQuestion['options'][index];
-                    return _buildOption(index, option['code'], option['text'], option['romaji'], currentQuestion['correctIndex']);
-                  },
+                    ? Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: currentQuestion['options'].length,
+                        itemBuilder: (context, index) {
+                          final option = currentQuestion['options'][index];
+                          return _buildOption(index, option['code'], option['text'], option['romaji'], currentQuestion['correctIndex']);
+                        },
+                      ),
+                    ),
+                    if (_isAnswered) _buildFeedbackBanner(selectedOption == currentQuestion['correctIndex'], "Kunci Jawaban: " + currentQuestion['options'][currentQuestion['correctIndex']]['text']),
+                  ],
                 )
                     : _buildEssayInput(),
               ),
@@ -264,17 +280,21 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       disabledBackgroundColor: const Color(0xFFE8E3DA),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: _isAnswered
-                        ? _nextQuestion
-                        : (!isMultipleChoice && _essayController.text.isNotEmpty ? _checkEssayAnswer : null),
+                    onPressed: isButtonEnabled
+                        ? () {
+                      if (_isAnswered) {
+                        _nextQuestion();
+                      } else {
+                        _checkAnswer(isMultipleChoice);
+                      }
+                    }
+                        : null,
                     child: Text(
                       _isAnswered
                           ? (_currentQuestionIndex == _questions.length - 1 ? "SELESAI" : "LANJUTKAN")
                           : "CEK JAWABAN",
                       style: TextStyle(
-                          color: _isAnswered || (!isMultipleChoice && _essayController.text.isNotEmpty)
-                              ? Colors.white
-                              : const Color(0xFF8C8A87),
+                          color: isButtonEnabled ? Colors.white : const Color(0xFF8C8A87),
                           fontWeight: FontWeight.bold
                       ),
                     ),
@@ -288,9 +308,21 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     );
   }
 
-  Widget _buildEssayInput() {
-    Color feedbackColor = _isEssayCorrect ? Colors.green : Colors.red;
+  Widget _buildFeedbackBanner(bool isCorrect, String correctKeyText) {
+    Color feedbackColor = isCorrect ? Colors.green : Colors.red;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(color: isCorrect ? Colors.green[50] : Colors.red[50], borderRadius: BorderRadius.circular(8)),
+      child: Text(
+        isCorrect ? "Keren! Jawaban Anda Tepat." : "Salah! $correctKeyText",
+        style: TextStyle(color: feedbackColor, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
 
+  Widget _buildEssayInput() {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,20 +339,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               fillColor: Colors.white,
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE8E3DA))),
-              disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _isAnswered ? feedbackColor : Colors.grey, width: 2)),
+              disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _isAnswered ? (_isEssayCorrect ? Colors.green : Colors.red) : Colors.grey, width: 2)),
             ),
           ),
           if (_isAnswered) ...[
             const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: _isEssayCorrect ? Colors.green[50] : Colors.red[50], borderRadius: BorderRadius.circular(8)),
-              child: Text(
-                _isEssayCorrect ? "Keren! Jawaban Anda Tepat." : "Salah! Kunci Jawaban: ${_questions[_currentQuestionIndex]['answer']}",
-                style: TextStyle(color: feedbackColor, fontWeight: FontWeight.bold),
-              ),
-            )
+            _buildFeedbackBanner(_isEssayCorrect, "Kunci Jawaban: ${_questions[_currentQuestionIndex]['answer']}"),
           ]
         ],
       ),
@@ -354,7 +378,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
 
     return GestureDetector(
-      onTap: () => _selectAnswer(index),
+      onTap: () => _selectOption(index),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

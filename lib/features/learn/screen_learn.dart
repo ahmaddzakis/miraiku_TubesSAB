@@ -40,14 +40,18 @@ class _LearnScreenState extends State<LearnScreen> {
             _buildClickableNode(
               context: context,
               title: "Hiragana Basics",
-              stars: _u1BasicStars,
+              stars: _u1BasicStars, // Bintang muncul & bertambah di halaman depan
+              // MODIFIKASI LOGIKA STATUS:
+              // Node diganti tetap menjadi .completed / .current agar visual node terbuka & bisa diklik ulang meraih bintang selanjutnya.
               status: _u1BasicStars >= 3 ? NodeStatus.completed : NodeStatus.current,
               alignment: Alignment.center,
               unit: 1,
               difficulty: 'basic',
               onSuccess: () {
                 setState(() {
-                  if (_u1BasicStars < 3) _u1BasicStars++;
+                  if (_u1BasicStars < 3) {
+                    _u1BasicStars++;
+                  }
                 });
               },
             ),
@@ -199,6 +203,7 @@ class _LearnScreenState extends State<LearnScreen> {
         title: title,
         status: status,
         alignment: alignment,
+        stars: stars,
       ),
     );
   }
