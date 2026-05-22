@@ -1,130 +1,126 @@
 import 'package:flutter/material.dart';
 
-enum NodeStatus { completed, current, locked, test }
+// Enum untuk status node
+enum NodeStatus { locked, current, completed }
 
 class PathNode extends StatelessWidget {
   final String title;
   final NodeStatus status;
-  final Alignment alignment;
+  final Alignment alignment; // Tetap dipertahankan agar tidak error di screen_learn
   final int stars;
-  final IconData? customIcon;
 
   const PathNode({
     super.key,
     required this.title,
     required this.status,
     required this.alignment,
-    this.stars = 0,
-    this.customIcon,
+    required this.stars,
   });
 
   @override
   Widget build(BuildContext context) {
-    bool isLocked = status == NodeStatus.locked;
-    bool isCurrent = status == NodeStatus.current;
-    bool isTest = status == NodeStatus.test;
-    bool isCompleted = status == NodeStatus.completed;
+    // Menentukan warna dan dekorasi berdasarkan status node
+    Color nodeColor;
+    Widget centerWidget;
 
-    // Warna elemen berdasarkan status
-    Color pillColor = isLocked ? const Color(0xFFE8E3DA) : isCurrent ? const Color(0xFFC6653B) : isTest ? const Color(0xFFF9F6F0) : const Color(0xFF7A7571);
-    Color pillTextColor = isLocked ? const Color(0xFF8C8A87) : isTest ? const Color(0xFF4B4B4B) : Colors.white;
-    Color nodeColor = isLocked ? const Color(0xFFE8E3DA) : isCurrent ? const Color(0xFFC6653B) : isTest ? const Color(0xFFF9F6F0) : const Color(0xFF7A7571);
-    Color iconColor = isLocked ? const Color(0xFF8C8A87) : isCurrent ? Colors.white : isTest ? const Color(0xFFC6653B) : Colors.white;
+    switch (status) {
+      case NodeStatus.locked:
+        nodeColor = const Color(0xFFE8E3DA);
+        centerWidget = const Icon(Icons.lock_rounded, color: Color(0xFFA6A198), size: 28);
+        break;
+      case NodeStatus.current:
+        nodeColor = const Color(0xFFCC6633);
+        centerWidget = const Icon(Icons.star_half_rounded, color: Colors.white, size: 32); // Bisa diganti ikon tangan/belajar Anda
+        break;
+      case NodeStatus.completed:
+        nodeColor = const Color(0xFFEFEBE1);
+        centerWidget = const Icon(Icons.check_rounded, color: Color(0xFFCC6633), size: 30);
+        break;
+    }
 
-    // Menentukan Ikon
-    IconData nodeIcon = customIcon ?? (isLocked ? Icons.lock : isCurrent ? Icons.back_hand : isTest ? Icons.emoji_events : Icons.check);
-
-    return Align(
-      alignment: alignment,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // LABEL PILL
-          if (!isTest) // Unit Test labelnya ada di dalam lingkaran
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: pillColor,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                title.toUpperCase(),
-                style: TextStyle(color: pillTextColor, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5),
-              ),
-            ),
-
-          const SizedBox(height: 8),
-
-          // LINGKARAN TOMBOL
-          Stack(
-            alignment: Alignment.center,
+          // ================= KIRI: LINGKARAN NODE & BINTANG =================
+          Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Cincin Progres untuk status Current
-              if (isCurrent)
-                SizedBox(
-                  width: 90,
-                  height: 90,
-                  child: CircularProgressIndicator(
-                    value: 0.65, // Persentase progres
-                    strokeWidth: 6,
-                    backgroundColor: const Color(0xFFC6653B).withOpacity(0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC6653B)),
-                  ),
-                ),
-
-              // Cincin putih luar (border pelindung)
+              // Lingkaran Utama Node
               Container(
-                width: isTest ? 100 : 75,
-                height: isTest ? 100 : 75,
+                width: 62,
+                height: 62,
                 decoration: BoxDecoration(
+                  color: nodeColor,
                   shape: BoxShape.circle,
-                  color: const Color(0xFFF9F6F0), // Warna background aplikasi
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-                  ],
-                ),
-                child: Center(
-                  // Lingkaran dalam berisi warna dan ikon
-                  child: Container(
-                    width: isTest ? 90 : 55,
-                    height: isTest ? 90 : 55,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: nodeColor,
-                    ),
-                    child: isTest
-                        ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(nodeIcon, color: iconColor, size: 28),
-                        const SizedBox(height: 4),
-                        const Text("Unit Test", style: TextStyle(color: Color(0xFF4B4B4B), fontWeight: FontWeight.bold, fontSize: 12)),
-                        const Text("30 min", style: TextStyle(color: Color(0xFF8C8A87), fontSize: 10)),
-                      ],
+                  boxShadow: status != NodeStatus.locked
+                      ? [
+                    BoxShadow(
+                      color: const Color(0xFFCC6633).withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     )
-                        : Icon(nodeIcon, color: iconColor, size: 28),
-                  ),
+                  ]
+                      : null,
+                  border: status == NodeStatus.current
+                      ? Border.all(color: const Color(0xFFF6E7DC), width: 4)
+                      : Border.all(color: const Color(0xFFE8E3DA), width: 2),
                 ),
+                child: Center(child: centerWidget),
+              ),
+              const SizedBox(height: 6),
+              // Visualisasi Bintang Kecil di Bawah Lingkaran
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  return Icon(
+                    index < stars ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: status == NodeStatus.locked
+                        ? const Color(0xFFDCD8CF)
+                        : const Color(0xFFCC6633),
+                    size: 14,
+                  );
+                }),
               ),
             ],
           ),
+          const SizedBox(width: 20),
 
-          const SizedBox(height: 8),
-
-          // BINTANG (Tidak muncul di Unit Test)
-          if (!isTest)
-            Row(
+          // ================= KANAN: TEKS MATERI / JUDUL LESSON =================
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: List.generate(3, (index) {
-                bool isStarFilled = index < stars;
-                return Icon(
-                  isStarFilled ? Icons.star : Icons.star,
-                  color: isStarFilled ? const Color(0xFFC6653B) : const Color(0xFFDCD6CC),
-                  size: 16,
-                );
-              }),
+              children: [
+                Text(
+                  status == NodeStatus.locked
+                      ? "TERKUNCI"
+                      : (status == NodeStatus.current ? "SEDANG DIPELAJARI" : "SELESAI"),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: status == NodeStatus.locked
+                        ? const Color(0xFFA6A198)
+                        : const Color(0xFFCC6633),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: status == NodeStatus.locked
+                        ? const Color(0xFFA6A198)
+                        : const Color(0xFF333333),
+                  ),
+                ),
+              ],
             ),
+          ),
         ],
       ),
     );

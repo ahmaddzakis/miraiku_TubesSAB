@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../data/quiz_repository.dart';
+import '../../data/quiz_repository.dart'; // Pastikan path sesuai struktur projek Anda
 
 class ExerciseScreen extends StatefulWidget {
   final int unit;
   final String difficulty;
-  final int currentStars; // Menerima info bintang aktif saat ini (0, 1, atau 2)
+  final int currentStars;
+  final int currentHearts; // Menerima sisa nyawa dari halaman depan
   final VoidCallback? onQuizPassed;
+  final ValueChanged<int>? onHeartDecreased; // Callback untuk mengabari halaman utama saat nyawa berkurang
 
   const ExerciseScreen({
     super.key,
     this.unit = 1,
     this.difficulty = 'basic',
     this.currentStars = 0,
+    required this.currentHearts,
     this.onQuizPassed,
+    this.onHeartDecreased,
   });
 
   @override
@@ -24,6 +28,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   int _score = 0;
   int? selectedOption;
   bool _isAnswered = false;
+  late int _localHearts; // Variabel lokal pelacak nyawa di dalam screen kuis
 
   late List<Map<String, dynamic>> _questions;
   final TextEditingController _essayController = TextEditingController();
@@ -32,7 +37,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   @override
   void initState() {
     super.initState();
-    // Mengambil set soal yang berbeda berdasarkan jumlah bintang saat ini
+    _localHearts = widget.currentHearts;
     _questions = QuizRepository.getQuestions(widget.unit, widget.difficulty, widget.currentStars);
   }
 
@@ -54,10 +59,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
     setState(() {
       _isAnswered = true;
+      bool isCorrect = false;
 
       if (isMultipleChoice) {
         if (selectedOption == _questions[_currentQuestionIndex]['correctIndex']) {
           _score++;
+          isCorrect = true;
         }
       } else {
         String userAnswer = _essayController.text.trim().toLowerCase();
@@ -65,14 +72,27 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         if (userAnswer == correctAnswer) {
           _isEssayCorrect = true;
           _score++;
-        } else {
-          _isEssayCorrect = false;
+          isCorrect = true;
+        }
+      }
+
+      // ==================== LOGIKA FITUR: PENGURANGAN NYAWA ====================
+      if (!isCorrect) {
+        _localHearts--;
+        if (widget.onHeartDecreased != null) {
+          widget.onHeartDecreased!(_localHearts); // Update nyawa ke halaman depan langsung
         }
       }
     });
   }
 
   void _nextQuestion() {
+    // Jika jawaban salah terakhir membuat nyawa habis, saat klik "LANJUTKAN/SELESAI" langsung tendang keluar
+    if (_localHearts <= 0) {
+      Navigator.pop(context);
+      return;
+    }
+
     if (_currentQuestionIndex < _questions.length - 1) {
       setState(() {
         _currentQuestionIndex++;
@@ -82,7 +102,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         _isEssayCorrect = false;
       });
     } else {
-      // Kelulusan: Skor harus lebih besar dari 7 (> 7 berarti minimal benar 8 dari 10 soal)
+      // Kelulusan kuis: Minimal benar 8 dari 10 soal (> 7)
       bool isPassed = _score > 7;
 
       if (isPassed && widget.onQuizPassed != null) {
@@ -93,7 +113,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _showResultDialog(bool isPassed) {
-    // Menghitung jumlah visualisasi bintang baru pada dialog hasil kuis (+1 jika lulus)
     int newStarsCount = isPassed ? (widget.currentStars + 1).clamp(0, 3) : widget.currentStars;
 
     showDialog(
@@ -146,8 +165,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              Navigator.pop(context); // Tutup Dialog Pop-up
-              Navigator.pop(context); // Kembali ke Peta Belajar utama
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -193,7 +212,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       letterSpacing: 1,
                     ),
                   ),
-                  const Icon(Icons.favorite, color: Color(0xFFCC6633), size: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite, color: Colors.red, size: 22),
+                      const SizedBox(width: 4),
+                      Text("$_localHearts", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -263,7 +288,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         },
                       ),
                     ),
-                    if (_isAnswered) _buildFeedbackBanner(selectedOption == currentQuestion['correctIndex'], "Kunci Jawaban: " + currentQuestion['options'][currentQuestion['correctIndex']]['text']),
+                    if (_isAnswered) _buildFeedbackBanner(selectedOption == currentQuestion['correctIndex'], "Kunci Jawaban: ${currentQuestion['options'][currentQuestion['correctIndex']]['text']}"),
                   ],
                 )
                     : _buildEssayInput(),
