@@ -324,9 +324,19 @@ class _KanaScreenState extends State<KanaScreen> {
                           border: Border.all(color: const Color(0xFFE8E3DA), width: 1.5),
                         ),
                         child: Center(
-                          child: Opacity(
-                            opacity: 0.6,
-                            child: Text(kana, style: const TextStyle(fontSize: 70, color: Color(0xFF3E362E))),
+                          // LOGIKA BARU: Cek tab yang aktif, lalu gabungkan dengan romaji
+                          child: Image.asset(
+                            _activeTab == 0
+                                ? 'assets/gifs/hiragana_${romaji.toLowerCase()}.gif'
+                                : 'assets/gifs/katakana_${romaji.toLowerCase()}.gif',
+                            fit: BoxFit.contain,
+                            height: 100,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Opacity(
+                                opacity: 0.6,
+                                child: Text(kana, style: const TextStyle(fontSize: 70, color: Color(0xFF3E362E))),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -381,7 +391,7 @@ class _KanaScreenState extends State<KanaScreen> {
                       // Kertas Virtual Coretan Jari
                       Container(
                         width: double.infinity,
-                        height: 200,
+                        height: 160,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
