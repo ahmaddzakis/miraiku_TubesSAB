@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart'; // Wajib ditambahkan untuk memanggil global state
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../main.dart';
 
 class KanaScreen extends StatefulWidget {
   const KanaScreen({super.key});
@@ -11,6 +11,7 @@ class KanaScreen extends StatefulWidget {
 }
 
 class _KanaScreenState extends State<KanaScreen> {
+  final _supabase = Supabase.instance.client;
   int _activeTab = 0; // 0 = Hiragana, 1 = Katakana, 2 = Kanji
 
   Set<String> _learnedHiragana = {};
@@ -54,17 +55,38 @@ class _KanaScreenState extends State<KanaScreen> {
   }
 
   Future<void> _loadSavedData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _learnedHiragana = (prefs.getStringList('learnedHiragana') ?? []).toSet();
-      _learnedKatakana = (prefs.getStringList('learnedKatakana') ?? []).toSet();
-    });
+    final user = _supabase.auth.currentUser;
+    if (user != null) {
+      final metadata = user.userMetadata;
+      if (metadata != null) {
+        setState(() {
+          if (metadata['learned_hiragana'] != null) {
+            _learnedHiragana = List<String>.from(metadata['learned_hiragana']).toSet();
+          }
+          if (metadata['learned_katakana'] != null) {
+            _learnedKatakana = List<String>.from(metadata['learned_katakana']).toSet();
+          }
+        });
+      }
+    }
   }
 
   Future<void> _saveData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('learnedHiragana', _learnedHiragana.toList());
-    await prefs.setStringList('learnedKatakana', _learnedKatakana.toList());
+    final user = _supabase.auth.currentUser;
+    if (user != null) {
+      try {
+        await _supabase.auth.updateUser(
+          UserAttributes(
+            data: {
+              'learned_hiragana': _learnedHiragana.toList(),
+              'learned_katakana': _learnedKatakana.toList(),
+            },
+          ),
+        );
+      } catch (e) {
+        debugPrint("Gagal menyimpan progress alfabet: $e");
+      }
+    }
   }
 
   void _onKanaTapped(int index) {
@@ -75,17 +97,14 @@ class _KanaScreenState extends State<KanaScreen> {
     _showKanaPopup(context, index);
   }
 
-  // --- FUNGSI TRANSLATE OTOMATIS ---
   String _t(String en, String id) {
     return globalLanguage.value == 'id' ? id : en;
   }
 
   @override
   Widget build(BuildContext context) {
-    // --- VARIABEL WARNA DINAMIS ---
     final bool isDark = globalDarkMode.value;
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
-    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
     final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
     final Color gridBgColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
@@ -106,9 +125,9 @@ class _KanaScreenState extends State<KanaScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildTab(0, "Hiragana", isDark, textColor),
-                  _buildTab(1, "Katakana", isDark, textColor),
-                  _buildTab(2, "Kanji", isDark, textColor),
+                  _buildTab(0, "Hiragana", isDark),
+                  _buildTab(1, "Katakana", isDark),
+                  _buildTab(2, "Kanji", isDark),
                 ],
               ),
               const SizedBox(height: 24),
@@ -155,7 +174,7 @@ class _KanaScreenState extends State<KanaScreen> {
                       onTap: () => _onKanaTapped(index),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isLearned ? (isDark ? const Color(0xFFCC6633).withOpacity(0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
+                          color: isLearned ? (isDark ? const Color(0xFFCC6633).withValues(alpha: 0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: isLearned ? const Color(0xFFC6653B) : borderColor, width: isLearned ? 2 : 1),
                         ),
@@ -179,7 +198,7 @@ class _KanaScreenState extends State<KanaScreen> {
     );
   }
 
-  Widget _buildTab(int index, String title, bool isDark, Color textColor) {
+  Widget _buildTab(int index, String title, bool isDark) {
     bool isActive = _activeTab == index;
     return GestureDetector(
       onTap: () => setState(() => _activeTab = index),
@@ -211,7 +230,7 @@ class _KanaScreenState extends State<KanaScreen> {
 
     SignatureController controller = SignatureController(
       penStrokeWidth: 5,
-      penColor: textColor, // Warna pulpen berubah putih saat Dark Mode
+      penColor: textColor,
       exportBackgroundColor: cardColor,
     );
 
@@ -269,8 +288,6 @@ class _KanaScreenState extends State<KanaScreen> {
                         children: [
                           Text(_t("How to draw", "Cara Menulis"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
                           const SizedBox(height: 12),
-
-                          // GIF sedikit dibuat redup jika Dark Mode agar tidak menyilaukan
                           Opacity(
                             opacity: isDark ? 0.85 : 1.0,
                             child: Image.asset(
@@ -317,6 +334,7 @@ class _KanaScreenState extends State<KanaScreen> {
                     ),
                     const SizedBox(height: 24),
 
+                    // --- NAVIGASI PANAH YANG DIPERBARUI ---
                     Row(
                       children: [
                         if (currentIndex > 0)
@@ -328,15 +346,18 @@ class _KanaScreenState extends State<KanaScreen> {
                               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF8C8A87), side: BorderSide(color: borderColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                             ),
                           ),
-                        if (currentIndex > 0) const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: goToNext,
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC6653B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                            label: Text(currentIndex < _currentList.length - 1 ? _t("Next", "Maju") : _t("Finish", "Selesai"), style: const TextStyle(color: Colors.white)),
-                            icon: const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                        if (currentIndex > 0 && currentIndex < _currentList.length - 1)
+                          const SizedBox(width: 12),
+                        // TOMBOL NEXT HANYA MUNCUL JIKA BUKAN ITEM TERAKHIR
+                        if (currentIndex < _currentList.length - 1)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: goToNext,
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC6653B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                              label: Text(_t("Next", "Maju"), style: const TextStyle(color: Colors.white)),
+                              icon: const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],

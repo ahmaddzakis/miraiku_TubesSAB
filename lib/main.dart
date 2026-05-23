@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Tambahan untuk memuat memori
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // IMPORT WAJIB UNTUK SUPABASE
+
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/top_status_bar.dart';
 
@@ -7,6 +9,7 @@ import 'features/learn/screen_learn.dart';
 import 'features/simulation/screen_simulation.dart';
 import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
+import 'features/login/screen_auth.dart'; // IMPORT WAJIB UNTUK HALAMAN LOGIN
 
 // ==========================================
 // 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
@@ -15,10 +18,14 @@ final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
 final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
 
 void main() async {
-  // Wajib ditambahkan karena kita mengakses SharedPreferences sebelum runApp berjalan
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Memuat pengaturan terakhir dari HP user saat aplikasi baru dibuka
+  // 🔗 INISIALISASI SUPABASE
+  await Supabase.initialize(
+    url: 'https://zvtxkamtmkqsbgoijroc.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2dHhrYW10bWtxc2Jnb2lqcm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDQyNjYsImV4cCI6MjA5NDgyMDI2Nn0.7aABG8Tk0JBjxzmtZtaq8kwITHTtQ9dpx0CZVwCwlnY', // PASTIKAN INI DIGANTI DENGAN KEY ASLI DARI DASHBOARD YA
+  );
+
   final prefs = await SharedPreferences.getInstance();
   globalDarkMode.value = prefs.getBool('setting_dark') ?? false;
   globalLanguage.value = prefs.getString('setting_lang') ?? 'en';
@@ -31,32 +38,42 @@ class MiraikuApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Membungkus MaterialApp agar bereaksi setiap kali globalDarkMode berubah
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
       builder: (context, isDark, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Miraiku',
-
-          // Konfigurasi Tema Terang
           theme: ThemeData(
             fontFamily: 'Serif',
             scaffoldBackgroundColor: const Color(0xFFF9F6F0),
             brightness: Brightness.light,
           ),
-
-          // Konfigurasi Tema Gelap
           darkTheme: ThemeData(
             fontFamily: 'Serif',
             scaffoldBackgroundColor: const Color(0xFF121212),
             brightness: Brightness.dark,
           ),
-
-          // Mengubah tema sesuai nilai switch di Settings
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
 
-          home: const MainNavigationScreen(),
+          // 🚪 GERBANG UTAMA: Mendeteksi Session Login secara Real-Time
+          home: StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCC6633))));
+              }
+
+              final session = snapshot.data?.session;
+              if (session != null) {
+                // Jika sudah login, arahkan ke menu utama
+                return const MainNavigationScreen();
+              } else {
+                // Jika belum login, kurung di halaman Auth
+                return const AuthScreen();
+              }
+            },
+          ),
         );
       },
     );
@@ -99,7 +116,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Warna background scaffold otomatis mengikuti ThemeMode sekarang!
       body: SafeArea(
         child: Column(
           children: [
