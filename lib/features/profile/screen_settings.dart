@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart'; // Package baru untuk auto-version
+import 'package:url_launcher/url_launcher.dart';
 import '../../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -231,6 +232,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // --- FUNGSI UNTUK MEMBUKA LINK GOOGLE DOCS ---
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_t("Could not open the link", "Gagal membuka tautan")), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   // ==================== PRIVACY POLICY & TOS ====================
   void _showInfoDialog(String title, String content) {
     showDialog(
@@ -292,14 +305,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ]),
             const SizedBox(height: 32),
 
+            // Ganti bagian widget ABOUT menjadi seperti ini:
+
             Text(_t("ABOUT", "TENTANG"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
             const SizedBox(height: 12),
             _buildSettingsContainer(cardColor: cardColor, borderColor: borderColor, children: [
-              _buildLinkTile(title: _t("Privacy Policy", "Kebijakan Privasi"), icon: Icons.privacy_tip_outlined, textColor: textColor, onTap: () => _showInfoDialog(_t("Privacy Policy", "Kebijakan Privasi"), _t("We collect minimal data such as your email and learning progress solely to improve your experience in the Miraiku app. Your personal data is securely stored and will never be sold to any third parties.", "Kami mengumpulkan data minimal seperti email dan progres belajarmu semata-mata untuk meningkatkan pengalaman di aplikasi Miraiku. Data pribadimu disimpan dengan aman dan tidak akan pernah dijual ke pihak ketiga mana pun."))),
+              _buildLinkTile(
+                  title: _t("Privacy Policy", "Kebijakan Privasi"),
+                  icon: Icons.privacy_tip_outlined,
+                  textColor: textColor,
+                  // Masukkan Link Google Docs Privacy Policy milikmu di sini
+                  onTap: () => _launchURL('https://docs.google.com/document/d/1dHd-bNOgvIbwXgsnybjV2q1dr1Hom_0isMcH8wNFBSk/edit?usp=sharing')
+              ),
               Divider(height: 1, color: borderColor),
-              _buildLinkTile(title: _t("Terms of Service", "Syarat Ketentuan"), icon: Icons.description_outlined, textColor: textColor, onTap: () => _showInfoDialog(_t("Terms of Service", "Syarat Ketentuan"), _t("By using Miraiku, you agree to engage in the learning platform responsibly. Any misuse of the app or attempting to cheat the learning progress systems may result in account termination.", "Dengan menggunakan Miraiku, kamu setuju untuk belajar dengan bertanggung jawab. Segala bentuk penyalahgunaan aplikasi atau kecurangan pada sistem progres belajar dapat mengakibatkan penghapusan akun."))),
+              _buildLinkTile(
+                  title: _t("Terms of Service", "Syarat Ketentuan"),
+                  icon: Icons.description_outlined,
+                  textColor: textColor,
+                  // Masukkan Link Google Docs Terms of Service milikmu di sini
+                  onTap: () => _launchURL('https://docs.google.com/document/d/1SSYXoZW_yu2ngBsUNEWN-SP5ELtPK9ZOi9bfW-Ww5u4/edit?usp=sharing')
+              ),
               Divider(height: 1, color: borderColor),
-              _buildLinkTile(title: _t("Version", "Versi"), icon: Icons.info_outline_rounded, trailingText: _appVersion, textColor: textColor) // VERSI OTOMATIS
+              _buildLinkTile(title: _t("Version", "Versi"), icon: Icons.info_outline_rounded, trailingText: _appVersion, textColor: textColor)
             ]),
             const SizedBox(height: 40),
           ],

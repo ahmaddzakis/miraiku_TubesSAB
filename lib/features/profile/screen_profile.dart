@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../main.dart';
 import 'screen_settings.dart';
 import 'screen_notifications.dart';
@@ -15,7 +18,6 @@ class _AchievementBadge {
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -27,10 +29,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _userName = "";
   String _userDesc = "";
   String _userEmail = "";
-  String _avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200";
+  String _avatarUrl = "";
   bool _isSaving = false;
+  bool _isUploading = false;
 
-  // Data Statistik Dinamis (Mulai dari 0)
+  // Data Statistik Dinamis
   int _totalXp = 0;
   int _streakDays = 0;
   int _wordsLearned = 0;
@@ -49,11 +52,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _userEmail = user.email ?? "";
         _userName = user.userMetadata?['display_name'] ?? _userEmail.split('@')[0];
         _userDesc = user.userMetadata?['bio'] ?? "Bandung, West Java";
+        _avatarUrl = user.userMetadata?['avatar_url'] ?? "";
       });
     }
   }
 
-  // Memuat XP dan Statistik (Nanti ini bisa diupdate dari Learn/Kana screen)
   Future<void> _loadLocalStats() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -61,6 +64,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _streakDays = prefs.getInt('streak_days') ?? 0;
       _wordsLearned = prefs.getInt('words_learned') ?? 0;
     });
+  }
+
+  // --- LOGIKA GAMBAR AVATAR (LOKAL VS INTERNET) ---
+  ImageProvider _getAvatarImage() {
+    if (_avatarUrl.isNotEmpty && _avatarUrl.startsWith('http')) {
+      return NetworkImage(_avatarUrl);
+    } else {
+      // PERBAIKAN: Pastikan Anda sudah mem-Run ulang aplikasi setelah Pub Get
+      return const AssetImage('assets/images/profileDefault.png');
+    }
+  }
+
+  // --- FUNGSI UPLOAD & CROP FOTO KE SUPABASE (MAX 5MB) ---
+  Future<void> _uploadProfilePicture(StateSetter setModalState) async {
+    final picker = ImagePicker();
+
+    // 1. Pilih gambar dari galeri (PERBAIKAN: Memaksa picker hanya menampilkan gambar)
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100, // Ambil kualitas penuh untuk di-crop
+    );
+
+    if (pickedFile == null) return;
+
+    // 2. Buka layar penyesuaian (Crop)
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Paksa kotak
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: _t('Adjust Photo', 'Sesuaikan Foto'),
+          toolbarColor: const Color(0xFFCC6633),
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+          hideBottomControls: true,
+        ),
+        IOSUiSettings(
+          title: _t('Adjust Photo', 'Sesuaikan Foto'),
+          aspectRatioLockEnabled: true,
+        ),
+      ],
+    );
+
+    if (croppedFile == null) return;
+
+    // 3. Cek ukuran file (Maksimal 5MB)
+    final file = File(croppedFile.path);
+    final fileSizeInBytes = await file.length();
+    final fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+
+    if (fileSizeInMB > 5.0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_t("Image too large! Maximum size is 5MB.", "Gambar terlalu besar! Ukuran maksimal 5MB.")),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // 4. Mulai proses upload ke Supabase
+    setModalState(() => _isUploading = true);
+    setState(() => _isUploading = true);
+
+    try {
+      final bytes = await file.readAsBytes();
+      final fileExt = file.path.split('.').last;
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath = '/$fileName';
+
+      // Upload ke bucket 'avatars' (Pastikan bucket 'avatars' sudah Public di dashboard Supabase)
+      await _supabase.storage.from('avatars').uploadBinary(filePath, bytes);
+
+      // Dapatkan URL publik
+      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      // Simpan URL ke data user
+      await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': imageUrl}));
+
+      setState(() => _avatarUrl = imageUrl);
+
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile picture updated!", "Foto profil diperbarui!"))));
+    } catch (e) {
+      debugPrint("Upload error: $e");
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Failed to upload image.", "Gagal mengunggah gambar.")), backgroundColor: Colors.red));
+    } finally {
+      setModalState(() => _isUploading = false);
+      setState(() => _isUploading = false);
+    }
   }
 
   Future<void> _saveProfileData(String name, String desc) async {
@@ -107,14 +202,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
                       Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                       const SizedBox(height: 24),
+
+                      // --- AVATAR DI MODAL ---
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
-                          CircleAvatar(radius: 45, backgroundImage: NetworkImage(_avatarUrl)),
-                          Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: const Color(0xFFCC6633), shape: BoxShape.circle, border: Border.all(color: modalBg, width: 2)), child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white)),
+                          CircleAvatar(radius: 45, backgroundImage: _getAvatarImage(), backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA)),
+                          if (_isUploading)
+                            const Positioned.fill(child: Center(child: CircularProgressIndicator(color: Color(0xFFCC6633))))
+                          else
+                            GestureDetector(
+                              onTap: () => _uploadProfilePicture(setModalState),
+                              child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: const Color(0xFFCC6633), shape: BoxShape.circle, border: Border.all(color: modalBg, width: 2)), child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white)),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 32),
+
                       TextField(
                         controller: nameController,
                         style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
@@ -124,7 +228,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextField(
                         controller: descController,
                         style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                        decoration: InputDecoration(labelText: _t("Bio / Location", "Bio / Lokasi"), labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold), filled: true, fillColor: fieldBg, prefixIcon: const Icon(Icons.location_on_rounded, color: Color(0xFFB5B0A8)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: isDark ? 0.1 : 1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2))),
+                        decoration: InputDecoration(
+                            labelText: "Bio", // Teks diubah menjadi Bio saja
+                            labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
+                            filled: true,
+                            fillColor: fieldBg,
+                            prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)), // Ikon diubah
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: isDark ? 0.1 : 1))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2))
+                        ),
                       ),
                       const SizedBox(height: 32),
                       SizedBox(
@@ -168,11 +280,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             children: [
               const SizedBox(height: 60),
+
+              // --- AVATAR DI HALAMAN UTAMA ---
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFCC6633).withValues(alpha: 0.2), shape: BoxShape.circle), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xFFCC6633), shape: BoxShape.circle), child: CircleAvatar(radius: 55, backgroundImage: NetworkImage(_avatarUrl)))),
-                  GestureDetector(onTap: _showEditProfileModal, child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, border: Border.all(color: bgColor, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))]), child: const Icon(Icons.edit_rounded, size: 18, color: Color(0xFFCC6633)))),
+                  Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(color: const Color(0xFFCC6633).withValues(alpha: 0.2), shape: BoxShape.circle),
+                      child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: Color(0xFFCC6633), shape: BoxShape.circle),
+                          child: CircleAvatar(radius: 55, backgroundImage: _getAvatarImage(), backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA))
+                      )
+                  ),
+                  GestureDetector(
+                      onTap: _showEditProfileModal,
+                      child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, border: Border.all(color: bgColor, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))]), child: const Icon(Icons.edit_rounded, size: 18, color: Color(0xFFCC6633)))
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -186,7 +311,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // TAMPILAN ANGKA SEKARANG DINAMIS SESUAI VARIABEL
                   _buildStatCircle(value: "$_totalXp", label: "TOTAL XP", icon: Icons.bolt_rounded, iconColor: const Color(0xFFCC6633), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
                   _buildStatCircle(value: "$_streakDays", label: _t("DAYS STREAK", "REKOR HARI"), icon: Icons.local_fire_department_rounded, iconColor: const Color(0xFFB85C2A), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
                   _buildStatCircle(value: "$_wordsLearned/700", label: _t("WORDS (N5)", "KATA (N5)"), icon: Icons.menu_book_rounded, iconColor: const Color(0xFFE08B4B), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
@@ -207,7 +331,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(_t("Daily Goal", "Target Harian"), style: TextStyle(fontSize: 13, color: subTextColor, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
-                          // Target disesuaikan
                           Text(_totalXp == 0 ? _t("Start your first lesson!", "Mulai pelajaran pertamamu!") : _t("Keep it up!", "Terus berjuang!"), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor)),
                           const SizedBox(height: 8),
                           ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: _totalXp == 0 ? 0.0 : 0.75, minHeight: 6, backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFCC6633)))),
@@ -251,7 +374,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     _buildMenuTile(context: context, icon: Icons.settings_rounded, title: _t("Settings", "Pengaturan"), subtitle: _t("Manage your preferences", "Kelola preferensi akunmu"), color: const Color(0xFFCC6633), textColor: textColor, subTextColor: subTextColor, isDark: isDark, onTap: () async {
-                      // Tunggu Settings ditutup, lalu refresh profil barangkali ada data diubah di Settings
                       await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
                       _loadSupabaseUserData();
                     }),
@@ -272,17 +394,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                                   onPressed: () async {
-                                    // 🧹 1. SAPU BERSIH PROGRESS LOKAL (Kecuali Setting Bahasa/Dark Mode)
+                                    // 1. TUTUP POPUP DULUAN
+                                    Navigator.pop(ctx);
+
+                                    // 2. SAPU BERSIH PROGRESS LOKAL
                                     final prefs = await SharedPreferences.getInstance();
                                     final keys = prefs.getKeys();
                                     for (String key in keys) {
                                       if (key != 'setting_dark' && key != 'setting_lang') {
-                                        await prefs.remove(key); // Hapus bintang, nyawa, XP, dll
+                                        await prefs.remove(key);
                                       }
                                     }
-                                    // 🚪 2. LOGOUT SUPABASE
+
+                                    // 3. LOGOUT SUPABASE
                                     await _supabase.auth.signOut();
-                                    if (mounted) Navigator.pop(ctx);
                                   },
                                   child: Text(_t("Log Out", "Keluar"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))
                               ),

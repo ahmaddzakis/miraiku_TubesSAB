@@ -36,6 +36,10 @@ dependencies:
   signature: ^6.3.0
   cupertino_icons: ^1.0.8
   package_info_plus: ^8.0.0
+  url_launcher: ^6.3.0
+  image_picker: ^1.1.2
+  image_cropper: ^7.1.0
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +64,15 @@ flutter:
   uses-material-design: true
   assets:
     - assets/gifs/
+    - assets/images/
+    - assets/audio/
+
+  fonts:
+    - family: Nunito
+      fonts:
+            - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+            - asset: assets/fonts/Nunito-Italic-VariableFont_wght.ttf
+            - style: italic
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -76,7 +89,7 @@ flutter:
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
-  # example:
+  # penacode:
   # fonts:
   #   - family: Schyler
   #     fonts:

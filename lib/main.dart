@@ -44,13 +44,16 @@ class MiraikuApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Miraiku',
+          // ========================================================
+          // --- PERUBAHAN FONT GLOBAL KE NUNITO DI SINI ---
+          // ========================================================
           theme: ThemeData(
-            fontFamily: 'Serif',
+            fontFamily: 'Nunito', // <-- DIUBAH MENJADI NUNITO
             scaffoldBackgroundColor: const Color(0xFFF9F6F0),
             brightness: Brightness.light,
           ),
           darkTheme: ThemeData(
-            fontFamily: 'Serif',
+            fontFamily: 'Nunito', // <-- DIUBAH MENJADI NUNITO
             scaffoldBackgroundColor: const Color(0xFF121212),
             brightness: Brightness.dark,
           ),

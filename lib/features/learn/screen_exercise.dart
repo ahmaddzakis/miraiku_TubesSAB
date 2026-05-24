@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../data/quiz_repository.dart'; // Pastikan path sesuai struktur projek Anda
+import '../../core/sound_manager.dart';// IMPORT SOUND MANAGER DI SINI (Sesuaikan path-nya jika perlu)
 
 class ExerciseScreen extends StatefulWidget {
   final int unit;
   final String difficulty;
   final int currentStars;
-  final int currentHearts; // Menerima sisa nyawa dari halaman depan
+  final int currentHearts;
   final VoidCallback? onQuizPassed;
-  final ValueChanged<int>? onHeartDecreased; // Callback untuk mengabari halaman utama saat nyawa berkurang
+  final ValueChanged<int>? onHeartDecreased;
 
   const ExerciseScreen({
     super.key,
@@ -28,7 +29,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   int _score = 0;
   int? selectedOption;
   bool _isAnswered = false;
-  late int _localHearts; // Variabel lokal pelacak nyawa di dalam screen kuis
+  late int _localHearts;
 
   late List<Map<String, dynamic>> _questions;
   final TextEditingController _essayController = TextEditingController();
@@ -52,6 +53,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     setState(() {
       selectedOption = index;
     });
+    // OPTIONAL: Bisa tambah efek suara klik tombol di sini
+    // SoundManager.playSound('klik.mp3');
   }
 
   void _checkAnswer(bool isMultipleChoice) {
@@ -76,18 +79,23 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         }
       }
 
-      // ==================== LOGIKA FITUR: PENGURANGAN NYAWA ====================
-      if (!isCorrect) {
+      // ========================================================
+      // 🎶 LOGIKA AUDIO: JAWABAN BENAR / SALAH
+      // ========================================================
+      if (isCorrect) {
+        SoundManager.playSound('benar.mp3'); // Panggil file benar.mp3
+      } else {
+        SoundManager.playSound('salah.mp3'); // Panggil file salah.mp3
         _localHearts--;
         if (widget.onHeartDecreased != null) {
-          widget.onHeartDecreased!(_localHearts); // Update nyawa ke halaman depan langsung
+          widget.onHeartDecreased!(_localHearts);
         }
       }
     });
   }
 
   void _nextQuestion() {
-    // Jika jawaban salah terakhir membuat nyawa habis, saat klik "LANJUTKAN/SELESAI" langsung tendang keluar
+    // Jika jawaban salah terakhir membuat nyawa habis
     if (_localHearts <= 0) {
       Navigator.pop(context);
       return;
@@ -114,6 +122,17 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   void _showResultDialog(bool isPassed) {
     int newStarsCount = isPassed ? (widget.currentStars + 1).clamp(0, 3) : widget.currentStars;
+
+    // ========================================================
+    // 🎶 LOGIKA AUDIO: HASIL AKHIR KUIS (LULUS/GAGAL)
+    // ========================================================
+    if (isPassed) {
+      // Anda bisa mengganti 'sukses_level.mp3' dengan file suara tepuk tangan/fanfare
+      SoundManager.playSound('benar.mp3'); // Sementara pakai benar.mp3
+    } else {
+      // Anda bisa mengganti dengan suara game over
+      SoundManager.playSound('salah.mp3'); // Sementara pakai salah.mp3
+    }
 
     showDialog(
       context: context,
@@ -165,8 +184,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+              Navigator.pop(context); // Tutup dialog
+              Navigator.pop(context); // Keluar dari kuis
             },
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
