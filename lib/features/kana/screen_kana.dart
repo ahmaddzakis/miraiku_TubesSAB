@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import fitur penyimpanan
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../main.dart';
 
 class KanaScreen extends StatefulWidget {
   const KanaScreen({super.key});
@@ -10,13 +11,12 @@ class KanaScreen extends StatefulWidget {
 }
 
 class _KanaScreenState extends State<KanaScreen> {
+  final _supabase = Supabase.instance.client;
   int _activeTab = 0; // 0 = Hiragana, 1 = Katakana, 2 = Kanji
 
-  // Set untuk menyimpan progress (Sekarang tidak menggunakan final agar bisa dimuat ulang)
   Set<String> _learnedHiragana = {};
   Set<String> _learnedKatakana = {};
 
-  // --- DATA LENGKAP HIRAGANA (46 Karakter) ---
   final List<Map<String, String>> _hiraganaList = [
     {"kana": "あ", "romaji": "A"}, {"kana": "い", "romaji": "I"}, {"kana": "う", "romaji": "U"}, {"kana": "え", "romaji": "E"}, {"kana": "お", "romaji": "O"},
     {"kana": "か", "romaji": "KA"}, {"kana": "き", "romaji": "KI"}, {"kana": "く", "romaji": "KU"}, {"kana": "け", "romaji": "KE"}, {"kana": "こ", "romaji": "KO"},
@@ -31,7 +31,6 @@ class _KanaScreenState extends State<KanaScreen> {
     {"kana": "ん", "romaji": "N"},
   ];
 
-  // --- DATA LENGKAP KATAKANA (46 Karakter) ---
   final List<Map<String, String>> _katakanaList = [
     {"kana": "ア", "romaji": "A"}, {"kana": "イ", "romaji": "I"}, {"kana": "ウ", "romaji": "U"}, {"kana": "エ", "romaji": "E"}, {"kana": "オ", "romaji": "O"},
     {"kana": "カ", "romaji": "KA"}, {"kana": "キ", "romaji": "KI"}, {"kana": "ク", "romaji": "KU"}, {"kana": "ケ", "romaji": "KE"}, {"kana": "コ", "romaji": "KO"},
@@ -46,103 +45,112 @@ class _KanaScreenState extends State<KanaScreen> {
     {"kana": "ン", "romaji": "N"},
   ];
 
-  // Helper untuk mendapatkan list & set yang sedang aktif
   List<Map<String, String>> get _currentList => _activeTab == 0 ? _hiraganaList : (_activeTab == 1 ? _katakanaList : []);
   Set<String> get _currentLearned => _activeTab == 0 ? _learnedHiragana : (_activeTab == 1 ? _learnedKatakana : <String>{});
 
   @override
   void initState() {
     super.initState();
-    _loadSavedData(); // Panggil fungsi muat data saat layar pertama kali dibuka
+    _loadSavedData();
   }
 
-  // --- LOGIKA DATABASE: Memuat data yang sudah tersimpan ---
   Future<void> _loadSavedData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _learnedHiragana = (prefs.getStringList('learnedHiragana') ?? []).toSet();
-      _learnedKatakana = (prefs.getStringList('learnedKatakana') ?? []).toSet();
-    });
+    final user = _supabase.auth.currentUser;
+    if (user != null) {
+      final metadata = user.userMetadata;
+      if (metadata != null) {
+        setState(() {
+          if (metadata['learned_hiragana'] != null) {
+            _learnedHiragana = List<String>.from(metadata['learned_hiragana']).toSet();
+          }
+          if (metadata['learned_katakana'] != null) {
+            _learnedKatakana = List<String>.from(metadata['learned_katakana']).toSet();
+          }
+        });
+      }
+    }
   }
 
-  // --- LOGIKA DATABASE: Menyimpan data setiap ada perubahan ---
   Future<void> _saveData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('learnedHiragana', _learnedHiragana.toList());
-    await prefs.setStringList('learnedKatakana', _learnedKatakana.toList());
+    final user = _supabase.auth.currentUser;
+    if (user != null) {
+      try {
+        await _supabase.auth.updateUser(
+          UserAttributes(
+            data: {
+              'learned_hiragana': _learnedHiragana.toList(),
+              'learned_katakana': _learnedKatakana.toList(),
+            },
+          ),
+        );
+      } catch (e) {
+        debugPrint("Gagal menyimpan progress alfabet: $e");
+      }
+    }
   }
 
   void _onKanaTapped(int index) {
     setState(() {
       _currentLearned.add(_currentList[index]["kana"]!);
     });
-    _saveData(); // Simpan ke storage
-
+    _saveData();
     _showKanaPopup(context, index);
+  }
+
+  String _t(String en, String id) {
+    return globalLanguage.value == 'id' ? id : en;
   }
 
   @override
   Widget build(BuildContext context) {
-    String headerTitle = _activeTab == 0 ? "Learning Hiragana" : (_activeTab == 1 ? "Learning Katakana" : "Learning Kanji");
+    final bool isDark = globalDarkMode.value;
+    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
+    final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
+    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+    final Color gridBgColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
+
+    String headerTitle = _activeTab == 0 ? _t("Learning ひらがな", "Belajar ひらがな") : (_activeTab == 1 ? _t("Learning カタカナ", "Belajar カタカナ") : _t("Learning 漢字", "Belajar 漢字"));
     String headerDesc = _activeTab == 0
-        ? "Master the 46 basic native Japanese characters."
-        : (_activeTab == 1 ? "Master the 46 angular characters used for foreign loanwords." : "Kanji lessons coming soon!");
+        ? _t("Master the 46 basic native Japanese characters.", "Kuasai 46 karakter dasar bahasa Jepang.")
+        : (_activeTab == 1 ? _t("Master the 46 characters used for foreign loanwords.", "Kuasai 46 karakter untuk kata serapan asing.") : _t("Kanji lessons coming soon!", "Pelajaran Kanji akan segera hadir!"));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F2),
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             children: [
-              const SizedBox(height: 24), // Memberikan jarak atas karena Top Bar dihapus
-
-              // --- TABS (Hiragana | Katakana | Kanji) ---
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildTab(0, "Hiragana"),
-                  _buildTab(1, "Katakana"),
-                  _buildTab(2, "Kanji"),
+                  _buildTab(0, "Hiragana", isDark),
+                  _buildTab(1, "Katakana", isDark),
+                  _buildTab(2, "Kanji", isDark),
                 ],
               ),
               const SizedBox(height: 24),
-
-              // --- HEADER CARD DINAMIS ---
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD68A60),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: BoxDecoration(color: const Color(0xFFD68A60), borderRadius: BorderRadius.circular(16)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      headerTitle,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22, fontFamily: 'Serif'),
-                    ),
+                    Text(headerTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22, fontFamily: 'Serif')),
                     const SizedBox(height: 8),
-                    Text(
-                      headerDesc,
-                      style: const TextStyle(color: Color(0xFFF7E6D4), fontSize: 13, height: 1.4),
-                    ),
+                    Text(headerDesc, style: const TextStyle(color: Color(0xFFF7E6D4), fontSize: 13, height: 1.4)),
                     const SizedBox(height: 20),
-
-                    // Tombol Start Lesson dihapus, hanya menyisakan Progress di sebelah kanan
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        if (_activeTab != 2) // Sembunyikan progress di tab Kanji
+                        if (_activeTab != 2)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7E6D4),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
                             child: Text(
-                              "${_currentLearned.length} / ${_currentList.length} LEARNED",
+                              "${_currentLearned.length} / ${_currentList.length} ${_t('LEARNED', 'SELESAI')}",
                               style: const TextStyle(color: Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 12),
                             ),
                           )
@@ -152,57 +160,30 @@ class _KanaScreenState extends State<KanaScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // --- GRID HURUF KANA DINAMIS ---
               Expanded(
                 child: _activeTab == 2
-                    ? const Center(
-                  child: Text("Kanji feature is currently under development.", style: TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)),
-                )
+                    ? Center(child: Text(_t("Kanji feature is currently under development.", "Fitur Kanji sedang dalam tahap pengembangan."), style: const TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)))
                     : GridView.builder(
                   physics: const BouncingScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.85,
-                  ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
                   itemCount: _currentList.length,
                   itemBuilder: (context, index) {
                     final item = _currentList[index];
                     final isLearned = _currentLearned.contains(item["kana"]);
-
                     return GestureDetector(
                       onTap: () => _onKanaTapped(index),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isLearned ? const Color(0xFFF7E6D4) : Colors.white,
+                          color: isLearned ? (isDark ? const Color(0xFFCC6633).withValues(alpha: 0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isLearned ? const Color(0xFFC6653B) : const Color(0xFFE8E3DA),
-                            width: isLearned ? 2 : 1,
-                          ),
+                          border: Border.all(color: isLearned ? const Color(0xFFC6653B) : borderColor, width: isLearned ? 2 : 1),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              item["kana"]!,
-                              style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: isLearned ? const Color(0xFFC6653B) : const Color(0xFF3E362E)
-                              ),
-                            ),
+                            Text(item["kana"]!, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isLearned ? const Color(0xFFC6653B) : textColor)),
                             const SizedBox(height: 4),
-                            Text(
-                              item["romaji"]!,
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: isLearned ? const Color(0xFFC6653B) : const Color(0xFFB5B0A8),
-                                  fontWeight: FontWeight.w600
-                              ),
-                            ),
+                            Text(item["romaji"]!, style: TextStyle(fontSize: 10, color: isLearned ? const Color(0xFFC6653B) : const Color(0xFF8C8A87), fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -217,8 +198,7 @@ class _KanaScreenState extends State<KanaScreen> {
     );
   }
 
-  // Widget Helper untuk Tab
-  Widget _buildTab(int index, String title) {
+  Widget _buildTab(int index, String title, bool isDark) {
     bool isActive = _activeTab == index;
     return GestureDetector(
       onTap: () => setState(() => _activeTab = index),
@@ -227,12 +207,12 @@ class _KanaScreenState extends State<KanaScreen> {
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFFC6653B) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: isActive ? null : Border.all(color: const Color(0xFFE8E3DA), width: 1.5),
+          border: isActive ? null : Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA), width: 1.5),
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: isActive ? Colors.white : const Color(0xFF8C8A87),
+            color: isActive ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF8C8A87)),
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -241,12 +221,17 @@ class _KanaScreenState extends State<KanaScreen> {
     );
   }
 
-  // --- WIDGET POP-UP DINAMIS ---
   void _showKanaPopup(BuildContext context, int initialIndex) {
+    final bool isDark = globalDarkMode.value;
+    final Color modalBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFAF7F2);
+    final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
+    final Color cardColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+
     SignatureController controller = SignatureController(
-      penStrokeWidth: 6,
-      penColor: const Color(0xFF3E362E),
-      exportBackgroundColor: Colors.white,
+      penStrokeWidth: 5,
+      penColor: textColor,
+      exportBackgroundColor: cardColor,
     );
 
     int currentIndex = initialIndex;
@@ -262,199 +247,126 @@ class _KanaScreenState extends State<KanaScreen> {
 
             void goToNext() {
               if (currentIndex < _currentList.length - 1) {
-                setStatePopup(() {
-                  currentIndex++;
-                  controller.clear();
-                });
-                setState(() {
-                  _currentLearned.add(_currentList[currentIndex]["kana"]!);
-                });
-                _saveData(); // Simpan ke storage saat pindah huruf
+                setStatePopup(() { currentIndex++; controller.clear(); });
+                setState(() { _currentLearned.add(_currentList[currentIndex]["kana"]!); });
+                _saveData();
               }
             }
 
             void goToPrev() {
               if (currentIndex > 0) {
-                setStatePopup(() {
-                  currentIndex--;
-                  controller.clear();
-                });
-                setState(() {
-                  _currentLearned.add(_currentList[currentIndex]["kana"]!);
-                });
-                _saveData(); // Simpan ke storage saat pindah huruf
+                setStatePopup(() { currentIndex--; controller.clear(); });
+                setState(() { _currentLearned.add(_currentList[currentIndex]["kana"]!); });
+                _saveData();
               }
             }
 
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              backgroundColor: const Color(0xFFFAF7F2),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header Pop-up
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+              backgroundColor: modalBg,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, color: Color(0xFF8C8A87))),
+                        const Spacer(),
+                        Text(_t("Learn Strokes", "Pelajari Coretan"), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
+                        const Spacer(),
+                        const SizedBox(width: 24),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor)),
+                      child: Column(
                         children: [
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: const Icon(Icons.close, color: Color(0xFF3E362E)),
+                          Text(_t("How to draw", "Cara Menulis"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          const SizedBox(height: 12),
+                          Opacity(
+                            opacity: isDark ? 0.85 : 1.0,
+                            child: Image.asset(
+                              _activeTab == 0 ? 'assets/gifs/hiragana_${romaji.toLowerCase()}.gif' : 'assets/gifs/katakana_${romaji.toLowerCase()}.gif',
+                              height: 90,
+                              errorBuilder: (c, e, s) => Text(kana, style: TextStyle(fontSize: 60, color: textColor)),
+                            ),
                           ),
-                          const Text("Learn Strokes", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF3E362E), fontFamily: 'Serif')),
-                          const SizedBox(width: 24),
+                          const SizedBox(height: 8),
+                          Text(romaji, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFFC6653B))),
                         ],
                       ),
-                      const SizedBox(height: 30),
+                    ),
+                    const SizedBox(height: 24),
 
-                      // URUTAN CORETAN (Stroke Order)
-                      const Text(
-                        "How to draw",
-                        style: TextStyle(color: Color(0xFF8C8A87), fontSize: 13, letterSpacing: 0.5),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE8E3DA), width: 1.5),
-                        ),
-                        child: Center(
-                          // LOGIKA BARU: Cek tab yang aktif, lalu gabungkan dengan romaji
-                          child: Image.asset(
-                            _activeTab == 0
-                                ? 'assets/gifs/hiragana_${romaji.toLowerCase()}.gif'
-                                : 'assets/gifs/katakana_${romaji.toLowerCase()}.gif',
-                            fit: BoxFit.contain,
-                            height: 100,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Opacity(
-                                opacity: 0.6,
-                                child: Text(kana, style: const TextStyle(fontSize: 70, color: Color(0xFF3E362E))),
-                              );
-                            },
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_t("Practice", "Latihan"), style: TextStyle(color: textColor, fontWeight: FontWeight.w800)),
+                        GestureDetector(
+                          onTap: () { controller.clear(); setStatePopup(() {}); },
+                          child: Row(
+                            children: [
+                              const Icon(Icons.cleaning_services_rounded, size: 14, color: Color(0xFFC6653B)),
+                              const SizedBox(width: 4),
+                              Text(_t("ERASE", "HAPUS"), style: const TextStyle(color: Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 11)),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Tombol Pronounce
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7E6D4),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                            "Pronounce   $romaji",
-                            style: const TextStyle(color: Color(0xFFC6653B), fontWeight: FontWeight.bold, fontSize: 16)
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-
-                      // AREA LATIHAN MENULIS
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 160,
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor, width: 2)),
+                      child: Stack(
                         children: [
-                          const Text(
-                            "Practice Drawing Below",
-                            style: TextStyle(color: Color(0xFF3E362E), fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              controller.clear();
-                              setStatePopup(() {});
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE8E3DA),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.edit_off_rounded, color: Color(0xFF7A7571), size: 12),
-                                  SizedBox(width: 4),
-                                  Text("ERASE", style: TextStyle(color: Color(0xFF7A7571), fontSize: 10, fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
-                          ),
+                          Center(child: VerticalDivider(color: isDark ? borderColor : const Color(0xFFF0EBE1), thickness: 1)),
+                          Center(child: Divider(color: isDark ? borderColor : const Color(0xFFF0EBE1), thickness: 1)),
+                          Signature(controller: controller, backgroundColor: Colors.transparent),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                    ),
+                    const SizedBox(height: 24),
 
-                      // Kertas Virtual Coretan Jari
-                      Container(
-                        width: double.infinity,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE8E3DA), width: 2),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const Center(child: VerticalDivider(color: Color(0xFFE8E3DA), thickness: 1, width: 1)),
-                            const Center(child: Divider(color: Color(0xFFE8E3DA), thickness: 1, height: 1)),
-                            Signature(
-                              controller: controller,
-                              height: 200,
-                              backgroundColor: Colors.transparent,
+                    // --- NAVIGASI PANAH YANG DIPERBARUI ---
+                    Row(
+                      children: [
+                        if (currentIndex > 0)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: goToPrev,
+                              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                              label: Text(_t("Prev", "Mundur")),
+                              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF8C8A87), side: BorderSide(color: borderColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // --- NAVIGASI BAWAH (PREV & NEXT) ---
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          currentIndex > 0
-                              ? GestureDetector(
-                            onTap: goToPrev,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: const Color(0xFFE8E3DA), width: 2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text("◀ Prev", style: TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold)),
+                          ),
+                        if (currentIndex > 0 && currentIndex < _currentList.length - 1)
+                          const SizedBox(width: 12),
+                        // TOMBOL NEXT HANYA MUNCUL JIKA BUKAN ITEM TERAKHIR
+                        if (currentIndex < _currentList.length - 1)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: goToNext,
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC6653B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                              label: Text(_t("Next", "Maju"), style: const TextStyle(color: Colors.white)),
+                              icon: const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
                             ),
-                          )
-                              : const SizedBox(width: 80),
-
-                          currentIndex < _currentList.length - 1
-                              ? GestureDetector(
-                            onTap: goToNext,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFC6653B),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text("Next ▶", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
-                          )
-                              : const SizedBox(width: 80),
-                        ],
-                      ),
-                    ],
-                  ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             );
           },
         );
       },
-    ).then((_) {
-      controller.dispose();
-    });
+    ).then((_) => controller.dispose());
   }
 }

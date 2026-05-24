@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/top_status_bar.dart';
 
@@ -6,9 +9,28 @@ import 'features/learn/screen_learn.dart';
 import 'features/simulation/screen_simulation.dart';
 import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
-import 'features/login/screen_login.dart'; // Import halaman login
+import 'features/login/screen_auth.dart';
 
-void main() {
+// ==========================================
+// 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
+// ==========================================
+final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
+final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 🔗 INISIALISASI SUPABASE
+  await Supabase.initialize(
+    url: 'https://zvtxkamtmkqsbgoijroc.supabase.co',
+    anonKey:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2dHhrYW10bWtxc2Jnb2lqcm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDQyNjYsImV4cCI6MjA5NDgyMDI2Nn0.7aABG8Tk0JBjxzmtZtaq8kwITHTtQ9dpx0CZVwCwlnY',
+  );
+
+  final prefs = await SharedPreferences.getInstance();
+  globalDarkMode.value = prefs.getBool('setting_dark') ?? false;
+  globalLanguage.value = prefs.getString('setting_lang') ?? 'en';
+
   runApp(const MiraikuApp());
 }
 
@@ -17,15 +39,52 @@ class MiraikuApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Miraiku',
-      theme: ThemeData(
-        fontFamily: 'Serif',
-        scaffoldBackgroundColor: const Color(0xFFF9F6F0),
-      ),
-      // Jalankan halaman login pertama kali
-      home: const ScreenLogin(),
+    return ValueListenableBuilder<bool>(
+      valueListenable: globalDarkMode,
+      builder: (context, isDark, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Miraiku',
+
+          theme: ThemeData(
+            fontFamily: 'Serif',
+            scaffoldBackgroundColor: const Color(0xFFF9F6F0),
+            brightness: Brightness.light,
+          ),
+
+          darkTheme: ThemeData(
+            fontFamily: 'Serif',
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            brightness: Brightness.dark,
+          ),
+
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+
+          // 🔐 CEK LOGIN REALTIME
+          home: StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFCC6633),
+                    ),
+                  ),
+                );
+              }
+
+              final session = snapshot.data?.session;
+
+              if (session != null) {
+                return const MainNavigationScreen();
+              } else {
+                return const AuthScreen();
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -34,12 +93,14 @@ class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState
+    extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-  bool _isUnit1Completed = false; // State global pengunci Unit
+  bool _isUnit1Completed = false;
 
   void _handleUnit1Completed() {
     setState(() {
@@ -47,7 +108,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  // Menggunakan getter agar widget rebuild dengan state terbaru
   List<Widget> get _screens => [
     LearnScreen(
       isUnit1Completed: _isUnit1Completed,
@@ -76,7 +136,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 duration: const Duration(milliseconds: 300),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (Widget child, Animation<double> animation) {
+                transitionBuilder:
+                    (Widget child, Animation<double> animation) {
                   return FadeTransition(
                     opacity: animation,
                     child: SlideTransition(
