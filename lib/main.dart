@@ -6,6 +6,7 @@ import 'features/learn/screen_learn.dart';
 import 'features/simulation/screen_simulation.dart';
 import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
+import 'features/login/screen_login.dart'; // Import halaman login
 
 void main() {
   runApp(const MiraikuApp());
@@ -23,7 +24,8 @@ class MiraikuApp extends StatelessWidget {
         fontFamily: 'Serif',
         scaffoldBackgroundColor: const Color(0xFFF9F6F0),
       ),
-      home: const MainNavigationScreen(),
+      // Jalankan halaman login pertama kali
+      home: const ScreenLogin(),
     );
   }
 }
