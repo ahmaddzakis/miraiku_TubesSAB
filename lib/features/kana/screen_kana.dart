@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+// IMPORT DATABASE LENGKAP YANG BARU KAMU BUAT
+import '../../data/alphabet_data.dart';
 
 class KanaScreen extends StatefulWidget {
   const KanaScreen({super.key});
@@ -17,35 +19,18 @@ class _KanaScreenState extends State<KanaScreen> {
   Set<String> _learnedHiragana = {};
   Set<String> _learnedKatakana = {};
 
-  final List<Map<String, String>> _hiraganaList = [
-    {"kana": "あ", "romaji": "A"}, {"kana": "い", "romaji": "I"}, {"kana": "う", "romaji": "U"}, {"kana": "え", "romaji": "E"}, {"kana": "お", "romaji": "O"},
-    {"kana": "か", "romaji": "KA"}, {"kana": "き", "romaji": "KI"}, {"kana": "く", "romaji": "KU"}, {"kana": "け", "romaji": "KE"}, {"kana": "こ", "romaji": "KO"},
-    {"kana": "さ", "romaji": "SA"}, {"kana": "し", "romaji": "SHI"}, {"kana": "す", "romaji": "SU"}, {"kana": "せ", "romaji": "SE"}, {"kana": "そ", "romaji": "SO"},
-    {"kana": "た", "romaji": "TA"}, {"kana": "ち", "romaji": "CHI"}, {"kana": "つ", "romaji": "TSU"}, {"kana": "て", "romaji": "TE"}, {"kana": "と", "romaji": "TO"},
-    {"kana": "な", "romaji": "NA"}, {"kana": "に", "romaji": "NI"}, {"kana": "ぬ", "romaji": "NU"}, {"kana": "ね", "romaji": "NE"}, {"kana": "の", "romaji": "NO"},
-    {"kana": "は", "romaji": "HA"}, {"kana": "ひ", "romaji": "HI"}, {"kana": "ふ", "romaji": "FU"}, {"kana": "へ", "romaji": "HE"}, {"kana": "ほ", "romaji": "HO"},
-    {"kana": "ま", "romaji": "MA"}, {"kana": "み", "romaji": "MI"}, {"kana": "む", "romaji": "MU"}, {"kana": "め", "romaji": "ME"}, {"kana": "も", "romaji": "MO"},
-    {"kana": "や", "romaji": "YA"}, {"kana": "ゆ", "romaji": "YU"}, {"kana": "よ", "romaji": "YO"},
-    {"kana": "ら", "romaji": "RA"}, {"kana": "り", "romaji": "RI"}, {"kana": "る", "romaji": "RU"}, {"kana": "れ", "romaji": "RE"}, {"kana": "ろ", "romaji": "RO"},
-    {"kana": "わ", "romaji": "WA"}, {"kana": "を", "romaji": "WO"},
-    {"kana": "ん", "romaji": "N"},
-  ];
+  // Fungsi untuk menggabungkan total huruf per tab untuk keperluan progress bar
+  int get _totalCurrentCharacters {
+    if (_activeTab == 0) {
+      return AlphabetData.hiraBasic.length + AlphabetData.hiraDakuon.length +
+          AlphabetData.hiraHandakuon.length + AlphabetData.hiraYoon.length;
+    } else if (_activeTab == 1) {
+      return AlphabetData.kataBasic.length + AlphabetData.kataDakuon.length +
+          AlphabetData.kataHandakuon.length + AlphabetData.kataYoon.length;
+    }
+    return 0;
+  }
 
-  final List<Map<String, String>> _katakanaList = [
-    {"kana": "ア", "romaji": "A"}, {"kana": "イ", "romaji": "I"}, {"kana": "ウ", "romaji": "U"}, {"kana": "エ", "romaji": "E"}, {"kana": "オ", "romaji": "O"},
-    {"kana": "カ", "romaji": "KA"}, {"kana": "キ", "romaji": "KI"}, {"kana": "ク", "romaji": "KU"}, {"kana": "ケ", "romaji": "KE"}, {"kana": "コ", "romaji": "KO"},
-    {"kana": "サ", "romaji": "SA"}, {"kana": "シ", "romaji": "SHI"}, {"kana": "ス", "romaji": "SU"}, {"kana": "セ", "romaji": "SE"}, {"kana": "ソ", "romaji": "SO"},
-    {"kana": "タ", "romaji": "TA"}, {"kana": "チ", "romaji": "CHI"}, {"kana": "ツ", "romaji": "TSU"}, {"kana": "テ", "romaji": "TE"}, {"kana": "ト", "romaji": "TO"},
-    {"kana": "ナ", "romaji": "NA"}, {"kana": "ニ", "romaji": "NI"}, {"kana": "ヌ", "romaji": "NU"}, {"kana": "ネ", "romaji": "NE"}, {"kana": "ノ", "romaji": "NO"},
-    {"kana": "ハ", "romaji": "HA"}, {"kana": "ヒ", "romaji": "HI"}, {"kana": "フ", "romaji": "FU"}, {"kana": "ヘ", "romaji": "HE"}, {"kana": "ホ", "romaji": "HO"},
-    {"kana": "マ", "romaji": "MA"}, {"kana": "ミ", "romaji": "MI"}, {"kana": "ム", "romaji": "MU"}, {"kana": "メ", "romaji": "ME"}, {"kana": "モ", "romaji": "MO"},
-    {"kana": "ヤ", "romaji": "YA"}, {"kana": "ユ", "romaji": "YU"}, {"kana": "ヨ", "romaji": "YO"},
-    {"kana": "ラ", "romaji": "RA"}, {"kana": "リ", "romaji": "RI"}, {"kana": "ル", "romaji": "RU"}, {"kana": "レ", "romaji": "RE"}, {"kana": "ロ", "romaji": "RO"},
-    {"kana": "ワ", "romaji": "WA"}, {"kana": "ヲ", "romaji": "WO"},
-    {"kana": "ン", "romaji": "N"},
-  ];
-
-  List<Map<String, String>> get _currentList => _activeTab == 0 ? _hiraganaList : (_activeTab == 1 ? _katakanaList : []);
   Set<String> get _currentLearned => _activeTab == 0 ? _learnedHiragana : (_activeTab == 1 ? _learnedKatakana : <String>{});
 
   @override
@@ -89,12 +74,13 @@ class _KanaScreenState extends State<KanaScreen> {
     }
   }
 
-  void _onKanaTapped(int index) {
+  // Fungsi saat kotak huruf diklik, melempar data huruf dan kategori list tempat dia berasal (untuk panah navigasi)
+  void _onKanaTapped(Map<String, String> item, List<Map<String, String>> sourceList) {
     setState(() {
-      _currentLearned.add(_currentList[index]["kana"]!);
+      _currentLearned.add(item["jp"]!);
     });
     _saveData();
-    _showKanaPopup(context, index);
+    _showKanaPopup(context, item, sourceList);
   }
 
   String _t(String en, String id) {
@@ -106,23 +92,21 @@ class _KanaScreenState extends State<KanaScreen> {
     final bool isDark = globalDarkMode.value;
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
     final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
-    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
-    final Color gridBgColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
 
     String headerTitle = _activeTab == 0 ? _t("Learning ひらがな", "Belajar ひらがな") : (_activeTab == 1 ? _t("Learning カタカナ", "Belajar カタカナ") : _t("Learning 漢字", "Belajar 漢字"));
     String headerDesc = _activeTab == 0
-        ? _t("Master the 46 basic native Japanese characters.", "Kuasai 46 karakter dasar bahasa Jepang.")
-        : (_activeTab == 1 ? _t("Master the 46 characters used for foreign loanwords.", "Kuasai 46 karakter untuk kata serapan asing.") : _t("Kanji lessons coming soon!", "Pelajaran Kanji akan segera hadir!"));
+        ? _t("Master the basic native Japanese characters including Dakuon and Yoon.", "Kuasai huruf dasar Jepang beserta Dakuon dan Yoon.")
+        : (_activeTab == 1 ? _t("Master the characters used for foreign loanwords.", "Kuasai karakter untuk kata serapan asing.") : _t("Kanji lessons coming soon!", "Pelajaran Kanji akan segera hadir!"));
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              Row(
+        child: Column(
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildTab(0, "Hiragana", isDark),
@@ -130,8 +114,13 @@ class _KanaScreenState extends State<KanaScreen> {
                   _buildTab(2, "Kanji", isDark),
                 ],
               ),
-              const SizedBox(height: 24),
-              Container(
+            ),
+            const SizedBox(height: 24),
+
+            // BANNER ATAS
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(color: const Color(0xFFD68A60), borderRadius: BorderRadius.circular(16)),
@@ -150,7 +139,7 @@ class _KanaScreenState extends State<KanaScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
                             child: Text(
-                              "${_currentLearned.length} / ${_currentList.length} ${_t('LEARNED', 'SELESAI')}",
+                              "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
                               style: const TextStyle(color: Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 12),
                             ),
                           )
@@ -159,42 +148,110 @@ class _KanaScreenState extends State<KanaScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: _activeTab == 2
-                    ? Center(child: Text(_t("Kanji feature is currently under development.", "Fitur Kanji sedang dalam tahap pengembangan."), style: const TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)))
-                    : GridView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
-                  itemCount: _currentList.length,
-                  itemBuilder: (context, index) {
-                    final item = _currentList[index];
-                    final isLearned = _currentLearned.contains(item["kana"]);
-                    return GestureDetector(
-                      onTap: () => _onKanaTapped(index),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isLearned ? (isDark ? const Color(0xFFCC6633).withValues(alpha: 0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isLearned ? const Color(0xFFC6653B) : borderColor, width: isLearned ? 2 : 1),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(item["kana"]!, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isLearned ? const Color(0xFFC6653B) : textColor)),
-                            const SizedBox(height: 4),
-                            Text(item["romaji"]!, style: TextStyle(fontSize: 10, color: isLearned ? const Color(0xFFC6653B) : const Color(0xFF8C8A87), fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+            ),
+            const SizedBox(height: 24),
+
+            // KONTEN ALFABET (BISA DI-SCROLL)
+            Expanded(
+              child: _activeTab == 2
+                  ? Center(child: Text(_t("Kanji feature is currently under development.", "Fitur Kanji sedang dalam tahap pengembangan."), style: const TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)))
+                  : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_activeTab == 0) ...[
+                      _buildSectionTitle("GOJŪON (Basic 46)"),
+                      _buildGrid(AlphabetData.hiraBasic, isDark, crossAxisCount: 5),
+                      const SizedBox(height: 32),
+
+                      _buildSectionTitle("DAKUON"),
+                      _buildGrid(AlphabetData.hiraDakuon, isDark, crossAxisCount: 5),
+                      const SizedBox(height: 32),
+
+                      _buildSectionTitle("HANDAKUON"),
+                      _buildGrid(AlphabetData.hiraHandakuon, isDark, crossAxisCount: 5),
+                      const SizedBox(height: 32),
+
+                      _buildSectionTitle("YŌON"),
+                      _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3), // Yoon butuh space lebih lebar
+                      const SizedBox(height: 100),
+                    ] else if (_activeTab == 1) ...[
+                      _buildSectionTitle("GOJŪON (Basic 46)"),
+                      _buildGrid(AlphabetData.kataBasic, isDark, crossAxisCount: 5),
+                      const SizedBox(height: 32),
+
+                      _buildSectionTitle("DAKUON"),
+                      _buildGrid(AlphabetData.kataDakuon, isDark, crossAxisCount: 5),
+                      const SizedBox(height: 32),
+
+                      _buildSectionTitle("HANDAKUON"),
+                      _buildGrid(AlphabetData.kataHandakuon, isDark, crossAxisCount: 5),
+                      const SizedBox(height: 32),
+
+                      _buildSectionTitle("YŌON"),
+                      _buildGrid(AlphabetData.kataYoon, isDark, crossAxisCount: 3),
+                      const SizedBox(height: 100),
+                    ]
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFB5B0A8), letterSpacing: 1.5),
+      ),
+    );
+  }
+
+  // --- PEMBUAT GRID DINAMIS ---
+  Widget _buildGrid(List<Map<String, String>> dataList, bool isDark, {required int crossAxisCount}) {
+    final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
+    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+    final Color gridBgColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
+
+    return GridView.builder(
+      shrinkWrap: true, // Wajib agar tidak error di dalam ScrollView
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: crossAxisCount == 3 ? 1.2 : 0.85 // Jika 3 kolom (Yoon), buat sedikit lebih lebar
+      ),
+      itemCount: dataList.length,
+      itemBuilder: (context, index) {
+        final item = dataList[index];
+        final isLearned = _currentLearned.contains(item["jp"]);
+        return GestureDetector(
+          onTap: () => _onKanaTapped(item, dataList),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isLearned ? (isDark ? const Color(0xFFCC6633).withValues(alpha: 0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isLearned ? const Color(0xFFC6653B) : borderColor, width: isLearned ? 2 : 1),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(item["jp"]!, style: TextStyle(fontSize: crossAxisCount == 3 ? 20 : 24, fontWeight: FontWeight.bold, color: isLearned ? const Color(0xFFC6653B) : textColor)),
+                const SizedBox(height: 4),
+                Text(item["ro"]!, style: TextStyle(fontSize: 10, color: isLearned ? const Color(0xFFC6653B) : const Color(0xFF8C8A87), fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -211,44 +268,38 @@ class _KanaScreenState extends State<KanaScreen> {
         ),
         child: Text(
           title,
-          style: TextStyle(
-            color: isActive ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF8C8A87)),
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
+          style: TextStyle(color: isActive ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF8C8A87)), fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ),
     );
   }
 
-  void _showKanaPopup(BuildContext context, int initialIndex) {
+  // --- POPUP DRAWING BERDASARKAN SOURCE LIST ---
+  void _showKanaPopup(BuildContext context, Map<String, String> initialItem, List<Map<String, String>> sourceList) {
     final bool isDark = globalDarkMode.value;
     final Color modalBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFAF7F2);
     final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
     final Color cardColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
     final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-    SignatureController controller = SignatureController(
-      penStrokeWidth: 5,
-      penColor: textColor,
-      exportBackgroundColor: cardColor,
-    );
+    SignatureController controller = SignatureController(penStrokeWidth: 5, penColor: textColor, exportBackgroundColor: cardColor);
 
-    int currentIndex = initialIndex;
+    // Cari index posisi awal di dalam source list yang spesifik ini (misal di dalam list hiraYoon)
+    int currentIndex = sourceList.indexOf(initialItem);
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setStatePopup) {
-            final currentItem = _currentList[currentIndex];
-            final kana = currentItem["kana"]!;
-            final romaji = currentItem["romaji"]!;
+            final currentItem = sourceList[currentIndex];
+            final kana = currentItem["jp"]!;
+            final romaji = currentItem["ro"]!;
 
             void goToNext() {
-              if (currentIndex < _currentList.length - 1) {
+              if (currentIndex < sourceList.length - 1) {
                 setStatePopup(() { currentIndex++; controller.clear(); });
-                setState(() { _currentLearned.add(_currentList[currentIndex]["kana"]!); });
+                setState(() { _currentLearned.add(sourceList[currentIndex]["jp"]!); });
                 _saveData();
               }
             }
@@ -256,7 +307,7 @@ class _KanaScreenState extends State<KanaScreen> {
             void goToPrev() {
               if (currentIndex > 0) {
                 setStatePopup(() { currentIndex--; controller.clear(); });
-                setState(() { _currentLearned.add(_currentList[currentIndex]["kana"]!); });
+                setState(() { _currentLearned.add(sourceList[currentIndex]["jp"]!); });
                 _saveData();
               }
             }
@@ -334,7 +385,6 @@ class _KanaScreenState extends State<KanaScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // --- NAVIGASI PANAH YANG DIPERBARUI ---
                     Row(
                       children: [
                         if (currentIndex > 0)
@@ -346,10 +396,9 @@ class _KanaScreenState extends State<KanaScreen> {
                               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF8C8A87), side: BorderSide(color: borderColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                             ),
                           ),
-                        if (currentIndex > 0 && currentIndex < _currentList.length - 1)
+                        if (currentIndex > 0 && currentIndex < sourceList.length - 1)
                           const SizedBox(width: 12),
-                        // TOMBOL NEXT HANYA MUNCUL JIKA BUKAN ITEM TERAKHIR
-                        if (currentIndex < _currentList.length - 1)
+                        if (currentIndex < sourceList.length - 1)
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: goToNext,

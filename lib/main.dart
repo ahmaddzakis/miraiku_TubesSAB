@@ -9,7 +9,8 @@ import 'features/learn/screen_learn.dart';
 import 'features/simulation/screen_simulation.dart';
 import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
-import 'features/login/screen_auth.dart'; // IMPORT WAJIB UNTUK HALAMAN LOGIN
+import 'features/login/screen_auth.dart';
+import 'core/game_manager.dart';
 
 // ==========================================
 // 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
@@ -29,6 +30,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   globalDarkMode.value = prefs.getBool('setting_dark') ?? false;
   globalLanguage.value = prefs.getString('setting_lang') ?? 'en';
+  await GameManager.init();
 
   runApp(const MiraikuApp());
 }

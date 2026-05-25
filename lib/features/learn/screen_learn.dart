@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart'; // Wajib ditambahkan untuk memanggil global state
+import '../../main.dart';
 import '../../widgets/path_node.dart';
 import 'widget_learn.dart';
 import 'screen_exercise.dart';
@@ -21,19 +21,13 @@ class LearnScreen extends StatefulWidget {
 
 class _LearnScreenState extends State<LearnScreen> {
   // --- STATE UNIT 1 ---
-  int _u1BasicStars = 0;
-  int _u1MediumStars = 0;
-  int _u1NumbersStars = 0;
-  int _u1VerbsStars = 0;
-  int _u1TestStars = 0;
+  int _u1Hira1Stars = 0, _u1Hira2Stars = 0, _u1Hira3Stars = 0, _u1Hira4Stars = 0;
+  int _u1GreetStars = 0, _u1NumStars = 0, _u1TestCompleted = 0;
 
-  // --- STATE UNIT 2 (Katakana) ---
-  int _u2BasicStars = 0;
-  int _u2WordsStars = 0;
-  int _u2LoanwordsStars = 0;
-  int _u2TestStars = 0;
+  // --- STATE UNIT 2 (DIPERLUAS 4 Katakana, 2 Kata) ---
+  int _u2Kata1Stars = 0, _u2Kata2Stars = 0, _u2Kata3Stars = 0, _u2Kata4Stars = 0;
+  int _u2Words1Stars = 0, _u2Words2Stars = 0, _u2TestCompleted = 0;
 
-  // Nyawa global pengguna (Default: 5)
   int _userHearts = 5;
 
   @override
@@ -45,16 +39,22 @@ class _LearnScreenState extends State<LearnScreen> {
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _u1BasicStars = prefs.getInt('u1_basic_stars') ?? 0;
-      _u1MediumStars = prefs.getInt('u1_medium_stars') ?? 0;
-      _u1NumbersStars = prefs.getInt('u1_numbers_stars') ?? 0;
-      _u1VerbsStars = prefs.getInt('u1_verbs_stars') ?? 0;
-      _u1TestStars = prefs.getInt('u1_test_stars') ?? 0;
+      _u1Hira1Stars = prefs.getInt('u1_hira1_stars') ?? 0;
+      _u1Hira2Stars = prefs.getInt('u1_hira2_stars') ?? 0;
+      _u1Hira3Stars = prefs.getInt('u1_hira3_stars') ?? 0;
+      _u1Hira4Stars = prefs.getInt('u1_hira4_stars') ?? 0;
+      _u1GreetStars = prefs.getInt('u1_greet_stars') ?? 0;
+      _u1NumStars = prefs.getInt('u1_num_stars') ?? 0;
+      _u1TestCompleted = prefs.getInt('u1_test_stars') ?? 0;
 
-      _u2BasicStars = prefs.getInt('u2_basic_stars') ?? 0;
-      _u2WordsStars = prefs.getInt('u2_words_stars') ?? 0;
-      _u2LoanwordsStars = prefs.getInt('u2_loanwords_stars') ?? 0;
-      _u2TestStars = prefs.getInt('u2_test_stars') ?? 0;
+      // Katakana States
+      _u2Kata1Stars = prefs.getInt('u2_kata1_stars') ?? 0;
+      _u2Kata2Stars = prefs.getInt('u2_kata2_stars') ?? 0;
+      _u2Kata3Stars = prefs.getInt('u2_kata3_stars') ?? 0;
+      _u2Kata4Stars = prefs.getInt('u2_kata4_stars') ?? 0;
+      _u2Words1Stars = prefs.getInt('u2_words1_stars') ?? 0;
+      _u2Words2Stars = prefs.getInt('u2_words2_stars') ?? 0;
+      _u2TestCompleted = prefs.getInt('u2_test_stars') ?? 0;
 
       _userHearts = prefs.getInt('user_hearts') ?? 5;
     });
@@ -70,17 +70,18 @@ class _LearnScreenState extends State<LearnScreen> {
     await prefs.setInt('user_hearts', value);
   }
 
-  // --- FUNGSI TRANSLATE OTOMATIS ---
   String _t(String en, String id) {
     return globalLanguage.value == 'id' ? id : en;
   }
 
   @override
   Widget build(BuildContext context) {
-    // --- VARIABEL WARNA DINAMIS ---
     final bool isDark = globalDarkMode.value;
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
     final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+
+    // Kunci Pembuka Unit 2
+    bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -92,204 +93,95 @@ class _LearnScreenState extends State<LearnScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              const UnitHeaderCard(), // Catatan: Widget ini mungkin perlu kamu update juga ke depannya agar mendukung Dark Mode
+              const UnitHeaderCard(),
               const SizedBox(height: 40),
 
-              // ==================== UNIT 1: HIRAGANA & BASICS ====================
-              _buildClickableNode(
-                context: context,
-                title: _t("Hiragana Basics", "Dasar Hiragana"),
-                stars: _u1BasicStars,
-                status: _u1BasicStars >= 3 ? NodeStatus.completed : NodeStatus.current,
-                alignment: Alignment.centerLeft,
-                unit: 1,
-                difficulty: 'basic',
-                onSuccess: () {
-                  setState(() {
-                    if (_u1BasicStars < 3) {
-                      _u1BasicStars++;
-                      _saveStarProgress('u1_basic_stars', _u1BasicStars);
-                    }
-                  });
-                },
-              ),
+              // ==================== UNIT 1 ====================
+              _buildClickableNode(context, _t("Hiragana Basics 1", "Hiragana Dasar 1"), _u1Hira1Stars, _u1Hira1Stars >= 3 ? NodeStatus.completed : NodeStatus.current, 1, 'hiragana_1', () {
+                setState(() { if (_u1Hira1Stars < 3) { _u1Hira1Stars++; _saveStarProgress('u1_hira1_stars', _u1Hira1Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Hiragana Basics 2", "Hiragana Dasar 2"), _u1Hira2Stars, _u1Hira2Stars >= 3 ? NodeStatus.completed : (_u1Hira1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_2', () {
+                setState(() { if (_u1Hira2Stars < 3) { _u1Hira2Stars++; _saveStarProgress('u1_hira2_stars', _u1Hira2Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Hiragana Basics 3", "Hiragana Dasar 3"), _u1Hira3Stars, _u1Hira3Stars >= 3 ? NodeStatus.completed : (_u1Hira2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_3', () {
+                setState(() { if (_u1Hira3Stars < 3) { _u1Hira3Stars++; _saveStarProgress('u1_hira3_stars', _u1Hira3Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Hiragana Basics 4", "Hiragana Dasar 4"), _u1Hira4Stars, _u1Hira4Stars >= 3 ? NodeStatus.completed : (_u1Hira3Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_4', () {
+                setState(() { if (_u1Hira4Stars < 3) { _u1Hira4Stars++; _saveStarProgress('u1_hira4_stars', _u1Hira4Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Daily Greetings", "Salam Sehari-hari"), _u1GreetStars, _u1GreetStars >= 3 ? NodeStatus.completed : (_u1Hira4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'greetings', () {
+                setState(() { if (_u1GreetStars < 3) { _u1GreetStars++; _saveStarProgress('u1_greet_stars', _u1GreetStars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Numbers & Time", "Angka & Waktu"), _u1NumStars, _u1NumStars >= 3 ? NodeStatus.completed : (_u1GreetStars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'numbers', () {
+                setState(() { if (_u1NumStars < 3) { _u1NumStars++; _saveStarProgress('u1_num_stars', _u1NumStars); } });
+              }),
               _buildLeftConnector(borderColor),
 
+              // UNIT TEST 1 (Tanpa Bintang, Langsung Tamat 1x Main)
               _buildClickableNode(
-                context: context,
-                title: _t("Daily Greetings", "Salam Sehari-hari"),
-                stars: _u1MediumStars,
-                status: _u1MediumStars >= 3
-                    ? NodeStatus.completed
-                    : (_u1BasicStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 1,
-                difficulty: 'medium',
-                onSuccess: () {
-                  setState(() {
-                    if (_u1MediumStars < 3) {
-                      _u1MediumStars++;
-                      _saveStarProgress('u1_medium_stars', _u1MediumStars);
-                    }
-                  });
-                },
-              ),
-              _buildLeftConnector(borderColor),
-
-              _buildClickableNode(
-                context: context,
-                title: _t("Numbers & Time", "Angka & Waktu"),
-                stars: _u1NumbersStars,
-                status: _u1NumbersStars >= 3
-                    ? NodeStatus.completed
-                    : (_u1MediumStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 1,
-                difficulty: 'medium',
-                onSuccess: () {
-                  setState(() {
-                    if (_u1NumbersStars < 3) {
-                      _u1NumbersStars++;
-                      _saveStarProgress('u1_numbers_stars', _u1NumbersStars);
-                    }
-                  });
-                },
-              ),
-              _buildLeftConnector(borderColor),
-
-              _buildClickableNode(
-                context: context,
-                title: _t("JLPT N5 Verbs", "Kata Kerja N5"),
-                stars: _u1VerbsStars,
-                status: _u1VerbsStars >= 3
-                    ? NodeStatus.completed
-                    : (_u1NumbersStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 1,
-                difficulty: 'medium',
-                onSuccess: () {
-                  setState(() {
-                    if (_u1VerbsStars < 3) {
-                      _u1VerbsStars++;
-                      _saveStarProgress('u1_verbs_stars', _u1VerbsStars);
-                    }
-                  });
-                },
-              ),
-              _buildLeftConnector(borderColor),
-
-              _buildClickableNode(
-                context: context,
-                title: _t("Unit Test\n30 min", "Ujian Unit\n30 mnt"),
-                stars: _u1TestStars,
-                status: _u1TestStars >= 3
-                    ? NodeStatus.completed
-                    : (_u1VerbsStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 1,
-                difficulty: 'hard',
-                onSuccess: () {
-                  setState(() {
-                    if (_u1TestStars < 3) {
-                      _u1TestStars++;
-                      _saveStarProgress('u1_test_stars', _u1TestStars);
-                      if (_u1TestStars == 3) {
-                        widget.onUnit1Completed();
-                      }
-                    }
-                  });
-                },
+                context, _t("Unit Test\n20 min", "Ujian Unit\n20 mnt"), 0,
+                _u1TestCompleted >= 1 ? NodeStatus.completed : (_u1NumStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                1, 'test', () {
+                setState(() {
+                  if (_u1TestCompleted == 0) {
+                    _u1TestCompleted = 1;
+                    _saveStarProgress('u1_test_stars', 1);
+                    widget.onUnit1Completed(); // Buka gembok Unit 2
+                  }
+                });
+              },
               ),
 
               const SizedBox(height: 40),
               Divider(thickness: 2, color: borderColor),
               const SizedBox(height: 20),
 
-              // ==================== UNIT 2: KATAKANA EXPANSION ====================
-              _buildUnit2Header(isDark),
+              // ==================== UNIT 2 (DESAIN KONSISTEN) ====================
+              _buildUnit2HeaderCard(isDark, isUnit2Unlocked), // 🔥 Desain Header Baru!
               const SizedBox(height: 40),
 
-              _buildClickableNode(
-                context: context,
-                title: _t("Katakana Basics", "Dasar Katakana"),
-                stars: _u2BasicStars,
-                status: _u2BasicStars >= 3
-                    ? NodeStatus.completed
-                    : (widget.isUnit1Completed ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 2,
-                difficulty: 'basic',
-                onSuccess: () {
-                  setState(() {
-                    if (_u2BasicStars < 3) {
-                      _u2BasicStars++;
-                      _saveStarProgress('u2_basic_stars', _u2BasicStars);
-                    }
-                  });
-                },
-              ),
+              _buildClickableNode(context, _t("Katakana Basics 1", "Katakana Dasar 1"), _u2Kata1Stars, _u2Kata1Stars >= 3 ? NodeStatus.completed : (isUnit2Unlocked ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_1', () {
+                setState(() { if (_u2Kata1Stars < 3) { _u2Kata1Stars++; _saveStarProgress('u2_kata1_stars', _u2Kata1Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Katakana Basics 2", "Katakana Dasar 2"), _u2Kata2Stars, _u2Kata2Stars >= 3 ? NodeStatus.completed : (_u2Kata1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_2', () {
+                setState(() { if (_u2Kata2Stars < 3) { _u2Kata2Stars++; _saveStarProgress('u2_kata2_stars', _u2Kata2Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Katakana Basics 3", "Katakana Dasar 3"), _u2Kata3Stars, _u2Kata3Stars >= 3 ? NodeStatus.completed : (_u2Kata2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_3', () {
+                setState(() { if (_u2Kata3Stars < 3) { _u2Kata3Stars++; _saveStarProgress('u2_kata3_stars', _u2Kata3Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Katakana Basics 4", "Katakana Dasar 4"), _u2Kata4Stars, _u2Kata4Stars >= 3 ? NodeStatus.completed : (_u2Kata3Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_4', () {
+                setState(() { if (_u2Kata4Stars < 3) { _u2Kata4Stars++; _saveStarProgress('u2_kata4_stars', _u2Kata4Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Katakana Words 1", "Kosakata Katakana 1"), _u2Words1Stars, _u2Words1Stars >= 3 ? NodeStatus.completed : (_u2Kata4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words_1', () {
+                setState(() { if (_u2Words1Stars < 3) { _u2Words1Stars++; _saveStarProgress('u2_words1_stars', _u2Words1Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Katakana Words 2", "Kosakata Katakana 2"), _u2Words2Stars, _u2Words2Stars >= 3 ? NodeStatus.completed : (_u2Words1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words_2', () {
+                setState(() { if (_u2Words2Stars < 3) { _u2Words2Stars++; _saveStarProgress('u2_words2_stars', _u2Words2Stars); } });
+              }),
               _buildLeftConnector(borderColor),
 
+              // UNIT TEST 2
               _buildClickableNode(
-                context: context,
-                title: _t("Katakana Words", "Kosakata Katakana"),
-                stars: _u2WordsStars,
-                status: _u2WordsStars >= 3
-                    ? NodeStatus.completed
-                    : (_u2BasicStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 2,
-                difficulty: 'medium',
-                onSuccess: () {
-                  setState(() {
-                    if (_u2WordsStars < 3) {
-                      _u2WordsStars++;
-                      _saveStarProgress('u2_words_stars', _u2WordsStars);
-                    }
-                  });
-                },
-              ),
-              _buildLeftConnector(borderColor),
-
-              _buildClickableNode(
-                context: context,
-                title: _t("Foreign Loanwords", "Kata Serapan Asing"),
-                stars: _u2LoanwordsStars,
-                status: _u2LoanwordsStars >= 3
-                    ? NodeStatus.completed
-                    : (_u2WordsStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 2,
-                difficulty: 'medium',
-                onSuccess: () {
-                  setState(() {
-                    if (_u2LoanwordsStars < 3) {
-                      _u2LoanwordsStars++;
-                      _saveStarProgress('u2_loanwords_stars', _u2LoanwordsStars);
-                    }
-                  });
-                },
-              ),
-              _buildLeftConnector(borderColor),
-
-              _buildClickableNode(
-                context: context,
-                title: _t("Unit 2 Test\n30 min", "Ujian Unit 2\n30 mnt"),
-                stars: _u2TestStars,
-                status: _u2TestStars >= 3
-                    ? NodeStatus.completed
-                    : (_u2LoanwordsStars >= 3 ? NodeStatus.current : NodeStatus.locked),
-                alignment: Alignment.centerLeft,
-                unit: 2,
-                difficulty: 'hard',
-                onSuccess: () {
-                  setState(() {
-                    if (_u2TestStars < 3) {
-                      _u2TestStars++;
-                      _saveStarProgress('u2_test_stars', _u2TestStars);
-                    }
-                  });
-                },
+                context, _t("Unit 2 Test\n20 min", "Ujian Unit 2\n20 mnt"), 0,
+                _u2TestCompleted >= 1 ? NodeStatus.completed : (_u2Words2Stars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                2, 'test', () {
+                setState(() {
+                  if (_u2TestCompleted == 0) {
+                    _u2TestCompleted = 1;
+                    _saveStarProgress('u2_test_stars', 1);
+                  }
+                });
+              },
               ),
 
               const SizedBox(height: 100),
@@ -300,152 +192,63 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
-  Widget _buildLeftConnector(Color borderColor) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(left: 28),
-      child: Container(
-        width: 6,
-        height: 35,
-        decoration: BoxDecoration(
-          color: borderColor,
-          borderRadius: BorderRadius.circular(3),
-        ),
-      ),
+  // --- HELPER BUILDER ---
+  Widget _buildLeftConnector(Color color) => Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 28), child: Container(width: 6, height: 35, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))));
+
+  Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess) {
+    return GestureDetector(
+      onTap: status == NodeStatus.locked ? null : () {
+        if (_userHearts <= 0) { _showNoHeartsDialog(); return; }
+        Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: stars, currentHearts: _userHearts, onQuizPassed: onSuccess, onHeartDecreased: (h) { setState(() { _userHearts = h; _saveHearts(_userHearts); }); })));
+      },
+      child: PathNode(title: title, status: status, stars: stars, alignment: Alignment.centerLeft, onReplaySelected: (selectedStarIndex) {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: selectedStarIndex)));
+      }),
     );
   }
 
-  Widget _buildClickableNode({
-    required BuildContext context,
-    required String title,
-    required int stars,
-    required NodeStatus status,
-    required Alignment alignment,
-    required int unit,
-    required String difficulty,
-    required VoidCallback onSuccess,
-  }) {
-    return GestureDetector(
-      onTap: status == NodeStatus.locked
-          ? null
-          : () {
-        if (_userHearts <= 0) {
-          _showNoHeartsDialog();
-          return;
-        }
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ExerciseScreen(
-              unit: unit,
-              difficulty: difficulty,
-              currentStars: stars,
-              currentHearts: _userHearts,
-              onQuizPassed: onSuccess,
-              onHeartDecreased: (updatedHearts) {
-                setState(() {
-                  _userHearts = updatedHearts;
-                  _saveHearts(_userHearts);
-                });
-              },
-            ),
+  // 🔥 FUNGSI HEADER BARU: DESAIN MIRIP UNIT 1 (KOTAK BESAR, TEKS BERTUMPUK)
+  Widget _buildUnit2HeaderCard(bool isDark, bool unlocked) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        // Menggunakan hijau khas Duolingo/Miraiku jika terbuka
+        color: unlocked ? const Color(0xFF58CC02) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'UNIT 2',
+              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
-        );
-      },
-      child: PathNode(
-        title: title,
-        status: status,
-        alignment: alignment,
-        stars: stars,
+          const SizedBox(height: 8),
+          Text(
+              _t('KATAKANA & LOANWORDS', 'KATAKANA & KATA SERAPAN'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
+          ),
+          const SizedBox(height: 12),
+          Text(
+              unlocked ? _t('Learn the second alphabet system for foreign words', 'Pelajari sistem alfabet kedua untuk kata serapan asing') : _t('Complete Unit 1 Test to unlock', 'Selesaikan Ujian Unit 1 untuk membuka akses'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
+          ),
+        ],
       ),
     );
   }
 
   void _showNoHeartsDialog() {
     final bool isDark = globalDarkMode.value;
-    final Color modalBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F6F0);
-    final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
-    final Color subTextColor = isDark ? Colors.white70 : Colors.black87;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: modalBg,
-        title: Text(
-          _t('💔 Out of Hearts!', '💔 Nyawa Anda Habis!'),
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-          textAlign: TextAlign.center,
-        ),
-        content: Text(
-          _t(
-              'You cannot start a new lesson. Please wait or restore your hearts.',
-              'Anda tidak dapat memulai latihan baru. Silakan tunggu beberapa saat atau pulihkan nyawa.'
-          ),
-          textAlign: TextAlign.center,
-          style: TextStyle(color: subTextColor),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(_t('UNDERSTOOD', 'MENGERTI'), style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.bold)),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnit2Header(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: widget.isUnit1Completed
-            ? const Color(0xFF558B2F)
-            : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFDCD8CF)), // Penyesuaian warna gembok terkunci saat Dark Mode
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA)),
-        boxShadow: widget.isUnit1Completed ? [
-          BoxShadow(
-            color: const Color(0xFF558B2F).withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ] : [],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                    'UNIT 2',
-                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5)
-                ),
-                const SizedBox(height: 4),
-                Text(
-                    _t('KATAKANA & LOANWORDS', 'KATAKANA & KATA SERAPAN'),
-                    style: TextStyle(color: widget.isUnit1Completed ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF2D2622)), fontSize: 18, fontWeight: FontWeight.w900)
-                ),
-                const SizedBox(height: 8),
-                Text(
-                    widget.isUnit1Completed
-                        ? _t('Let\'s learn the second alphabet system!', 'Mari pelajari sistem alfabet untuk bahasa asing!')
-                        : _t('Complete all Unit 1 stages to unlock', 'Selesaikan seluruh tahapan Unit 1 untuk membuka'),
-                    style: TextStyle(color: widget.isUnit1Completed ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 12)
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Icon(
-              widget.isUnit1Completed ? Icons.lock_open_rounded : Icons.lock_rounded,
-              color: widget.isUnit1Completed ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
-              size: 32
-          ),
-        ],
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F6F0),
+        title: Text(_t('💔 Out of Hearts!', '💔 Nyawa Anda Habis!'), style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF2D2622)), textAlign: TextAlign.center),
+        content: Text(_t('You cannot start a new lesson. Please wait or restore your hearts.', 'Anda tidak dapat memulai latihan baru. Silakan tunggu beberapa saat atau pulihkan nyawa.'), textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(_t('UNDERSTOOD', 'MENGERTI'), style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.bold)))],
       ),
     );
   }
