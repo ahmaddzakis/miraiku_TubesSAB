@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import '../../main.dart';
+import '../../main.dart'; // Pastikan globalLearnedHiragana & Katakana ada di sini
+import '../../core/game_manager.dart';
 import 'screen_settings.dart';
 import 'screen_notifications.dart';
 
@@ -34,9 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isUploading = false;
 
   // Data Statistik Dinamis
-  int _totalXp = 0;
-  int _streakDays = 0;
   int _wordsLearned = 0;
+  int _highScoreSimulation = 0;
 
   @override
   void initState() {
@@ -60,38 +60,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadLocalStats() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _totalXp = prefs.getInt('total_xp') ?? 0;
-      _streakDays = prefs.getInt('streak_days') ?? 0;
       _wordsLearned = prefs.getInt('words_learned') ?? 0;
+      _highScoreSimulation = prefs.getInt('high_score_sim') ?? 0;
     });
+
+    // Sinkronisasi data lokal ke Global Variable saat pertama kali load
+    globalLearnedHiragana.value = prefs.getInt('learned_hiragana') ?? 0;
+    globalLearnedKatakana.value = prefs.getInt('learned_katakana') ?? 0;
   }
 
-  // --- LOGIKA GAMBAR AVATAR (LOKAL VS INTERNET) ---
   ImageProvider _getAvatarImage() {
     if (_avatarUrl.isNotEmpty && _avatarUrl.startsWith('http')) {
       return NetworkImage(_avatarUrl);
     } else {
-      // PERBAIKAN: Pastikan Anda sudah mem-Run ulang aplikasi setelah Pub Get
       return const AssetImage('assets/images/profileDefault.png');
     }
   }
 
-  // --- FUNGSI UPLOAD & CROP FOTO KE SUPABASE (MAX 5MB) ---
   Future<void> _uploadProfilePicture(StateSetter setModalState) async {
     final picker = ImagePicker();
-
-    // 1. Pilih gambar dari galeri (PERBAIKAN: Memaksa picker hanya menampilkan gambar)
-    final XFile? pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 100, // Ambil kualitas penuh untuk di-crop
-    );
-
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (pickedFile == null) return;
 
-    // 2. Buka layar penyesuaian (Crop)
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: pickedFile.path,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Paksa kotak
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: _t('Adjust Photo', 'Sesuaikan Foto'),
@@ -101,33 +94,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           lockAspectRatio: true,
           hideBottomControls: true,
         ),
-        IOSUiSettings(
-          title: _t('Adjust Photo', 'Sesuaikan Foto'),
-          aspectRatioLockEnabled: true,
-        ),
+        IOSUiSettings(title: _t('Adjust Photo', 'Sesuaikan Foto'), aspectRatioLockEnabled: true),
       ],
     );
 
     if (croppedFile == null) return;
 
-    // 3. Cek ukuran file (Maksimal 5MB)
     final file = File(croppedFile.path);
-    final fileSizeInBytes = await file.length();
-    final fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+    final fileSizeInMB = (await file.length()) / (1024 * 1024);
 
     if (fileSizeInMB > 5.0) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_t("Image too large! Maximum size is 5MB.", "Gambar terlalu besar! Ukuran maksimal 5MB.")),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Image too large! Max 5MB.", "Gambar terlalu besar! Maks 5MB.")), backgroundColor: Colors.red));
       return;
     }
 
-    // 4. Mulai proses upload ke Supabase
     setModalState(() => _isUploading = true);
     setState(() => _isUploading = true);
 
@@ -137,20 +117,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final filePath = '/$fileName';
 
-      // Upload ke bucket 'avatars' (Pastikan bucket 'avatars' sudah Public di dashboard Supabase)
       await _supabase.storage.from('avatars').uploadBinary(filePath, bytes);
-
-      // Dapatkan URL publik
       final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
 
-      // Simpan URL ke data user
       await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': imageUrl}));
-
       setState(() => _avatarUrl = imageUrl);
 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile picture updated!", "Foto profil diperbarui!"))));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile picture updated!", "Foto profil diperbarui!")), backgroundColor: Colors.green));
     } catch (e) {
-      debugPrint("Upload error: $e");
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Failed to upload image.", "Gagal mengunggah gambar.")), backgroundColor: Colors.red));
     } finally {
       setModalState(() => _isUploading = false);
@@ -163,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _supabase.auth.updateUser(UserAttributes(data: {'display_name': name, 'bio': desc}));
       setState(() { _userName = name; _userDesc = desc; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile updated successfully!", "Profil Berhasil Diperbarui!"))));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile updated successfully!", "Profil Berhasil Diperbarui!")), backgroundColor: Colors.green));
     } on AuthException catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red));
     } finally {
@@ -171,9 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  String _t(String en, String id) {
-    return globalLanguage.value == 'id' ? id : en;
-  }
+  String _t(String en, String id) => globalLanguage.value == 'id' ? id : en;
 
   void _showEditProfileModal() {
     final TextEditingController nameController = TextEditingController(text: _userName);
@@ -202,8 +174,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
                       Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                       const SizedBox(height: 24),
-
-                      // --- AVATAR DI MODAL ---
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
@@ -218,26 +188,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 32),
-
-                      TextField(
-                        controller: nameController,
-                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                        decoration: InputDecoration(labelText: _t("Display Name", "Nama Tampilan"), labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold), filled: true, fillColor: fieldBg, prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFFB5B0A8)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: isDark ? 0.1 : 1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2))),
-                      ),
+                      TextField(controller: nameController, style: TextStyle(fontWeight: FontWeight.bold, color: textColor), decoration: InputDecoration(labelText: _t("Display Name", "Nama Tampilan"), labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold), filled: true, fillColor: fieldBg, prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFFB5B0A8)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: isDark ? 0.1 : 1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)))),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: descController,
-                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                        decoration: InputDecoration(
-                            labelText: "Bio", // Teks diubah menjadi Bio saja
-                            labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
-                            filled: true,
-                            fillColor: fieldBg,
-                            prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)), // Ikon diubah
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: isDark ? 0.1 : 1))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2))
-                        ),
-                      ),
+                      TextField(controller: descController, style: TextStyle(fontWeight: FontWeight.bold, color: textColor), decoration: InputDecoration(labelText: "Bio", labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold), filled: true, fillColor: fieldBg, prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: isDark ? 0.1 : 1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)))),
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity, height: 54,
@@ -245,7 +198,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: _isSaving ? null : () async {
                             setModalState(() => _isSaving = true);
                             await _saveProfileData(nameController.text, descController.text);
-                            if (mounted) { setModalState(() => _isSaving = false); Navigator.pop(context); }
+
+                            if (!context.mounted) return;
+
+                            setModalState(() => _isSaving = false);
+                            Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
                           child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : Text(_t("Save Changes", "Simpan Perubahan"), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -277,150 +234,190 @@ class _ProfileScreenState extends State<ProfileScreen> {
         physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
+          child: ValueListenableBuilder<int>(
+              valueListenable: globalXP,
+              builder: (context, currentXP, _) {
+                return ValueListenableBuilder<int>(
+                    valueListenable: globalStreak,
+                    builder: (context, currentStreak, _) {
+                      // 🔥 LISTENER BARU UNTUK ALFABET AGAR PROGRESS BAR JALAN
+                      return ValueListenableBuilder<int>(
+                          valueListenable: globalLearnedHiragana,
+                          builder: (context, hiraganaCount, _) {
+                            return ValueListenableBuilder<int>(
+                                valueListenable: globalLearnedKatakana,
+                                builder: (context, katakanaCount, _) {
 
-              // --- AVATAR DI HALAMAN UTAMA ---
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: const Color(0xFFCC6633).withValues(alpha: 0.2), shape: BoxShape.circle),
-                      child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Color(0xFFCC6633), shape: BoxShape.circle),
-                          child: CircleAvatar(radius: 55, backgroundImage: _getAvatarImage(), backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA))
-                      )
-                  ),
-                  GestureDetector(
-                      onTap: _showEditProfileModal,
-                      child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, border: Border.all(color: bgColor, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))]), child: const Icon(Icons.edit_rounded, size: 18, color: Color(0xFFCC6633)))
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(_userName, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textColor)),
-              const SizedBox(height: 6),
-              Text(_userDesc, style: TextStyle(color: subTextColor, fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(_userEmail, style: TextStyle(color: subTextColor.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 30),
+                                  int completedCount = 0;
+                                  if (hiraganaCount >= 104) completedCount++;
+                                  if (katakanaCount >= 104) completedCount++;
+                                  if (_highScoreSimulation >= 100) completedCount++;
+                                  if (currentXP >= 5000) completedCount++;
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildStatCircle(value: "$_totalXp", label: "TOTAL XP", icon: Icons.bolt_rounded, iconColor: const Color(0xFFCC6633), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
-                  _buildStatCircle(value: "$_streakDays", label: _t("DAYS STREAK", "REKOR HARI"), icon: Icons.local_fire_department_rounded, iconColor: const Color(0xFFB85C2A), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
-                  _buildStatCircle(value: "$_wordsLearned/700", label: _t("WORDS (N5)", "KATA (N5)"), icon: Icons.menu_book_rounded, iconColor: const Color(0xFFE08B4B), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
-                ],
-              ),
-              const SizedBox(height: 24),
+                                  return Column(
+                                    children: [
+                                      const SizedBox(height: 60),
 
-              Container(
-                width: double.infinity, padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: isDark ? 0.01 : 0.05), blurRadius: 20, offset: const Offset(0, 10))]),
-                child: Row(
-                  children: [
-                    Container(width: 56, height: 56, decoration: BoxDecoration(color: isDark ? const Color(0xFF3A2415) : const Color(0xFFFFF4E8), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.local_fire_department_rounded, color: Color(0xFFCC6633), size: 30)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_t("Daily Goal", "Target Harian"), style: TextStyle(fontSize: 13, color: subTextColor, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(_totalXp == 0 ? _t("Start your first lesson!", "Mulai pelajaran pertamamu!") : _t("Keep it up!", "Terus berjuang!"), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor)),
-                          const SizedBox(height: 8),
-                          ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: _totalXp == 0 ? 0.0 : 0.75, minHeight: 6, backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFCC6633)))),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(_totalXp == 0 ? "0%" : "75%", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFCC6633))),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
+                                      Stack(
+                                        alignment: Alignment.bottomRight,
+                                        children: [
+                                          Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(color: const Color(0xFFCC6633).withValues(alpha: 0.2), shape: BoxShape.circle),
+                                              child: Container(
+                                                  padding: const EdgeInsets.all(4),
+                                                  decoration: const BoxDecoration(color: Color(0xFFCC6633), shape: BoxShape.circle),
+                                                  child: CircleAvatar(radius: 55, backgroundImage: _getAvatarImage(), backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA))
+                                              )
+                                          ),
+                                          GestureDetector(
+                                              onTap: _showEditProfileModal,
+                                              child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, border: Border.all(color: bgColor, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))]), child: const Icon(Icons.edit_rounded, size: 18, color: Color(0xFFCC6633)))
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(_userName, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textColor)),
+                                      const SizedBox(height: 6),
+                                      Text(_userDesc, style: TextStyle(color: subTextColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 2),
+                                      Text(_userEmail, style: TextStyle(color: subTextColor.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 30),
 
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(_t("Achievements", "Pencapaian"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor)),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: isDark ? const Color(0xFF3A2415) : const Color(0xFFFFF4E8), borderRadius: BorderRadius.circular(20)), child: const Row(children: [Icon(Icons.emoji_events_rounded, size: 16, color: Color(0xFFCC6633)), SizedBox(width: 6), Text("0 / 4", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFCC6633)))]))
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 190,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal, physics: const BouncingScrollPhysics(), clipBehavior: Clip.none,
-                      children: [
-                        _buildAchievementCardH(badge: _AchievementBadge.text("あ"), bgColor: const Color(0xFFFFF4E8), accentColor: const Color(0xFFCC6633), title: "Hiragana\nMaster", progress: 0.0, progressLabel: "0 / 46", cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor),
-                        _buildAchievementCardH(badge: _AchievementBadge.text("ア"), bgColor: const Color(0xFFFFF4E8), accentColor: const Color(0xFFCC6633), title: "Katakana\nExplorer", progress: 0.0, progressLabel: "0 / 46", cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor),
-                        _buildAchievementCardH(badge: _AchievementBadge.label("N5"), bgColor: const Color(0xFFCC6633), badgeTextColor: Colors.white, accentColor: const Color(0xFFCC6633), title: "N5\nBeginner", progress: 0.0, progressLabel: "0 / 700", cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _buildStatCircle(value: "$currentXP", label: "TOTAL XP", icon: Icons.bolt_rounded, iconColor: const Color(0xFFCC6633), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
+                                          _buildStatCircle(value: "$currentStreak", label: _t("DAYS STREAK", "REKOR HARI"), icon: Icons.local_fire_department_rounded, iconColor: const Color(0xFFB85C2A), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
+                                          _buildStatCircle(value: "$_wordsLearned/700", label: _t("WORDS (N5)", "KATA (N5)"), icon: Icons.menu_book_rounded, iconColor: const Color(0xFFE08B4B), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
 
-              Container(
-                decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))]),
-                child: Column(
-                  children: [
-                    _buildMenuTile(context: context, icon: Icons.settings_rounded, title: _t("Settings", "Pengaturan"), subtitle: _t("Manage your preferences", "Kelola preferensi akunmu"), color: const Color(0xFFCC6633), textColor: textColor, subTextColor: subTextColor, isDark: isDark, onTap: () async {
-                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                      _loadSupabaseUserData();
-                    }),
-                    Divider(height: 1, color: borderColor),
-                    _buildMenuTile(context: context, icon: Icons.notifications_rounded, title: _t("Notifications", "Notifikasi"), subtitle: _t("Daily reminder & updates", "Pengingat harian & info"), color: const Color(0xFFE08B4B), textColor: textColor, subTextColor: subTextColor, isDark: isDark, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
-                    Divider(height: 1, color: borderColor),
-                    _buildMenuTile(
-                      context: context, icon: Icons.logout_rounded, title: _t("Log Out", "Keluar"), subtitle: _t("Sign out from your account", "Keluar dari akun Miraiku"), color: Colors.red, textColor: textColor, subTextColor: subTextColor, isLogout: true, isDark: isDark,
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: cardColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            title: Text(_t("Log Out?", "Yakin Keluar?"), style: TextStyle(fontWeight: FontWeight.w900, color: textColor)),
-                            content: Text(_t("Are you sure you want to log out from Miraiku?", "Apakah kamu yakin ingin keluar dari akun ini?"), style: TextStyle(color: subTextColor)),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(_t("Cancel", "Batal"), style: TextStyle(fontWeight: FontWeight.bold, color: subTextColor))),
-                              ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                                  onPressed: () async {
-                                    // 1. TUTUP POPUP DULUAN
-                                    Navigator.pop(ctx);
+                                      Container(
+                                        width: double.infinity, padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: isDark ? 0.01 : 0.05), blurRadius: 20, offset: const Offset(0, 10))]),
+                                        child: Row(
+                                          children: [
+                                            Container(width: 56, height: 56, decoration: BoxDecoration(color: isDark ? const Color(0xFF3A2415) : const Color(0xFFFFF4E8), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.local_fire_department_rounded, color: Color(0xFFCC6633), size: 30)),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(_t("Daily Goal", "Target Harian"), style: TextStyle(fontSize: 13, color: subTextColor, fontWeight: FontWeight.bold)),
+                                                  const SizedBox(height: 4),
+                                                  Text(currentXP == 0 ? _t("Start your first lesson!", "Mulai pelajaran pertamamu!") : _t("Keep it up!", "Terus berjuang!"), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor)),
+                                                  const SizedBox(height: 8),
+                                                  ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: currentXP == 0 ? 0.0 : 0.75, minHeight: 6, backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFCC6633)))),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Text(currentXP == 0 ? "0%" : "75%", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFCC6633))),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 40),
 
-                                    // 2. SAPU BERSIH PROGRESS LOKAL
-                                    final prefs = await SharedPreferences.getInstance();
-                                    final keys = prefs.getKeys();
-                                    for (String key in keys) {
-                                      if (key != 'setting_dark' && key != 'setting_lang') {
-                                        await prefs.remove(key);
-                                      }
-                                    }
+                                      Column(
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(_t("Achievements", "Pencapaian"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor)),
+                                              Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: isDark ? const Color(0xFF3A2415) : const Color(0xFFFFF4E8), borderRadius: BorderRadius.circular(20)), child: Row(children: [const Icon(Icons.emoji_events_rounded, size: 16, color: Color(0xFFCC6633)), const SizedBox(width: 6), Text("$completedCount / 4", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFCC6633)))]))
+                                            ],
+                                          ),
+                                          const SizedBox(height: 20),
+                                          SizedBox(
+                                            height: 190,
+                                            child: ListView(
+                                              scrollDirection: Axis.horizontal, physics: const BouncingScrollPhysics(), clipBehavior: Clip.none,
+                                              children: [
+                                                // 🔥 SEKARANG PROGRESS BARNYA AKAN JALAN SESUAI HURUF YANG DIPELAJARI!
+                                                _buildAchievementCardH(
+                                                    badge: _AchievementBadge.text("あ"), bgColor: const Color(0xFFFFF4E8), accentColor: const Color(0xFFCC6633), title: "Hiragana\nMaster",
+                                                    progress: (hiraganaCount / 104).clamp(0.0, 1.0), progressLabel: "$hiraganaCount / 104", isCompleted: hiraganaCount >= 104,
+                                                    cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
+                                                ),
+                                                _buildAchievementCardH(
+                                                    badge: _AchievementBadge.text("ア"), bgColor: const Color(0xFFE8F5E9), accentColor: const Color(0xFF4CAF50), title: "Katakana\nMaster",
+                                                    progress: (katakanaCount / 104).clamp(0.0, 1.0), progressLabel: "$katakanaCount / 104", isCompleted: katakanaCount >= 104,
+                                                    cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
+                                                ),
+                                                _buildAchievementCardH(
+                                                    badge: _AchievementBadge.label("SIM"), bgColor: const Color(0xFFE3F2FD), badgeTextColor: const Color(0xFF2196F3), accentColor: const Color(0xFF2196F3), title: "Simulation\nAce",
+                                                    progress: (_highScoreSimulation / 100).clamp(0.0, 1.0), progressLabel: _highScoreSimulation == 0 ? "(TBA)" : "$_highScoreSimulation / 100", isCompleted: _highScoreSimulation >= 100,
+                                                    cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
+                                                ),
+                                                _buildAchievementCardH(
+                                                    badge: _AchievementBadge.label("XP"), bgColor: const Color(0xFFFFF8E1), badgeTextColor: const Color(0xFFFFC107), accentColor: const Color(0xFFFFC107), title: "XP\nLegend",
+                                                    progress: (currentXP / 5000).clamp(0.0, 1.0), progressLabel: "${currentXP > 5000 ? 5000 : currentXP} / 5000", isCompleted: currentXP >= 5000,
+                                                    cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 32),
 
-                                    // 3. LOGOUT SUPABASE
-                                    await _supabase.auth.signOut();
-                                  },
-                                  child: Text(_t("Log Out", "Keluar"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-            ],
+                                      Container(
+                                        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))]),
+                                        child: Column(
+                                          children: [
+                                            _buildMenuTile(context: context, icon: Icons.settings_rounded, title: _t("Settings", "Pengaturan"), subtitle: _t("Manage your preferences", "Kelola preferensi akunmu"), color: const Color(0xFFCC6633), textColor: textColor, subTextColor: subTextColor, isDark: isDark, onTap: () async {
+                                              await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                                              _loadSupabaseUserData();
+                                            }),
+                                            Divider(height: 1, color: borderColor),
+                                            _buildMenuTile(context: context, icon: Icons.notifications_rounded, title: _t("Notifications", "Notifikasi"), subtitle: _t("Daily reminder & updates", "Pengingat harian & info"), color: const Color(0xFFE08B4B), textColor: textColor, subTextColor: subTextColor, isDark: isDark, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
+                                            Divider(height: 1, color: borderColor),
+                                            _buildMenuTile(
+                                              context: context, icon: Icons.logout_rounded, title: _t("Log Out", "Keluar"), subtitle: _t("Sign out from your account", "Keluar dari akun Miraiku"), color: Colors.red, textColor: textColor, subTextColor: subTextColor, isLogout: true, isDark: isDark,
+                                              onTap: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (ctx) => AlertDialog(
+                                                    backgroundColor: cardColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                                    title: Text(_t("Log Out?", "Yakin Keluar?"), style: TextStyle(fontWeight: FontWeight.w900, color: textColor)),
+                                                    content: Text(_t("Are you sure you want to log out from Miraiku?", "Apakah kamu yakin ingin keluar dari akun ini?"), style: TextStyle(color: subTextColor)),
+                                                    actions: [
+                                                      TextButton(onPressed: () => Navigator.pop(ctx), child: Text(_t("Cancel", "Batal"), style: TextStyle(fontWeight: FontWeight.bold, color: subTextColor))),
+                                                      ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                                          onPressed: () async {
+                                                            Navigator.pop(ctx);
+                                                            final prefs = await SharedPreferences.getInstance();
+                                                            final keys = prefs.getKeys();
+                                                            for (String key in keys) {
+                                                              if (key != 'setting_dark' && key != 'setting_lang') {
+                                                                await prefs.remove(key);
+                                                              }
+                                                            }
+                                                            await _supabase.auth.signOut();
+                                                          },
+                                                          child: Text(_t("Log Out", "Keluar"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 40),
+                                    ],
+                                  );
+                                }
+                            );
+                          }
+                      );
+                    }
+                );
+              }
           ),
         ),
       ),

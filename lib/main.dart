@@ -17,6 +17,8 @@ import 'core/game_manager.dart';
 // ==========================================
 final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
 final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
+ValueNotifier<int> globalLearnedHiragana = ValueNotifier<int>(0);
+ValueNotifier<int> globalLearnedKatakana = ValueNotifier<int>(0);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

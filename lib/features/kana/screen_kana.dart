@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../main.dart';
-// IMPORT DATABASE LENGKAP YANG BARU KAMU BUAT
+import 'package:shared_preferences/shared_preferences.dart'; // IMPORT UNTUK SHAREDPREFERENCES
+import '../../main.dart'; // IMPORT MAIN.DART UNTUK AKSES VARIABEL GLOBAL
 import '../../data/alphabet_data.dart';
 
 class KanaScreen extends StatefulWidget {
@@ -19,7 +19,6 @@ class _KanaScreenState extends State<KanaScreen> {
   Set<String> _learnedHiragana = {};
   Set<String> _learnedKatakana = {};
 
-  // Fungsi untuk menggabungkan total huruf per tab untuk keperluan progress bar
   int get _totalCurrentCharacters {
     if (_activeTab == 0) {
       return AlphabetData.hiraBasic.length + AlphabetData.hiraDakuon.length +
@@ -56,6 +55,7 @@ class _KanaScreenState extends State<KanaScreen> {
     }
   }
 
+  // --- 🔥 LOGIKA SINKRONISASI DIPERBARUI DI SINI ---
   Future<void> _saveData() async {
     final user = _supabase.auth.currentUser;
     if (user != null) {
@@ -68,18 +68,27 @@ class _KanaScreenState extends State<KanaScreen> {
             },
           ),
         );
+
+        // 1. Simpan ke lokal (buat jaga-jaga kalau offline)
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('learned_hiragana', _learnedHiragana.length);
+        await prefs.setInt('learned_katakana', _learnedKatakana.length);
+
+        // 2. UPDATE VARIABEL GLOBAL AGAR PROFIL LANGSUNG TERSINKRON
+        globalLearnedHiragana.value = _learnedHiragana.length;
+        globalLearnedKatakana.value = _learnedKatakana.length;
+
       } catch (e) {
         debugPrint("Gagal menyimpan progress alfabet: $e");
       }
     }
   }
 
-  // Fungsi saat kotak huruf diklik, melempar data huruf dan kategori list tempat dia berasal (untuk panah navigasi)
   void _onKanaTapped(Map<String, String> item, List<Map<String, String>> sourceList) {
     setState(() {
       _currentLearned.add(item["jp"]!);
     });
-    _saveData();
+    _saveData(); // Panggil fungsi yang sudah dimodifikasi tadi
     _showKanaPopup(context, item, sourceList);
   }
 
@@ -117,7 +126,6 @@ class _KanaScreenState extends State<KanaScreen> {
             ),
             const SizedBox(height: 24),
 
-            // BANNER ATAS
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Container(
@@ -151,7 +159,6 @@ class _KanaScreenState extends State<KanaScreen> {
             ),
             const SizedBox(height: 24),
 
-            // KONTEN ALFABET (BISA DI-SCROLL)
             Expanded(
               child: _activeTab == 2
                   ? Center(child: Text(_t("Kanji feature is currently under development.", "Fitur Kanji sedang dalam tahap pengembangan."), style: const TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)))
@@ -165,31 +172,25 @@ class _KanaScreenState extends State<KanaScreen> {
                       _buildSectionTitle("GOJŪON (Basic 46)"),
                       _buildGrid(AlphabetData.hiraBasic, isDark, crossAxisCount: 5),
                       const SizedBox(height: 32),
-
                       _buildSectionTitle("DAKUON"),
                       _buildGrid(AlphabetData.hiraDakuon, isDark, crossAxisCount: 5),
                       const SizedBox(height: 32),
-
                       _buildSectionTitle("HANDAKUON"),
                       _buildGrid(AlphabetData.hiraHandakuon, isDark, crossAxisCount: 5),
                       const SizedBox(height: 32),
-
                       _buildSectionTitle("YŌON"),
-                      _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3), // Yoon butuh space lebih lebar
+                      _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3),
                       const SizedBox(height: 100),
                     ] else if (_activeTab == 1) ...[
                       _buildSectionTitle("GOJŪON (Basic 46)"),
                       _buildGrid(AlphabetData.kataBasic, isDark, crossAxisCount: 5),
                       const SizedBox(height: 32),
-
                       _buildSectionTitle("DAKUON"),
                       _buildGrid(AlphabetData.kataDakuon, isDark, crossAxisCount: 5),
                       const SizedBox(height: 32),
-
                       _buildSectionTitle("HANDAKUON"),
                       _buildGrid(AlphabetData.kataHandakuon, isDark, crossAxisCount: 5),
                       const SizedBox(height: 32),
-
                       _buildSectionTitle("YŌON"),
                       _buildGrid(AlphabetData.kataYoon, isDark, crossAxisCount: 3),
                       const SizedBox(height: 100),
@@ -207,27 +208,23 @@ class _KanaScreenState extends State<KanaScreen> {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFB5B0A8), letterSpacing: 1.5),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFB5B0A8), letterSpacing: 1.5)),
     );
   }
 
-  // --- PEMBUAT GRID DINAMIS ---
   Widget _buildGrid(List<Map<String, String>> dataList, bool isDark, {required int crossAxisCount}) {
     final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
     final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
     final Color gridBgColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
 
     return GridView.builder(
-      shrinkWrap: true, // Wajib agar tidak error di dalam ScrollView
+      shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: crossAxisCount == 3 ? 1.2 : 0.85 // Jika 3 kolom (Yoon), buat sedikit lebih lebar
+          childAspectRatio: crossAxisCount == 3 ? 1.2 : 0.85
       ),
       itemCount: dataList.length,
       itemBuilder: (context, index) {
@@ -274,7 +271,6 @@ class _KanaScreenState extends State<KanaScreen> {
     );
   }
 
-  // --- POPUP DRAWING BERDASARKAN SOURCE LIST ---
   void _showKanaPopup(BuildContext context, Map<String, String> initialItem, List<Map<String, String>> sourceList) {
     final bool isDark = globalDarkMode.value;
     final Color modalBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFAF7F2);
@@ -283,8 +279,6 @@ class _KanaScreenState extends State<KanaScreen> {
     final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
     SignatureController controller = SignatureController(penStrokeWidth: 5, penColor: textColor, exportBackgroundColor: cardColor);
-
-    // Cari index posisi awal di dalam source list yang spesifik ini (misal di dalam list hiraYoon)
     int currentIndex = sourceList.indexOf(initialItem);
 
     showDialog(
@@ -300,7 +294,7 @@ class _KanaScreenState extends State<KanaScreen> {
               if (currentIndex < sourceList.length - 1) {
                 setStatePopup(() { currentIndex++; controller.clear(); });
                 setState(() { _currentLearned.add(sourceList[currentIndex]["jp"]!); });
-                _saveData();
+                _saveData(); // Panggil simpan & sync
               }
             }
 
@@ -308,7 +302,7 @@ class _KanaScreenState extends State<KanaScreen> {
               if (currentIndex > 0) {
                 setStatePopup(() { currentIndex--; controller.clear(); });
                 setState(() { _currentLearned.add(sourceList[currentIndex]["jp"]!); });
-                _saveData();
+                _saveData(); // Panggil simpan & sync
               }
             }
 
