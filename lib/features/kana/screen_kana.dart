@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // IMPORT UNTUK SHAREDPREFERENCES
-import '../../main.dart'; // IMPORT MAIN.DART UNTUK AKSES VARIABEL GLOBAL
+import '../../core/game_manager.dart';
 import '../../data/alphabet_data.dart';
 
 class KanaScreen extends StatefulWidget {
@@ -13,11 +11,7 @@ class KanaScreen extends StatefulWidget {
 }
 
 class _KanaScreenState extends State<KanaScreen> {
-  final _supabase = Supabase.instance.client;
   int _activeTab = 0; // 0 = Hiragana, 1 = Katakana, 2 = Kanji
-
-  Set<String> _learnedHiragana = {};
-  Set<String> _learnedKatakana = {};
 
   int get _totalCurrentCharacters {
     if (_activeTab == 0) {
@@ -30,65 +24,31 @@ class _KanaScreenState extends State<KanaScreen> {
     return 0;
   }
 
-  Set<String> get _currentLearned => _activeTab == 0 ? _learnedHiragana : (_activeTab == 1 ? _learnedKatakana : <String>{});
+  List<String> get _currentLearned => _activeTab == 0 ? globalLearnedHiragana.value : (_activeTab == 1 ? globalLearnedKatakana.value : <String>[]);
 
   @override
   void initState() {
     super.initState();
-    _loadSavedData();
-  }
-
-  Future<void> _loadSavedData() async {
-    final user = _supabase.auth.currentUser;
-    if (user != null) {
-      final metadata = user.userMetadata;
-      if (metadata != null) {
-        setState(() {
-          if (metadata['learned_hiragana'] != null) {
-            _learnedHiragana = List<String>.from(metadata['learned_hiragana']).toSet();
-          }
-          if (metadata['learned_katakana'] != null) {
-            _learnedKatakana = List<String>.from(metadata['learned_katakana']).toSet();
-          }
-        });
-      }
-    }
   }
 
   // --- 🔥 LOGIKA SINKRONISASI DIPERBARUI DI SINI ---
   Future<void> _saveData() async {
-    final user = _supabase.auth.currentUser;
-    if (user != null) {
-      try {
-        await _supabase.auth.updateUser(
-          UserAttributes(
-            data: {
-              'learned_hiragana': _learnedHiragana.toList(),
-              'learned_katakana': _learnedKatakana.toList(),
-            },
-          ),
-        );
-
-        // 1. Simpan ke lokal (buat jaga-jaga kalau offline)
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('learned_hiragana', _learnedHiragana.length);
-        await prefs.setInt('learned_katakana', _learnedKatakana.length);
-
-        // 2. UPDATE VARIABEL GLOBAL AGAR PROFIL LANGSUNG TERSINKRON
-        globalLearnedHiragana.value = _learnedHiragana.length;
-        globalLearnedKatakana.value = _learnedKatakana.length;
-
-      } catch (e) {
-        debugPrint("Gagal menyimpan progress alfabet: $e");
-      }
-    }
+    await GameManager.syncToCloud();
   }
 
   void _onKanaTapped(Map<String, String> item, List<Map<String, String>> sourceList) {
-    setState(() {
-      _currentLearned.add(item["jp"]!);
-    });
-    _saveData(); // Panggil fungsi yang sudah dimodifikasi tadi
+    final char = item["jp"]!;
+    if (_activeTab == 0) {
+      if (!globalLearnedHiragana.value.contains(char)) {
+        globalLearnedHiragana.value = [...globalLearnedHiragana.value, char];
+        _saveData();
+      }
+    } else if (_activeTab == 1) {
+      if (!globalLearnedKatakana.value.contains(char)) {
+        globalLearnedKatakana.value = [...globalLearnedKatakana.value, char];
+        _saveData();
+      }
+    }
     _showKanaPopup(context, item, sourceList);
   }
 
@@ -100,7 +60,6 @@ class _KanaScreenState extends State<KanaScreen> {
   Widget build(BuildContext context) {
     final bool isDark = globalDarkMode.value;
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
-    final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
 
     String headerTitle = _activeTab == 0 ? _t("Learning ひらがな", "Belajar ひらがな") : (_activeTab == 1 ? _t("Learning カタカナ", "Belajar カタカナ") : _t("Learning 漢字", "Belajar 漢字"));
     String headerDesc = _activeTab == 0
@@ -110,96 +69,101 @@ class _KanaScreenState extends State<KanaScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildTab(0, "Hiragana", isDark),
-                  _buildTab(1, "Katakana", isDark),
-                  _buildTab(2, "Kanji", isDark),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
+        child: ValueListenableBuilder(
+          valueListenable: _activeTab == 0 ? globalLearnedHiragana : globalLearnedKatakana,
+          builder: (context, _, child) {
+            return Column(
+              children: [
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildTab(0, "Hiragana", isDark),
+                      _buildTab(1, "Katakana", isDark),
+                      _buildTab(2, "Kanji", isDark),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: const Color(0xFFD68A60), borderRadius: BorderRadius.circular(16)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(headerTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22, fontFamily: 'Serif')),
-                    const SizedBox(height: 8),
-                    Text(headerDesc, style: const TextStyle(color: Color(0xFFF7E6D4), fontSize: 13, height: 1.4)),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(color: const Color(0xFFD68A60), borderRadius: BorderRadius.circular(16)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_activeTab != 2)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
-                            child: Text(
-                              "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
-                              style: const TextStyle(color: Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 12),
-                            ),
-                          )
+                        Text(headerTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22, fontFamily: 'Serif')),
+                        const SizedBox(height: 8),
+                        Text(headerDesc, style: const TextStyle(color: Color(0xFFF7E6D4), fontSize: 13, height: 1.4)),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (_activeTab != 2)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
+                                child: Text(
+                                  "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
+                                  style: const TextStyle(color: Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 12),
+                                ),
+                              )
+                          ],
+                        )
                       ],
-                    )
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            Expanded(
-              child: _activeTab == 2
-                  ? Center(child: Text(_t("Kanji feature is currently under development.", "Fitur Kanji sedang dalam tahap pengembangan."), style: const TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)))
-                  : SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_activeTab == 0) ...[
-                      _buildSectionTitle("GOJŪON (Basic 46)"),
-                      _buildGrid(AlphabetData.hiraBasic, isDark, crossAxisCount: 5),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle("DAKUON"),
-                      _buildGrid(AlphabetData.hiraDakuon, isDark, crossAxisCount: 5),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle("HANDAKUON"),
-                      _buildGrid(AlphabetData.hiraHandakuon, isDark, crossAxisCount: 5),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle("YŌON"),
-                      _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3),
-                      const SizedBox(height: 100),
-                    ] else if (_activeTab == 1) ...[
-                      _buildSectionTitle("GOJŪON (Basic 46)"),
-                      _buildGrid(AlphabetData.kataBasic, isDark, crossAxisCount: 5),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle("DAKUON"),
-                      _buildGrid(AlphabetData.kataDakuon, isDark, crossAxisCount: 5),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle("HANDAKUON"),
-                      _buildGrid(AlphabetData.kataHandakuon, isDark, crossAxisCount: 5),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle("YŌON"),
-                      _buildGrid(AlphabetData.kataYoon, isDark, crossAxisCount: 3),
-                      const SizedBox(height: 100),
-                    ]
-                  ],
+                Expanded(
+                  child: _activeTab == 2
+                      ? Center(child: Text(_t("Kanji feature is currently under development.", "Fitur Kanji sedang dalam tahap pengembangan."), style: const TextStyle(color: Color(0xFF8C8A87), fontStyle: FontStyle.italic)))
+                      : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_activeTab == 0) ...[
+                          _buildSectionTitle("GOJŪON (Basic 46)"),
+                          _buildGrid(AlphabetData.hiraBasic, isDark, crossAxisCount: 5),
+                          const SizedBox(height: 32),
+                          _buildSectionTitle("DAKUON"),
+                          _buildGrid(AlphabetData.hiraDakuon, isDark, crossAxisCount: 5),
+                          const SizedBox(height: 32),
+                          _buildSectionTitle("HANDAKUON"),
+                          _buildGrid(AlphabetData.hiraHandakuon, isDark, crossAxisCount: 5),
+                          const SizedBox(height: 32),
+                          _buildSectionTitle("YŌON"),
+                          _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3),
+                          const SizedBox(height: 100),
+                        ] else if (_activeTab == 1) ...[
+                          _buildSectionTitle("GOJŪON (Basic 46)"),
+                          _buildGrid(AlphabetData.kataBasic, isDark, crossAxisCount: 5),
+                          const SizedBox(height: 32),
+                          _buildSectionTitle("DAKUON"),
+                          _buildGrid(AlphabetData.kataDakuon, isDark, crossAxisCount: 5),
+                          const SizedBox(height: 32),
+                          _buildSectionTitle("HANDAKUON"),
+                          _buildGrid(AlphabetData.kataHandakuon, isDark, crossAxisCount: 5),
+                          const SizedBox(height: 32),
+                          _buildSectionTitle("YŌON"),
+                          _buildGrid(AlphabetData.kataYoon, isDark, crossAxisCount: 3),
+                          const SizedBox(height: 100),
+                        ]
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart';
+import '../../core/game_manager.dart';
 import '../../widgets/path_node.dart';
 import 'widget_learn.dart';
 import 'screen_exercise.dart';
@@ -76,17 +76,22 @@ class _LearnScreenState extends State<LearnScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = globalDarkMode.value;
-    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+    return ValueListenableBuilder(
+      valueListenable: globalDarkMode,
+      builder: (context, isDark, _) {
+        return ValueListenableBuilder(
+          valueListenable: globalLanguage,
+          builder: (context, lang, _) {
+            final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
+            final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-    // Kunci Pembuka Unit 2
-    bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
+            // Kunci Pembuka Unit 2
+            bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+            return Scaffold(
+              backgroundColor: bgColor,
+              body: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
@@ -189,6 +194,10 @@ class _LearnScreenState extends State<LearnScreen> {
           ),
         ),
       ),
+    );
+          },
+        );
+      },
     );
   }
 

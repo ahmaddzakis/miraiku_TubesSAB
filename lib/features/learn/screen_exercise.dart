@@ -45,8 +45,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   int _timeLeft = 1200;
 
   // STATE WORD BANK
-  List<String> _selectedWords = [];
-  List<String> _availableWords = [];
+  final List<String> _selectedWords = [];
+  final List<String> _availableWords = [];
 
   final List<String> _decoyDictionary = [
     'ka', 'ki', 'ku', 'ke', 'ko', 'sa', 'shi', 'su', 'se', 'so',

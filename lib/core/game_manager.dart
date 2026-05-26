@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'sound_manager.dart';
 
 // ==========================================
@@ -11,23 +12,97 @@ final ValueNotifier<int> globalXP = ValueNotifier<int>(0);
 final ValueNotifier<int> globalStreak = ValueNotifier<int>(0);
 final ValueNotifier<String> globalTimerText = ValueNotifier<String>("Penuh");
 
+final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
+final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
+final ValueNotifier<List<String>> globalLearnedHiragana = ValueNotifier<List<String>>([]);
+final ValueNotifier<List<String>> globalLearnedKatakana = ValueNotifier<List<String>>([]);
+
 class GameManager {
   static const int maxHearts = 5;
   static const int cooldownMinutes = 20; // 20 Menit per 1 Nyawa
   static Timer? _uiTimer;
 
+  static StreamSubscription<AuthState>? _authSubscription;
+
   // 1. FUNGSI INISIALISASI (Dipanggil saat aplikasi baru dibuka)
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
 
-    // Tarik data dari memori HP
-    globalHearts.value = prefs.getInt('gm_hearts') ?? 5;
-    globalXP.value = prefs.getInt('gm_xp') ?? 0;
-    globalStreak.value = prefs.getInt('gm_streak') ?? 0;
+    // Ambil data dari Supabase jika user sedang login
+    final meta = user?.userMetadata ?? {};
+
+    // Prioritaskan data Cloud, jika tidak ada baru ambil Lokal
+    _updateLocalStateFromMeta(meta, prefs);
 
     await _checkDailyStreak(prefs);
     await _calculateOfflineRegen(prefs);
     _startTicker();
+    _startAuthListener();
+  }
+
+  // Helper untuk update state global dari metadata
+  static void _updateLocalStateFromMeta(Map<String, dynamic> meta, SharedPreferences prefs) {
+    if (meta.isEmpty) return;
+
+    if (meta['gm_hearts'] != null) globalHearts.value = meta['gm_hearts'];
+    if (meta['gm_xp'] != null) globalXP.value = meta['gm_xp'];
+    if (meta['gm_streak'] != null) globalStreak.value = meta['gm_streak'];
+    if (meta['setting_dark'] != null) globalDarkMode.value = meta['setting_dark'];
+    if (meta['setting_lang'] != null) globalLanguage.value = meta['setting_lang'];
+    
+    if (meta['learned_hiragana'] != null) {
+      globalLearnedHiragana.value = List<String>.from(meta['learned_hiragana']);
+    }
+    if (meta['learned_katakana'] != null) {
+      globalLearnedKatakana.value = List<String>.from(meta['learned_katakana']);
+    }
+
+    // Sinkronkan balik ke lokal agar tetap update
+    prefs.setInt('gm_hearts', globalHearts.value);
+    prefs.setInt('gm_xp', globalXP.value);
+    prefs.setInt('gm_streak', globalStreak.value);
+    prefs.setBool('setting_dark', globalDarkMode.value);
+    prefs.setString('setting_lang', globalLanguage.value);
+    prefs.setInt('learned_hiragana', globalLearnedHiragana.value.length);
+    prefs.setInt('learned_katakana', globalLearnedKatakana.value.length);
+  }
+
+  static void _startAuthListener() {
+    _authSubscription?.cancel();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      if (event == AuthChangeEvent.signedIn || event == AuthChangeEvent.userUpdated) {
+        if (session?.user != null) {
+          final prefs = await SharedPreferences.getInstance();
+          _updateLocalStateFromMeta(session!.user.userMetadata ?? {}, prefs);
+        }
+      }
+    });
+  }
+
+  // --- FUNGSI SINKRONISASI KE CLOUD ---
+  static Future<void> syncToCloud() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user != null) {
+      try {
+        await supabase.auth.updateUser(UserAttributes(data: {
+          'gm_xp': globalXP.value,
+          'gm_hearts': globalHearts.value,
+          'gm_streak': globalStreak.value,
+          'setting_dark': globalDarkMode.value,
+          'setting_lang': globalLanguage.value,
+          'learned_hiragana': globalLearnedHiragana.value,
+          'learned_katakana': globalLearnedKatakana.value,
+        }));
+      } catch (e) {
+        debugPrint("Gagal sinkronisasi progress ke Cloud: $e");
+      }
+    }
   }
 
   // 2. LOGIKA STREAK HARIAN
@@ -134,6 +209,7 @@ class GameManager {
     final prefs = await SharedPreferences.getInstance();
     globalXP.value += amount;
     prefs.setInt('gm_xp', globalXP.value);
+    await syncToCloud();
   }
 
   // Fungsi Kurangi Nyawa (Saat salah jawab)
@@ -148,6 +224,7 @@ class GameManager {
 
       globalHearts.value -= 1;
       prefs.setInt('gm_hearts', globalHearts.value);
+      await syncToCloud();
     }
   }
 
@@ -161,6 +238,7 @@ class GameManager {
       prefs.remove('gm_last_heart_loss');
       globalTimerText.value = "Penuh";
     }
+    await syncToCloud();
   }
 
   // Beli Nyawa Pakai XP

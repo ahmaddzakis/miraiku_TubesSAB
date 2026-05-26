@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../core/game_manager.dart';
 
 enum NodeStatus { locked, current, completed }
 

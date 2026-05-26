@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import '../../main.dart'; // Tempat globalLearnedHiragana dkk
 import '../../core/game_manager.dart'; // Tempat globalXP dkk biasanya berada
 import 'screen_settings.dart';
 import 'screen_notifications.dart';
@@ -38,7 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _highScoreSimulation = 0;
   int _lastClaimedStreak = 0;
 
-  // Status Klaim Achievement
+  // Status Klaim Achievement (Professional: Simpan ke Cloud)
   bool _claimedHiragana = false;
   bool _claimedKatakana = false;
   bool _claimedSim = false;
@@ -54,11 +53,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _loadSupabaseUserData() {
     final user = _supabase.auth.currentUser;
     if (user != null) {
+      final meta = user.userMetadata ?? {};
       setState(() {
         _userEmail = user.email ?? "";
-        _userName = user.userMetadata?['display_name'] ?? _userEmail.split('@')[0];
-        _userDesc = user.userMetadata?['bio'] ?? "Bandung, West Java";
-        _avatarUrl = user.userMetadata?['avatar_url'] ?? "";
+        _userName = meta['display_name'] ?? _userEmail.split('@')[0];
+        _userDesc = meta['bio'] ?? "Japanese Learner";
+        _avatarUrl = meta['avatar_url'] ?? "";
+
+        // Load status klaim dari Cloud
+        _claimedHiragana = meta['claim_achiev_hiragana'] ?? false;
+        _claimedKatakana = meta['claim_achiev_katakana'] ?? false;
+        _claimedSim = meta['claim_achiev_sim'] ?? false;
+        _claimed30Days = meta['claim_achiev_30days'] ?? false;
       });
     }
   }
@@ -68,16 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _highScoreSimulation = prefs.getInt('high_score_sim') ?? 0;
       _lastClaimedStreak = prefs.getInt('last_claimed_streak') ?? 0;
-
-      // Load status klaim
-      _claimedHiragana = prefs.getBool('claim_achiev_hiragana') ?? false;
-      _claimedKatakana = prefs.getBool('claim_achiev_katakana') ?? false;
-      _claimedSim = prefs.getBool('claim_achiev_sim') ?? false;
-      _claimed30Days = prefs.getBool('claim_achiev_30days') ?? false;
     });
-
-    globalLearnedHiragana.value = prefs.getInt('learned_hiragana') ?? 0;
-    globalLearnedKatakana.value = prefs.getInt('learned_katakana') ?? 0;
 
     if (globalStreak.value < _lastClaimedStreak) {
       setState(() => _lastClaimedStreak = 0);
@@ -85,31 +82,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Fungsi untuk mengklaim hadiah achievement
+  // Fungsi untuk mengklaim hadiah achievement (Professional: Hanya boleh 1x)
   Future<void> _claimAchievement(String key) async {
-    final prefs = await SharedPreferences.getInstance();
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
 
-    // Tambahkan 200 XP
-    globalXP.value += 200;
-    await prefs.setInt('user_xp', globalXP.value);
+    // 1. Tambah XP (Otomatis sync ke Cloud di GameManager)
+    await GameManager.addXP(200);
 
-    // Tandai sudah diklaim
-    await prefs.setBool(key, true);
-    setState(() {
-      if (key == 'claim_achiev_hiragana') _claimedHiragana = true;
-      if (key == 'claim_achiev_katakana') _claimedKatakana = true;
-      if (key == 'claim_achiev_sim') _claimedSim = true;
-      if (key == 'claim_achiev_30days') _claimed30Days = true;
-    });
+    // 2. Tandai metadata Cloud agar tidak bisa klaim lagi selamanya
+    try {
+      await _supabase.auth.updateUser(UserAttributes(data: {
+        key: true,
+      }));
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("🎉 Selamat! 200 XP Berhasil Diklaim!"),
-              backgroundColor: Color(0xFF58CC02)
-          )
-      );
+      setState(() {
+        if (key == 'claim_achiev_hiragana') _claimedHiragana = true;
+        if (key == 'claim_achiev_katakana') _claimedKatakana = true;
+        if (key == 'claim_achiev_sim') _claimedSim = true;
+        if (key == 'claim_achiev_30days') _claimed30Days = true;
+      });
+
+      _showSuccessDialog("🎉 200 XP Berhasil Diklaim!");
+    } catch (e) {
+      debugPrint("Gagal klaim: $e");
     }
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.stars_rounded, color: Color(0xFFCC6633), size: 80),
+            const SizedBox(height: 24),
+            Text(_t("Pencapaian!", "Achievement!"), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, fontFamily: 'Serif')),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFCC6633),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text("MANTAP!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   ImageProvider _getAvatarImage() {
@@ -164,9 +193,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
 
       await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': imageUrl}));
-      setState(() => _avatarUrl = imageUrl);
+      if (mounted) {
+        setState(() => _avatarUrl = imageUrl);
+      }
 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile picture updated!", "Foto profil diperbarui!")), backgroundColor: Colors.green));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile picture updated!", "Foto profil diperbarui!")), backgroundColor: Colors.green));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Failed to upload image.", "Gagal mengunggah gambar.")), backgroundColor: Colors.red));
     } finally {
@@ -344,7 +376,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             setModalState(() => _isSaving = true);
                             await _saveProfileData(nameController.text, descController.text);
 
-                            if (!context.mounted) return;
+                            if (!mounted) return;
 
                             setModalState(() => _isSaving = false);
                             Navigator.pop(context);
@@ -385,12 +417,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 return ValueListenableBuilder<int>(
                     valueListenable: globalStreak,
                     builder: (context, currentStreak, _) {
-                      return ValueListenableBuilder<int>(
+                      return ValueListenableBuilder<List<String>>(
                           valueListenable: globalLearnedHiragana,
-                          builder: (context, hiraganaCount, _) {
-                            return ValueListenableBuilder<int>(
+                          builder: (context, learnedHiraList, _) {
+                            final hiraganaCount = learnedHiraList.length;
+                            return ValueListenableBuilder<List<String>>(
                                 valueListenable: globalLearnedKatakana,
-                                builder: (context, katakanaCount, _) {
+                                builder: (context, learnedKataList, _) {
+                                  final katakanaCount = learnedKataList.length;
 
                                   // Status Selesai
                                   bool hiraCompleted = hiraganaCount >= 104;

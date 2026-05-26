@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../main.dart';
 import '../core/game_manager.dart';
-import '../core/sound_manager.dart'; // Jangan lupa panggil ini untuk suara error/sukses
 
 class TopStatusBar extends StatelessWidget {
   const TopStatusBar({super.key});

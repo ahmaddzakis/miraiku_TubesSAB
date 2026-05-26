@@ -1,17 +1,106 @@
 import 'package:flutter/material.dart';
-import '../../main.dart'; // Wajib ditambahkan untuk memanggil global state
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/game_manager.dart';
 
-class SimulationScreen extends StatelessWidget {
+class SimulationScreen extends StatefulWidget {
   const SimulationScreen({super.key});
 
-  // --- FUNGSI TRANSLATE OTOMATIS ---
+  @override
+  State<SimulationScreen> createState() => _SimulationScreenState();
+}
+
+class _SimulationScreenState extends State<SimulationScreen> {
+  bool _isUnlocked = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUnlockStatus();
+  }
+
+  void _checkUnlockStatus() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final meta = user?.userMetadata ?? {};
+    setState(() {
+      _isUnlocked = meta['unlocked_sim_n5'] ?? false;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _handleUnlock() async {
+    if (_isUnlocked) {
+      _startTest();
+      return;
+    }
+
+    final bool isDark = globalDarkMode.value;
+    final Color modalBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFAF7F2);
+    final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: modalBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(_t("Unlock Simulation", "Buka Simulasi"), style: TextStyle(fontWeight: FontWeight.w900, color: textColor)),
+        content: Text(
+          _t("Unlock JLPT N5 Simulation for 150 XP? This will give you permanent access.", "Buka Simulasi JLPT N5 seharga 150 XP? Kamu akan mendapatkan akses permanen."),
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: () async {
+              Navigator.pop(context);
+              if (globalXP.value >= 150) {
+                globalXP.value -= 150;
+                await GameManager.syncToCloud();
+                
+                // Update specific metadata for unlock
+                await Supabase.instance.client.auth.updateUser(UserAttributes(data: {'unlocked_sim_n5': true}));
+                
+                setState(() => _isUnlocked = true);
+                _showSuccessUnlock();
+              } else {
+                _showInsufficientXP();
+              }
+            },
+            child: Text(_t("Unlock", "Buka"), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessUnlock() {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(_t("Simulation Unlocked! 🎉", "Simulasi Terbuka! 🎉")),
+      backgroundColor: Colors.green,
+    ));
+  }
+
+  void _showInsufficientXP() {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(_t("Insufficient XP! Keep learning to earn more.", "XP Tidak Cukup! Teruslah belajar untuk mengumpulkan XP.")),
+      backgroundColor: Colors.red,
+    ));
+  }
+
+  void _startTest() {
+    // Navigate to actual test screen or show test overlay
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Starting Test...")));
+  }
+
   String _t(String en, String id) {
     return globalLanguage.value == 'id' ? id : en;
   }
 
   @override
   Widget build(BuildContext context) {
-    // --- VARIABEL WARNA DINAMIS ---
+    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)));
+
     final bool isDark = globalDarkMode.value;
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
     final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
@@ -220,19 +309,23 @@ class SimulationScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            onPressed: () {},
+            onPressed: _handleUnlock,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_t("Unlock & Start Test", "Buka & Mulai Ujian"), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(
+                  _isUnlocked ? _t("Start Simulation", "Mulai Simulasi") : _t("Unlock & Start Test", "Buka & Mulai Ujian"), 
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
+                ),
                 const SizedBox(width: 8),
-                const Icon(Icons.rocket_launch, size: 20, color: Colors.white),
+                Icon(_isUnlocked ? Icons.play_arrow_rounded : Icons.rocket_launch, size: 20, color: Colors.white),
               ],
             ),
           ),
         ),
         const SizedBox(height: 12),
-        Text(_t("Price: 150 XP or Free with Premium", "Harga: 150 XP atau Gratis dengan Premium"), style: TextStyle(color: subTextColor, fontSize: 12)),
+        if (!_isUnlocked)
+          Text(_t("Price: 150 XP or Free with Premium", "Harga: 150 XP atau Gratis dengan Premium"), style: TextStyle(color: subTextColor, fontSize: 12)),
       ],
     );
   }
