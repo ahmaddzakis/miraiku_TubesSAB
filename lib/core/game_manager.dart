@@ -136,14 +136,13 @@ class GameManager {
     });
   }
 
-  // --- FUNGSI SINKRONISASI KE CLOUD ---
-  static Future<void> syncToCloud() async {
+  static Future<void> syncToCloud({String? displayName, String? bio, String? avatarUrl}) async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
     if (user != null) {
       try {
         final prefs = await SharedPreferences.getInstance();
-        await supabase.auth.updateUser(UserAttributes(data: {
+        final Map<String, dynamic> updateData = {
           'gm_xp': globalXP.value,
           'gm_hearts': globalHearts.value,
           'gm_streak': globalStreak.value,
@@ -153,7 +152,14 @@ class GameManager {
           'learned_katakana': globalLearnedKatakana.value,
           'gm_last_login': prefs.getString('gm_last_login'),
           'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
-        }));
+        };
+
+        // Tambahkan data profil jika disediakan
+        if (displayName != null) updateData['display_name'] = displayName;
+        if (bio != null) updateData['bio'] = bio;
+        if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+
+        await supabase.auth.updateUser(UserAttributes(data: updateData));
       } catch (e) {
         debugPrint("Gagal sinkronisasi progress ke Cloud: $e");
       }

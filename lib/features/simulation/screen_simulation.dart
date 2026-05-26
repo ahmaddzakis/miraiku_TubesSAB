@@ -75,17 +75,87 @@ class _SimulationScreenState extends State<SimulationScreen> {
   }
 
   void _showSuccessUnlock() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(_t("Simulation Unlocked! 🎉", "Simulasi Terbuka! 🎉")),
-      backgroundColor: Colors.green,
-    ));
+    _showCustomDialog(
+      title: _t("Simulation Unlocked!", "Simulasi Terbuka!"),
+      message: _t("You now have permanent access to JLPT N5 Simulation. 🎉", "Kamu sekarang memiliki akses permanen ke Simulasi JLPT N5. 🎉"),
+      icon: Icons.check_circle_outline_rounded,
+      iconColor: Colors.green,
+    );
   }
 
   void _showInsufficientXP() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(_t("Insufficient XP! Keep learning to earn more.", "XP Tidak Cukup! Teruslah belajar untuk mengumpulkan XP.")),
-      backgroundColor: Colors.red,
-    ));
+    _showCustomDialog(
+      title: _t("Insufficient XP", "XP Tidak Cukup"),
+      message: _t("Keep learning and completing lessons to earn more XP!", "Teruslah belajar dan selesaikan pelajaran untuk mengumpulkan lebih banyak XP!"),
+      icon: Icons.error_outline_rounded,
+      iconColor: Colors.red,
+    );
+  }
+
+  void _showCustomDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 48, color: iconColor),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("OK"),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _startTest() {

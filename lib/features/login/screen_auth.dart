@@ -24,6 +24,9 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
+  String? _googleIdToken;
+  String? _googleAccessToken;
+
   @override
   void initState() {
     super.initState();
@@ -48,23 +51,289 @@ class _AuthScreenState extends State<AuthScreen> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.red),
-            const SizedBox(width: 10),
-            Text(_t("Error", "Kesalahan"), style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFCC6633))),
-          )
-        ],
-      ),
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _t("Error", "Kesalahan"),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("OK"),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog({required String title, required String message}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.green),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("OK"),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAccountExistsDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person_search_rounded, size: 48, color: Color(0xFFCC6633)),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _t("Account Already Exists", "Akun Sudah Terdaftar"),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _t(
+                  "Email $email is already registered. Would you like to sign in instead?",
+                  "Email $email sudah terdaftar. Ingin masuk ke akun tersebut?"
+                ),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _isLoginMode = true;
+                          _isSignUpStep2 = false;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFCC6633),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(_t("Sign In", "Masuk Sekarang")),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAccountNotFoundDialog(String email, String? idToken, String? accessToken, Map<String, dynamic> meta) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person_add_outlined, size: 48, color: Color(0xFFCC6633)),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _t("Account Not Found", "Akun Tidak Ditemukan"),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _t(
+                  "We couldn't find an account for $email. Would you like to create a new one now?",
+                  "Kami tidak menemukan akun untuk $email. Apakah Anda ingin mendaftar sebagai pengguna baru?"
+                ),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _isLoginMode = false;
+                          _isSignUpStep2 = true;
+                          _googleIdToken = idToken;
+                          _googleAccessToken = accessToken;
+                          _emailController.text = email;
+                          _nameController.text = meta['full_name'] ?? "";
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFCC6633),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(_t("Sign Up", "Daftar Sekarang")),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -73,23 +342,80 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       const webClientId = '564994938710-anv76b8tkf8uoobjohct7fohm8f4ovhu.apps.googleusercontent.com';
       final GoogleSignIn googleSignIn = GoogleSignIn(serverClientId: webClientId);
+      
+      // Force account selection by signing out first
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+
       final googleUser = await googleSignIn.signIn();
       
-      if (googleUser == null) return;
+      if (googleUser == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
       final googleAuth = await googleUser.authentication;
       final accessToken = googleAuth.accessToken;
       final idToken = googleAuth.idToken;
 
-      if (accessToken == null || idToken == null) throw 'Failed to get tokens';
+      if (idToken == null) throw 'Failed to get ID Token from Google';
 
-      await Supabase.instance.client.auth.signInWithIdToken(
+      final res = await Supabase.instance.client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
         accessToken: accessToken,
       );
+
+      final user = res.user;
+      if (user != null) {
+        final meta = user.userMetadata ?? {};
+        final bool isAlreadyRegistered = meta.containsKey('display_name');
+
+        if (_isLoginMode && !isAlreadyRegistered) {
+          // Case: Login Page + Not Registered
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) {
+            _showAccountNotFoundDialog(user.email ?? "", idToken, accessToken, meta);
+          }
+        } else if (!_isLoginMode && isAlreadyRegistered) {
+          // Case: User mencoba Sign Up padahal sudah punya akun
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) {
+            setState(() {
+              _googleIdToken = null;
+              _googleAccessToken = null;
+              _emailController.text = user.email ?? "";
+            });
+            _showAccountExistsDialog(user.email ?? "");
+          }
+        } else if (!_isLoginMode && !isAlreadyRegistered) {
+          // Case: Sign Up Page + Not Registered -> Move to Step 2
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) {
+            setState(() {
+              _isSignUpStep2 = true;
+              _googleIdToken = idToken;
+              _googleAccessToken = accessToken;
+              _emailController.text = user.email ?? "";
+              _nameController.text = meta['full_name'] ?? "";
+            });
+          }
+        }
+        // Case: Login Page + Already Registered -> Proceed (handled by StreamBuilder)
+      }
     } catch (error) {
-      _showErrorDialog(_t("Google Sign-In failed: $error", "Gagal masuk dengan Google: $error"));
+      debugPrint("Google Sign-In Error: $error");
+      if (mounted) {
+        setState(() {
+          _googleIdToken = null;
+          _googleAccessToken = null;
+        });
+        _showErrorDialog(_t(
+          "Google Sign-In failed. Please check your connection or try again.", 
+          "Gagal masuk dengan Google. Periksa koneksi atau coba lagi."
+        ));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -115,17 +441,61 @@ class _AuthScreenState extends State<AuthScreen> {
           await prefs.remove('remembered_email');
         }
       } else {
-        await supabase.auth.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-          data: {
-            'display_name': _nameController.text.trim().isEmpty ? "Pelajar Baru" : _nameController.text.trim(),
-            'bio': _descController.text.trim().isEmpty ? "Siap belajar bahasa Jepang!" : _descController.text.trim(),
+        if (_googleIdToken != null) {
+          // Finalize Google Sign Up
+          await supabase.auth.signInWithIdToken(
+            provider: OAuthProvider.google,
+            idToken: _googleIdToken!,
+            accessToken: _googleAccessToken,
+          );
+          await supabase.auth.updateUser(
+            UserAttributes(data: {
+              'display_name': _nameController.text.trim(),
+              'bio': _descController.text.trim().isEmpty ? "Siap belajar bahasa Jepang!" : _descController.text.trim(),
+            })
+          );
+        } else {
+          // Email Sign Up
+          final response = await supabase.auth.signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+            data: {
+              'display_name': _nameController.text.trim().isEmpty ? "Pelajar Baru" : _nameController.text.trim(),
+              'bio': _descController.text.trim().isEmpty ? "Siap belajar bahasa Jepang!" : _descController.text.trim(),
+            }
+          );
+          
+          if (mounted) {
+            // Check if user already exists (Supabase returns empty identities for existing users if enumeration protection is ON)
+            final identities = response.user?.identities;
+            if (identities != null && identities.isEmpty) {
+              _showAccountExistsDialog(_emailController.text.trim());
+              return;
+            }
+
+            if (response.session == null) {
+              _showSuccessDialog(
+                title: _t("Verify Your Email", "Verifikasi Email Anda"),
+                message: _t(
+                  "We've sent a link to your email. Please confirm it to finish your registration.",
+                  "Kami telah mengirimkan tautan ke email Anda. Silakan konfirmasi untuk menyelesaikan pendaftaran."
+                ),
+              );
+            }
           }
-        );
+        }
       }
     } on AuthException catch (error) {
-      _showErrorDialog(error.message);
+      final msg = error.message.toLowerCase();
+      if (msg.contains("already registered") || 
+          msg.contains("already exists") ||
+          msg.contains("user_already_exists") ||
+          msg.contains("already in use") ||
+          msg.contains("sudah terdaftar")) {
+        _showAccountExistsDialog(_emailController.text.trim());
+      } else {
+        _showErrorDialog(error.message);
+      }
     } catch (error) {
       _showErrorDialog(_t("An unexpected error occurred", "Terjadi kesalahan tidak terduga"));
     } finally {
@@ -143,55 +513,108 @@ class _AuthScreenState extends State<AuthScreen> {
           builder: (context, setDialogState) {
             final isDark = globalDarkMode.value;
             return AlertDialog(
-              backgroundColor: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFFAF7F2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text(_t("Reset Password", "Lupa Sandi"), style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF2D2622))),
+              backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_t("Enter your email to receive a reset link.", "Masukkan email untuk menerima tautan atur ulang."), style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 13)),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.lock_reset_rounded, size: 48, color: Color(0xFFCC6633)),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _t("Reset Password", "Lupa Sandi"),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : const Color(0xFF2D2622),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _t("Enter your email to receive a reset link.", "Masukkan email untuk menerima tautan atur ulang."),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: resetEmailController,
                     keyboardType: TextInputType.emailAddress,
                     style: TextStyle(color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
-                      hintText: "Email", filled: true, 
-                      fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      hintText: "Email",
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
                       prefixIcon: const Icon(Icons.email_rounded, color: Color(0xFFB5B0A8)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)
-                    )
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isSending ? null : () async {
+                            if (resetEmailController.text.isEmpty || !resetEmailController.text.contains('@')) return;
+                            setDialogState(() => isSending = true);
+                            
+                            try {
+                              await Supabase.instance.client.auth.resetPasswordForEmail(resetEmailController.text.trim());
+                              if (context.mounted) Navigator.pop(context);
+                              _showSuccessDialog(
+                                title: _t("Email Sent", "Email Terkirim"),
+                                message: _t(
+                                  "A reset link has been sent to your inbox. Please check your email.",
+                                  "Tautan atur ulang telah dikirim. Silakan periksa kotak masuk email Anda."
+                                ),
+                              );
+                            } catch (e) {
+                              _showErrorDialog(e.toString());
+                            } finally { 
+                              if (mounted) setDialogState(() => isSending = false); 
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFCC6633),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: isSending 
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                            : Text(_t("Send", "Kirim")),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87)))),
-                ElevatedButton(
-                  onPressed: isSending ? null : () async {
-                    if (resetEmailController.text.isEmpty || !resetEmailController.text.contains('@')) return;
-                    setDialogState(() => isSending = true);
-                    
-                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                    final navigator = Navigator.of(context);
-
-                    try {
-                      await Supabase.instance.client.auth.resetPasswordForEmail(resetEmailController.text.trim());
-                      navigator.pop();
-                      scaffoldMessenger.showSnackBar(SnackBar(content: Text(_t("Reset link sent!", "Tautan telah dikirim!"))));
-                    } catch (e) {
-                      _showErrorDialog(e.toString());
-                    } finally { 
-                      if (mounted) setDialogState(() => isSending = false); 
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: isSending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(_t("Send", "Kirim")),
-                ),
-              ],
             );
-          }
+          },
         );
-      }
+      },
     );
   }
 
@@ -233,13 +656,47 @@ class _AuthScreenState extends State<AuthScreen> {
                           Hero(
                             tag: 'logo',
                             child: Container(
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(color: const Color(0xFFCC6633).withValues(alpha: 0.1), shape: BoxShape.circle),
-                              child: const Text("み", style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Color(0xFFCC6633), fontFamily: 'Serif', decoration: TextDecoration.none))
+                              padding: const EdgeInsets.all(4), // Memberi ruang untuk stroke
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.redAccent, width: 3), // Stroke merah
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10), // Shadow elegan
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/images/cuteAsset.png',
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text("MIRAIKU", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 6, color: Color(0xFFCC6633))),
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Color(0xFFCC6633), Color(0xFFFF9600)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ).createShader(bounds),
+                            child: const Text(
+                              "MIRAIku",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2.0,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 40),
 
                           AnimatedSize(
@@ -318,15 +775,53 @@ class _AuthScreenState extends State<AuthScreen> {
                                       SizedBox(
                                         width: double.infinity, height: 58,
                                         child: ElevatedButton(
-                                          onPressed: _isLoading ? null : () {
+                                          onPressed: _isLoading ? null : () async {
                                             if (!_isLoginMode && !_isSignUpStep2) {
-                                              if (_formKey.currentState!.validate()) setState(() => _isSignUpStep2 = true);
+                                              if (_formKey.currentState!.validate()) {
+                                                FocusScope.of(context).unfocus();
+                                                
+                                                // Pre-validate email availability by trying a "silent" signup
+                                                setState(() => _isLoading = true);
+                                                try {
+                                                  final res = await Supabase.instance.client.auth.signUp(
+                                                    email: _emailController.text.trim(),
+                                                    password: _passwordController.text.trim(),
+                                                  );
+                                                  
+                                                  if (res.user?.identities?.isEmpty ?? false) {
+                                                    _showAccountExistsDialog(_emailController.text.trim());
+                                                  } else {
+                                                    setState(() => _isSignUpStep2 = true);
+                                                  }
+                                                } on AuthException catch (e) {
+                                                  final msg = e.message.toLowerCase();
+                                                  if (msg.contains("already") || msg.contains("exists") || msg.contains("terdaftar")) {
+                                                    _showAccountExistsDialog(_emailController.text.trim());
+                                                  } else {
+                                                    _showErrorDialog(e.message);
+                                                  }
+                                                } catch (e) {
+                                                  _showErrorDialog(e.toString());
+                                                } finally {
+                                                  if (mounted) setState(() => _isLoading = false);
+                                                }
+                                              }
                                             } else {
                                               _handleAuth();
                                             }
                                           },
-                                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 0),
-                                          child: _isLoading ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3) : Text(_isLoginMode ? _t("Sign In", "Masuk") : (_isSignUpStep2 ? _t("Finish", "Selesai") : _t("Next", "Lanjut")), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFCC6633), 
+                                            disabledBackgroundColor: const Color(0xFFCC6633).withValues(alpha: 0.6),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), 
+                                            elevation: 0
+                                          ),
+                                          child: _isLoading 
+                                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)) 
+                                            : Text(
+                                                _isLoginMode ? _t("Sign In", "Masuk") : (_isSignUpStep2 ? _t("Finish", "Selesai") : _t("Next", "Lanjut")), 
+                                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)
+                                              ),
                                         ),
                                       ),
 
@@ -341,10 +836,21 @@ class _AuthScreenState extends State<AuthScreen> {
                                             style: OutlinedButton.styleFrom(side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA), width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                                             child: Row(
                                               mainAxisAlignment: MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min, // Tambahkan ini
                                               children: [
-                                                Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png', height: 22),
+                                                Image.network(
+                                                  'https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png', // Gunakan URL yang lebih stabil
+                                                  height: 22,
+                                                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                                                ),
                                                 const SizedBox(width: 12),
-                                                Text(_t("Continue with Google", "Lanjutkan dengan Google"), style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                                                Flexible(
+                                                  child: Text(
+                                                    _t("Continue with Google", "Lanjutkan dengan Google"),
+                                                    style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -363,9 +869,13 @@ class _AuthScreenState extends State<AuthScreen> {
                               setState(() {
                                 if (!_isLoginMode && _isSignUpStep2) {
                                   _isSignUpStep2 = false;
+                                  _googleIdToken = null;
+                                  _googleAccessToken = null;
                                 } else {
                                   _isLoginMode = !_isLoginMode;
                                   _isSignUpStep2 = false;
+                                  _googleIdToken = null;
+                                  _googleAccessToken = null;
                                   _formKey.currentState?.reset();
                                 }
                               });

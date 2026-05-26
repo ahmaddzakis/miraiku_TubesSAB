@@ -55,19 +55,12 @@ class _LearnScreenState extends State<LearnScreen> {
       _u2Words1Stars = prefs.getInt('u2_words1_stars') ?? 0;
       _u2Words2Stars = prefs.getInt('u2_words2_stars') ?? 0;
       _u2TestCompleted = prefs.getInt('u2_test_stars') ?? 0;
-
-      _userHearts = prefs.getInt('user_hearts') ?? 5;
     });
   }
 
   Future<void> _saveStarProgress(String key, int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
-  }
-
-  Future<void> _saveHearts(int value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('user_hearts', value);
   }
 
   String _t(String en, String id) {
@@ -205,14 +198,29 @@ class _LearnScreenState extends State<LearnScreen> {
   Widget _buildLeftConnector(Color color) => Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 28), child: Container(width: 6, height: 35, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))));
 
   Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess) {
-    return GestureDetector(
-      onTap: status == NodeStatus.locked ? null : () {
-        if (_userHearts <= 0) { _showNoHeartsDialog(); return; }
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: stars, currentHearts: _userHearts, onQuizPassed: onSuccess, onHeartDecreased: (h) { setState(() { _userHearts = h; _saveHearts(_userHearts); }); })));
-      },
-      child: PathNode(title: title, status: status, stars: stars, alignment: Alignment.centerLeft, onReplaySelected: (selectedStarIndex) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: selectedStarIndex)));
-      }),
+    return ValueListenableBuilder<int>(
+      valueListenable: globalHearts,
+      builder: (context, currentHearts, _) {
+        return GestureDetector(
+          onTap: status == NodeStatus.locked ? null : () {
+            if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
+              unit: unit, 
+              difficulty: diff, 
+              currentStars: stars, 
+              currentHearts: currentHearts, 
+              onQuizPassed: onSuccess, 
+              onHeartDecreased: (h) { 
+                // Biarkan ExerciseScreen menangani logika, tapi GameManager yang pegang state
+                GameManager.decreaseHeart();
+              }
+            )));
+          },
+          child: PathNode(title: title, status: status, stars: stars, alignment: Alignment.centerLeft, onReplaySelected: (selectedStarIndex) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: selectedStarIndex)));
+          }),
+        );
+      }
     );
   }
 

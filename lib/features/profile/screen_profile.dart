@@ -103,41 +103,131 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (key == 'claim_achiev_30days') _claimed30Days = true;
       });
 
-      _showSuccessDialog("🎉 200 XP Berhasil Diklaim!");
+      _showSuccessDialog(_t("🎉 200 XP Successfully Claimed!", "🎉 200 XP Berhasil Diklaim!"));
     } catch (e) {
       debugPrint("Gagal klaim: $e");
     }
   }
 
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("OK"),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showSuccessDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.stars_rounded, color: Color(0xFFCC6633), size: 80),
-            const SizedBox(height: 24),
-            Text(_t("Pencapaian!", "Achievement!"), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, fontFamily: 'Serif')),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFCC6633),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (context) {
+        final isDark = globalDarkMode.value;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                child: const Text("MANTAP!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                child: const Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.green),
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: 24),
+              Text(
+                _t("Success", "Berhasil"),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(_t("OK", "MANTAP!")),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -176,7 +266,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final fileSizeInMB = (await file.length()) / (1024 * 1024);
 
     if (fileSizeInMB > 5.0) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Image too large! Max 5MB.", "Gambar terlalu besar! Maks 5MB.")), backgroundColor: Colors.red));
+      if (mounted) {
+        _showErrorDialog(
+          _t("Image too large!", "Gambar Terlalu Besar"),
+          _t("Maximum file size is 5MB.", "Ukuran file maksimal adalah 5MB.")
+        );
+      }
       return;
     }
 
@@ -184,23 +279,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isUploading = true);
 
     try {
-      final bytes = await file.readAsBytes();
-      final fileExt = file.path.split('.').last;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      final filePath = '/$fileName';
-
-      await _supabase.storage.from('avatars').uploadBinary(filePath, bytes);
-      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
-
-      await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': imageUrl}));
-      if (mounted) {
-        setState(() => _avatarUrl = imageUrl);
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception(_t("User not authenticated.", "Pengguna tidak terautentikasi."));
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile picture updated!", "Foto profil diperbarui!")), backgroundColor: Colors.green));
+      final bytes = await file.readAsBytes();
+      final fileExt = file.path.split('.').last.toLowerCase();
+      final mimeType = fileExt == 'jpg' || fileExt == 'jpeg' ? 'image/jpeg' : 'image/$fileExt';
+      
+      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath = '${user.id}/$fileName';
+
+      // 1. Upload file ke Storage
+      await _supabase.storage.from('avatars').uploadBinary(
+        filePath,
+        bytes,
+        fileOptions: FileOptions(
+          contentType: mimeType,
+          upsert: true,
+        ),
+      );
+
+      // 2. Dapatkan URL Public
+      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      // 3. Update metadata User melalui GameManager agar sinkron
+      await GameManager.syncToCloud(avatarUrl: imageUrl);
+      
+      if (mounted) {
+        setState(() => _avatarUrl = imageUrl);
+        _showSuccessDialog(_t("Profile picture updated!", "Foto profil berhasil diperbarui!"));
+      }
+    } on StorageException catch (e) {
+      if (mounted) {
+        final isRLS = e.statusCode == '403' || e.message.contains('Permission denied') || e.message.contains('new row violates row-level security');
+        _showErrorDialog(
+          _t("Upload Error", "Gagal Unggah"),
+          isRLS 
+            ? _t("Access denied (403). Please check your Supabase Storage RLS policies for the 'avatars' bucket.", 
+                 "Akses ditolak (403). Pastikan kebijakan RLS Storage Supabase untuk bucket 'avatars' sudah diatur.")
+            : e.message
+        );
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Failed to upload image.", "Gagal mengunggah gambar.")), backgroundColor: Colors.red));
+      if (mounted) {
+        _showErrorDialog(_t("Upload Failed", "Gagal Unggah"), e.toString());
+      }
     } finally {
       setModalState(() => _isUploading = false);
       setState(() => _isUploading = false);
@@ -210,11 +335,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveProfileData(String name, String desc) async {
     setState(() => _isSaving = true);
     try {
-      await _supabase.auth.updateUser(UserAttributes(data: {'display_name': name, 'bio': desc}));
-      setState(() { _userName = name; _userDesc = desc; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t("Profile updated successfully!", "Profil Berhasil Diperbarui!")), backgroundColor: Colors.green));
+      await GameManager.syncToCloud(displayName: name, bio: desc);
+      if (mounted) {
+        setState(() {
+          _userName = name;
+          _userDesc = desc;
+        });
+        _showSuccessDialog(_t("Profile updated successfully!", "Profil berhasil diperbarui!"));
+      }
     } on AuthException catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red));
+      if (mounted) _showErrorDialog(_t("Update Failed", "Gagal Memperbarui"), error.message);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -303,7 +433,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             setDialogState(() {});
 
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("🎉 Selamat! 700 XP berhasil diklaim!"), backgroundColor: Color(0xFF58CC02)));
+                              _showSuccessDialog(_t("🎉 700 XP Successfully Claimed!", "🎉 700 XP Berhasil Diklaim!"));
                             }
                           } : null,
                           icon: Icon(alreadyClaimed ? Icons.check_circle_rounded : Icons.stars_rounded, color: canClaim ? Colors.white : Colors.grey, size: 20),
