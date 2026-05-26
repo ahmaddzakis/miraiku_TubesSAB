@@ -44,42 +44,94 @@ class GameManager {
 
   // Helper untuk update state global dari metadata
   static void _updateLocalStateFromMeta(Map<String, dynamic> meta, SharedPreferences prefs) {
-    if (meta.isEmpty) return;
+    // Ambil dari metadata Cloud, kalau tidak ada pakai data Lokal (dari SharedPreferences), kalau tidak ada pakai Default
+    globalHearts.value = (meta['gm_hearts'] as num?)?.toInt() ?? prefs.getInt('gm_hearts') ?? 5;
+    globalXP.value = (meta['gm_xp'] as num?)?.toInt() ?? prefs.getInt('gm_xp') ?? 0;
+    globalStreak.value = (meta['gm_streak'] as num?)?.toInt() ?? prefs.getInt('gm_streak') ?? 0;
 
-    if (meta['gm_hearts'] != null) globalHearts.value = meta['gm_hearts'];
-    if (meta['gm_xp'] != null) globalXP.value = meta['gm_xp'];
-    if (meta['gm_streak'] != null) globalStreak.value = meta['gm_streak'];
-    if (meta['setting_dark'] != null) globalDarkMode.value = meta['setting_dark'];
-    if (meta['setting_lang'] != null) globalLanguage.value = meta['setting_lang'];
-    
+    globalDarkMode.value = meta['setting_dark'] ?? prefs.getBool('setting_dark') ?? false;
+    globalLanguage.value = meta['setting_lang'] ?? prefs.getString('setting_lang') ?? 'en';
+
     if (meta['learned_hiragana'] != null) {
       globalLearnedHiragana.value = List<String>.from(meta['learned_hiragana']);
-    }
-    if (meta['learned_katakana'] != null) {
-      globalLearnedKatakana.value = List<String>.from(meta['learned_katakana']);
+    } else {
+      globalLearnedHiragana.value = prefs.getStringList('learned_hiragana_list') ?? [];
     }
 
-    // Sinkronkan balik ke lokal agar tetap update
+    if (meta['learned_katakana'] != null) {
+      globalLearnedKatakana.value = List<String>.from(meta['learned_katakana']);
+    } else {
+      globalLearnedKatakana.value = prefs.getStringList('learned_katakana_list') ?? [];
+    }
+
+    // Restore timestamps untuk streak & heart recovery agar sinkron antar perangkat
+    if (meta['gm_last_login'] != null) {
+      prefs.setString('gm_last_login', meta['gm_last_login']);
+    }
+    if (meta['gm_last_heart_loss'] != null) {
+      prefs.setString('gm_last_heart_loss', meta['gm_last_heart_loss']);
+    }
+
+    _saveProgressToLocal(prefs);
+  }
+
+  // Fungsi pembantu untuk menyimpan state saat ini ke SharedPreferences
+  static void _saveProgressToLocal(SharedPreferences prefs) {
     prefs.setInt('gm_hearts', globalHearts.value);
     prefs.setInt('gm_xp', globalXP.value);
     prefs.setInt('gm_streak', globalStreak.value);
     prefs.setBool('setting_dark', globalDarkMode.value);
     prefs.setString('setting_lang', globalLanguage.value);
+    prefs.setStringList('learned_hiragana_list', globalLearnedHiragana.value);
+    prefs.setStringList('learned_katakana_list', globalLearnedKatakana.value);
+    // Backward compatibility for simple length storage if needed
     prefs.setInt('learned_hiragana', globalLearnedHiragana.value.length);
     prefs.setInt('learned_katakana', globalLearnedKatakana.value.length);
+  }
+
+  // Reset semua progress ke default (digunakan saat logout)
+  static Future<void> resetProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    globalHearts.value = 5;
+    globalXP.value = 0;
+    globalStreak.value = 0;
+    globalLearnedHiragana.value = [];
+    globalLearnedKatakana.value = [];
+    
+    // Hapus semua data terkait game di SharedPreferences agar tidak bocor ke user lain
+    await prefs.remove('gm_hearts');
+    await prefs.remove('gm_xp');
+    await prefs.remove('gm_streak');
+    await prefs.remove('learned_hiragana_list');
+    await prefs.remove('learned_katakana_list');
+    await prefs.remove('learned_hiragana');
+    await prefs.remove('learned_katakana');
+    await prefs.remove('gm_last_login');
+    await prefs.remove('gm_last_heart_loss');
+    await prefs.remove('setting_dark');
+    await prefs.remove('setting_lang');
   }
 
   static void _startAuthListener() {
     _authSubscription?.cancel();
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final AuthChangeEvent event = data.event;
-      final Session? session = data.session;
+      final session = data.session; // Local variable extraction for type promotion
 
       if (event == AuthChangeEvent.signedIn || event == AuthChangeEvent.userUpdated) {
-        if (session?.user != null) {
+        if (session != null) {
+          final user = session.user;
           final prefs = await SharedPreferences.getInstance();
-          _updateLocalStateFromMeta(session!.user.userMetadata ?? {}, prefs);
+          // 1. Update progress dari metadata cloud (atau fallback ke lokal/default)
+          _updateLocalStateFromMeta(user.userMetadata ?? {}, prefs);
+          
+          // 2. Jalankan ulang logika waktu agar sinkron dengan user baru
+          await _checkDailyStreak(prefs);
+          await _calculateOfflineRegen(prefs);
         }
+      } else if (event == AuthChangeEvent.signedOut) {
+        // Reset state di memori dan lokal saat logout
+        await resetProgress();
       }
     });
   }
@@ -90,6 +142,7 @@ class GameManager {
     final user = supabase.auth.currentUser;
     if (user != null) {
       try {
+        final prefs = await SharedPreferences.getInstance();
         await supabase.auth.updateUser(UserAttributes(data: {
           'gm_xp': globalXP.value,
           'gm_hearts': globalHearts.value,
@@ -98,6 +151,8 @@ class GameManager {
           'setting_lang': globalLanguage.value,
           'learned_hiragana': globalLearnedHiragana.value,
           'learned_katakana': globalLearnedKatakana.value,
+          'gm_last_login': prefs.getString('gm_last_login'),
+          'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
         }));
       } catch (e) {
         debugPrint("Gagal sinkronisasi progress ke Cloud: $e");
