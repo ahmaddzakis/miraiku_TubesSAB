@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import '../../main.dart'; // Pastikan globalLearnedHiragana & Katakana ada di sini
-import '../../core/game_manager.dart';
+import '../../main.dart'; // Tempat globalLearnedHiragana dkk
+import '../../core/game_manager.dart'; // Tempat globalXP dkk biasanya berada
 import 'screen_settings.dart';
 import 'screen_notifications.dart';
 
@@ -26,7 +26,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _supabase = Supabase.instance.client;
 
-  // Data Profil Supabase
+  // Data Profil
   String _userName = "";
   String _userDesc = "";
   String _userEmail = "";
@@ -34,9 +34,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSaving = false;
   bool _isUploading = false;
 
-  // Data Statistik Dinamis
-  int _wordsLearned = 0;
+  // Data Statistik
   int _highScoreSimulation = 0;
+  int _lastClaimedStreak = 0;
+
+  // Status Klaim Achievement
+  bool _claimedHiragana = false;
+  bool _claimedKatakana = false;
+  bool _claimedSim = false;
+  bool _claimed30Days = false;
 
   @override
   void initState() {
@@ -60,13 +66,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadLocalStats() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _wordsLearned = prefs.getInt('words_learned') ?? 0;
       _highScoreSimulation = prefs.getInt('high_score_sim') ?? 0;
+      _lastClaimedStreak = prefs.getInt('last_claimed_streak') ?? 0;
+
+      // Load status klaim
+      _claimedHiragana = prefs.getBool('claim_achiev_hiragana') ?? false;
+      _claimedKatakana = prefs.getBool('claim_achiev_katakana') ?? false;
+      _claimedSim = prefs.getBool('claim_achiev_sim') ?? false;
+      _claimed30Days = prefs.getBool('claim_achiev_30days') ?? false;
     });
 
-    // Sinkronisasi data lokal ke Global Variable saat pertama kali load
     globalLearnedHiragana.value = prefs.getInt('learned_hiragana') ?? 0;
     globalLearnedKatakana.value = prefs.getInt('learned_katakana') ?? 0;
+
+    if (globalStreak.value < _lastClaimedStreak) {
+      setState(() => _lastClaimedStreak = 0);
+      await prefs.setInt('last_claimed_streak', 0);
+    }
+  }
+
+  // Fungsi untuk mengklaim hadiah achievement
+  Future<void> _claimAchievement(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Tambahkan 200 XP
+    globalXP.value += 200;
+    await prefs.setInt('user_xp', globalXP.value);
+
+    // Tandai sudah diklaim
+    await prefs.setBool(key, true);
+    setState(() {
+      if (key == 'claim_achiev_hiragana') _claimedHiragana = true;
+      if (key == 'claim_achiev_katakana') _claimedKatakana = true;
+      if (key == 'claim_achiev_sim') _claimedSim = true;
+      if (key == 'claim_achiev_30days') _claimed30Days = true;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("🎉 Selamat! 200 XP Berhasil Diklaim!"),
+              backgroundColor: Color(0xFF58CC02)
+          )
+      );
+    }
   }
 
   ImageProvider _getAvatarImage() {
@@ -146,6 +189,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _t(String en, String id) => globalLanguage.value == 'id' ? id : en;
+
+  void _showWeeklyStreakDialog(BuildContext context, bool isDark, int currentStreak, int daysThisWeek) {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+              builder: (context, setDialogState) {
+                bool alreadyClaimed = _lastClaimedStreak == currentStreak && currentStreak > 0;
+                bool canClaim = daysThisWeek == 7 && !alreadyClaimed;
+
+                return AlertDialog(
+                  backgroundColor: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF9F6F0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  title: Column(
+                    children: [
+                      const Icon(Icons.local_fire_department_rounded, size: 48, color: Color(0xFFFF9600)),
+                      const SizedBox(height: 12),
+                      Text(_t("Weekly Streak", "Rekor Mingguan"), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333))),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _t(
+                            "You have logged in for $currentStreak days! Complete a full 7-day streak to claim a massive XP reward.",
+                            "Kamu sudah belajar selama $currentStreak hari berturut-turut! Penuhi 1 minggu penuh tanpa bolong untuk mendapatkan hadiah XP besar."
+                        ),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5, fontSize: 13),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: List.generate(7, (index) {
+                          bool isActive = index < daysThisWeek;
+                          List<String> daysIds = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7'];
+
+                          return Column(
+                            children: [
+                              Container(
+                                width: 32, height: 32,
+                                decoration: BoxDecoration(
+                                  color: isActive ? const Color(0xFFFF9600) : (isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade300),
+                                  shape: BoxShape.circle,
+                                  border: isActive ? Border.all(color: const Color(0xFFFFD54F), width: 2) : null,
+                                ),
+                                child: Icon(
+                                    isActive ? Icons.local_fire_department_rounded : Icons.lock_rounded,
+                                    size: 16,
+                                    color: isActive ? Colors.white : (isDark ? Colors.white30 : Colors.grey.shade500)
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(daysIds[index], style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.grey.shade600))
+                            ],
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 32),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: canClaim ? const Color(0xFF58CC02) : (isDark ? const Color(0xFF444444) : Colors.grey.shade300),
+                            disabledBackgroundColor: isDark ? const Color(0xFF444444) : Colors.grey.shade300,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: canClaim ? 2 : 0,
+                          ),
+                          onPressed: canClaim ? () async {
+                            globalXP.value += 700;
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setInt('user_xp', globalXP.value);
+                            await prefs.setInt('last_claimed_streak', currentStreak);
+
+                            setState(() => _lastClaimedStreak = currentStreak);
+                            setDialogState(() {});
+
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("🎉 Selamat! 700 XP berhasil diklaim!"), backgroundColor: Color(0xFF58CC02)));
+                            }
+                          } : null,
+                          icon: Icon(alreadyClaimed ? Icons.check_circle_rounded : Icons.stars_rounded, color: canClaim ? Colors.white : Colors.grey, size: 20),
+                          label: Text(
+                            alreadyClaimed
+                                ? _t("CLAIMED!", "SUDAH DIKLAIM")
+                                : (canClaim ? _t("CLAIM 700 XP", "KLAIM 700 XP") : _t("NOT YET UNLOCKED", "BELUM TERBUKA")),
+                            style: TextStyle(color: canClaim ? Colors.white : Colors.grey, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              }
+          );
+        }
+    );
+  }
 
   void _showEditProfileModal() {
     final TextEditingController nameController = TextEditingController(text: _userName);
@@ -240,7 +385,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 return ValueListenableBuilder<int>(
                     valueListenable: globalStreak,
                     builder: (context, currentStreak, _) {
-                      // 🔥 LISTENER BARU UNTUK ALFABET AGAR PROGRESS BAR JALAN
                       return ValueListenableBuilder<int>(
                           valueListenable: globalLearnedHiragana,
                           builder: (context, hiraganaCount, _) {
@@ -248,11 +392,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 valueListenable: globalLearnedKatakana,
                                 builder: (context, katakanaCount, _) {
 
+                                  // Status Selesai
+                                  bool hiraCompleted = hiraganaCount >= 104;
+                                  bool kataCompleted = katakanaCount >= 104;
+                                  bool simCompleted = _highScoreSimulation >= 100;
+                                  bool streakCompleted = currentStreak >= 30;
+
                                   int completedCount = 0;
-                                  if (hiraganaCount >= 104) completedCount++;
-                                  if (katakanaCount >= 104) completedCount++;
-                                  if (_highScoreSimulation >= 100) completedCount++;
-                                  if (currentXP >= 5000) completedCount++;
+                                  if (hiraCompleted) completedCount++;
+                                  if (kataCompleted) completedCount++;
+                                  if (simCompleted) completedCount++;
+                                  if (streakCompleted) completedCount++;
+
+                                  int daysThisWeek = currentStreak == 0 ? 0 : ((currentStreak - 1) % 7) + 1;
+                                  double streakProgress = (daysThisWeek / 7.0).clamp(0.0, 1.0);
+                                  bool isWeekCompleted = daysThisWeek == 7;
+                                  bool isRewardClaimed = _lastClaimedStreak == currentStreak;
 
                                   return Column(
                                     children: [
@@ -282,40 +437,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       Text(_userDesc, style: TextStyle(color: subTextColor, fontSize: 14, fontWeight: FontWeight.w600)),
                                       const SizedBox(height: 2),
                                       Text(_userEmail, style: TextStyle(color: subTextColor.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 30),
+                                      const SizedBox(height: 40),
 
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          _buildStatCircle(value: "$currentXP", label: "TOTAL XP", icon: Icons.bolt_rounded, iconColor: const Color(0xFFCC6633), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
-                                          _buildStatCircle(value: "$currentStreak", label: _t("DAYS STREAK", "REKOR HARI"), icon: Icons.local_fire_department_rounded, iconColor: const Color(0xFFB85C2A), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
-                                          _buildStatCircle(value: "$_wordsLearned/700", label: _t("WORDS (N5)", "KATA (N5)"), icon: Icons.menu_book_rounded, iconColor: const Color(0xFFE08B4B), cardColor: cardColor, textColor: textColor, subTextColor: subTextColor, borderColor: borderColor),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 24),
-
-                                      Container(
-                                        width: double.infinity, padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: isDark ? 0.01 : 0.05), blurRadius: 20, offset: const Offset(0, 10))]),
-                                        child: Row(
-                                          children: [
-                                            Container(width: 56, height: 56, decoration: BoxDecoration(color: isDark ? const Color(0xFF3A2415) : const Color(0xFFFFF4E8), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.local_fire_department_rounded, color: Color(0xFFCC6633), size: 30)),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(_t("Daily Goal", "Target Harian"), style: TextStyle(fontSize: 13, color: subTextColor, fontWeight: FontWeight.bold)),
-                                                  const SizedBox(height: 4),
-                                                  Text(currentXP == 0 ? _t("Start your first lesson!", "Mulai pelajaran pertamamu!") : _t("Keep it up!", "Terus berjuang!"), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor)),
-                                                  const SizedBox(height: 8),
-                                                  ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: currentXP == 0 ? 0.0 : 0.75, minHeight: 6, backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFCC6633)))),
-                                                ],
+                                      GestureDetector(
+                                        onTap: () => _showWeeklyStreakDialog(context, isDark, currentStreak, daysThisWeek),
+                                        child: Container(
+                                          width: double.infinity, padding: const EdgeInsets.all(20),
+                                          decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: isWeekCompleted && !isRewardClaimed ? const Color(0xFFC8E6C9) : borderColor, width: isWeekCompleted && !isRewardClaimed ? 2 : 1), boxShadow: [BoxShadow(color: const Color(0xFFFF9600).withValues(alpha: isDark ? 0.02 : 0.08), blurRadius: 20, offset: const Offset(0, 10))]),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                  width: 60, height: 60,
+                                                  decoration: BoxDecoration(color: isWeekCompleted && !isRewardClaimed ? const Color(0xFF58CC02).withValues(alpha: 0.15) : (isDark ? const Color(0xFF3A2A1A) : const Color(0xFFFFF6ED)), borderRadius: BorderRadius.circular(18)),
+                                                  child: Icon(isWeekCompleted && !isRewardClaimed ? Icons.redeem_rounded : Icons.local_fire_department_rounded, color: isWeekCompleted && !isRewardClaimed ? const Color(0xFF58CC02) : const Color(0xFFFF9600), size: 34)
                                               ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Text(currentXP == 0 ? "0%" : "75%", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFCC6633))),
-                                          ],
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(_t("Days Streak", "Rekor Belajar"), style: TextStyle(fontSize: 13, color: subTextColor, fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                        isWeekCompleted && !isRewardClaimed
+                                                            ? _t("Claim your 700 XP!", "Klaim Hadiah 700 XP!")
+                                                            : _t("$currentStreak Days in a row!", "$currentStreak Hari Berturut-turut!"),
+                                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isWeekCompleted && !isRewardClaimed ? const Color(0xFF58CC02) : textColor)
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    ClipRRect(
+                                                        borderRadius: BorderRadius.circular(10),
+                                                        child: LinearProgressIndicator(
+                                                            value: streakProgress,
+                                                            minHeight: 8,
+                                                            backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
+                                                            valueColor: AlwaysStoppedAnimation<Color>(isWeekCompleted && !isRewardClaimed ? const Color(0xFF58CC02) : const Color(0xFFFF9600))
+                                                        )
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Text(
+                                                  "$daysThisWeek/7",
+                                                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isWeekCompleted && !isRewardClaimed ? const Color(0xFF58CC02) : const Color(0xFFFF9600))
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(height: 40),
@@ -335,25 +503,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             child: ListView(
                                               scrollDirection: Axis.horizontal, physics: const BouncingScrollPhysics(), clipBehavior: Clip.none,
                                               children: [
-                                                // 🔥 SEKARANG PROGRESS BARNYA AKAN JALAN SESUAI HURUF YANG DIPELAJARI!
                                                 _buildAchievementCardH(
                                                     badge: _AchievementBadge.text("あ"), bgColor: const Color(0xFFFFF4E8), accentColor: const Color(0xFFCC6633), title: "Hiragana\nMaster",
-                                                    progress: (hiraganaCount / 104).clamp(0.0, 1.0), progressLabel: "$hiraganaCount / 104", isCompleted: hiraganaCount >= 104,
+                                                    progress: (hiraganaCount / 104).clamp(0.0, 1.0), progressLabel: "$hiraganaCount / 104",
+                                                    isCompleted: hiraCompleted, isClaimed: _claimedHiragana,
+                                                    onClaim: () => _claimAchievement('claim_achiev_hiragana'),
                                                     cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
                                                 ),
                                                 _buildAchievementCardH(
                                                     badge: _AchievementBadge.text("ア"), bgColor: const Color(0xFFE8F5E9), accentColor: const Color(0xFF4CAF50), title: "Katakana\nMaster",
-                                                    progress: (katakanaCount / 104).clamp(0.0, 1.0), progressLabel: "$katakanaCount / 104", isCompleted: katakanaCount >= 104,
+                                                    progress: (katakanaCount / 104).clamp(0.0, 1.0), progressLabel: "$katakanaCount / 104",
+                                                    isCompleted: kataCompleted, isClaimed: _claimedKatakana,
+                                                    onClaim: () => _claimAchievement('claim_achiev_katakana'),
                                                     cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
                                                 ),
                                                 _buildAchievementCardH(
                                                     badge: _AchievementBadge.label("SIM"), bgColor: const Color(0xFFE3F2FD), badgeTextColor: const Color(0xFF2196F3), accentColor: const Color(0xFF2196F3), title: "Simulation\nAce",
-                                                    progress: (_highScoreSimulation / 100).clamp(0.0, 1.0), progressLabel: _highScoreSimulation == 0 ? "(TBA)" : "$_highScoreSimulation / 100", isCompleted: _highScoreSimulation >= 100,
+                                                    progress: (_highScoreSimulation / 100).clamp(0.0, 1.0), progressLabel: _highScoreSimulation == 0 ? "(TBA)" : "$_highScoreSimulation / 100",
+                                                    isCompleted: simCompleted, isClaimed: _claimedSim,
+                                                    onClaim: () => _claimAchievement('claim_achiev_sim'),
                                                     cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
                                                 ),
                                                 _buildAchievementCardH(
-                                                    badge: _AchievementBadge.label("XP"), bgColor: const Color(0xFFFFF8E1), badgeTextColor: const Color(0xFFFFC107), accentColor: const Color(0xFFFFC107), title: "XP\nLegend",
-                                                    progress: (currentXP / 5000).clamp(0.0, 1.0), progressLabel: "${currentXP > 5000 ? 5000 : currentXP} / 5000", isCompleted: currentXP >= 5000,
+                                                    badge: _AchievementBadge.label("30"), bgColor: const Color(0xFFFFF8E1), badgeTextColor: const Color(0xFFFF9600), accentColor: const Color(0xFFFF9600), title: "30 Days\nStreak",
+                                                    progress: (currentStreak / 30).clamp(0.0, 1.0), progressLabel: "${currentStreak > 30 ? 30 : currentStreak} / 30",
+                                                    isCompleted: streakCompleted, isClaimed: _claimed30Days,
+                                                    onClaim: () => _claimAchievement('claim_achiev_30days'),
                                                     cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor
                                                 ),
                                               ],
@@ -424,12 +599,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCircle({required String value, required String label, required IconData icon, required Color iconColor, required Color cardColor, required Color textColor, required Color subTextColor, required Color borderColor}) {
-    return Container(width: 100, height: 100, decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 24, color: iconColor), const SizedBox(height: 4), Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: textColor)), const SizedBox(height: 2), Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: subTextColor, letterSpacing: 0.5))]));
-  }
+  Widget _buildAchievementCardH({required _AchievementBadge badge, required Color bgColor, required Color accentColor, Color badgeTextColor = Colors.black87, required String title, required double progress, String? progressLabel, bool isCompleted = false, bool isClaimed = false, VoidCallback? onClaim, required Color cardColor, required Color textColor, required Color borderColor, required bool isDark, required Color subTextColor}) {
 
-  Widget _buildAchievementCardH({required _AchievementBadge badge, required Color bgColor, required Color accentColor, Color badgeTextColor = Colors.black87, required String title, required double progress, String? progressLabel, bool isCompleted = false, bool isLocked = false, required Color cardColor, required Color textColor, required Color borderColor, required bool isDark, required Color subTextColor}) {
-    return Opacity(opacity: isLocked ? 0.6 : 1.0, child: Container(width: 135, margin: const EdgeInsets.only(right: 16), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: isCompleted ? const Color(0xFFC8E6C9).withValues(alpha: isDark ? 0.2 : 1) : borderColor, width: 2), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Stack(clipBehavior: Clip.none, children: [Container(width: 56, height: 56, decoration: BoxDecoration(color: isDark ? bgColor.withValues(alpha: 0.5) : bgColor, shape: BoxShape.circle), child: Center(child: Text(badge.text, style: TextStyle(fontSize: badge.isLabel ? 18 : 28, fontWeight: FontWeight.w900, color: badgeTextColor)))), if (isCompleted) Positioned(bottom: -2, right: -2, child: Container(width: 22, height: 22, decoration: BoxDecoration(color: const Color(0xFF558B2F), shape: BoxShape.circle, border: Border.all(color: cardColor, width: 2)), child: const Icon(Icons.check_rounded, size: 14, color: Colors.white))), if (isLocked) Positioned(bottom: -2, right: -2, child: Container(width: 22, height: 22, decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, border: Border.all(color: borderColor, width: 2)), child: const Icon(Icons.lock_rounded, size: 12, color: Color(0xFF8C8A87))))]), const Spacer(), Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: isLocked ? const Color(0xFF8C8A87) : textColor, height: 1.2)), const SizedBox(height: 10), ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8), valueColor: AlwaysStoppedAnimation<Color>(isCompleted ? const Color(0xFF558B2F) : accentColor))), const SizedBox(height: 6), if (isCompleted) Text(_t("Completed", "Selesai"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF558B2F))) else if (progressLabel != null) Text(progressLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: subTextColor))])));
+    // Tampilan tombol atau teks di bagian paling bawah
+    Widget bottomWidget;
+    if (isClaimed) {
+      bottomWidget = Row(children: [const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF58CC02)), const SizedBox(width: 4), Text(_t("Claimed", "Sudah Diklaim"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF58CC02)))]);
+    } else if (isCompleted) {
+      bottomWidget = GestureDetector(
+        onTap: onClaim,
+        child: Container(
+          width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(color: const Color(0xFF58CC02), borderRadius: BorderRadius.circular(8)),
+          child: const Center(child: Text("KLAIM 200 XP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white))),
+        ),
+      );
+    } else {
+      bottomWidget = Text(progressLabel ?? "", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: subTextColor));
+    }
+
+    return Container(width: 135, margin: const EdgeInsets.only(right: 16), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: isCompleted && !isClaimed ? const Color(0xFF58CC02).withValues(alpha: 0.5) : borderColor, width: isCompleted && !isClaimed ? 2 : 1), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Stack(clipBehavior: Clip.none, children: [Container(width: 56, height: 56, decoration: BoxDecoration(color: isDark ? bgColor.withValues(alpha: 0.5) : bgColor, shape: BoxShape.circle), child: Center(child: Text(badge.text, style: TextStyle(fontSize: badge.isLabel ? 18 : 28, fontWeight: FontWeight.w900, color: badgeTextColor)))), if (isClaimed) Positioned(bottom: -2, right: -2, child: Container(width: 22, height: 22, decoration: BoxDecoration(color: const Color(0xFF58CC02), shape: BoxShape.circle, border: Border.all(color: cardColor, width: 2)), child: const Icon(Icons.check_rounded, size: 14, color: Colors.white)))]), const Spacer(), Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textColor, height: 1.2)), const SizedBox(height: 10), ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8), valueColor: AlwaysStoppedAnimation<Color>(isCompleted ? const Color(0xFF58CC02) : accentColor))), const SizedBox(height: 8), bottomWidget]));
   }
 
   Widget _buildMenuTile({required BuildContext context, required IconData icon, required String title, required String subtitle, required Color color, required Color textColor, required Color subTextColor, required VoidCallback onTap, bool isLogout = false, required bool isDark}) {
