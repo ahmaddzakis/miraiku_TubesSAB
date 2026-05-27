@@ -1,202 +1,357 @@
 class QuizRepository {
   static List<Map<String, dynamic>> getQuestions(int unit, String difficulty, int currentStars) {
-    // ==========================================
-    // 🗂️ LOGIKA ROUTING SOAL (BERDASARKAN ID LEVEL & BINTANG)
-    // ==========================================
-
-    // ================= UNIT 1 =================
     if (unit == 1) {
-      if (difficulty == 'hiragana_1') {
-        switch (currentStars) { case 0: return _h1Star1; case 1: return _h1Star2; case 2: return _h1Star3; default: return _h1Star1; }
-      }
-      if (difficulty == 'hiragana_2') {
-        switch (currentStars) { case 0: return _h2Star1; case 1: return _h2Star2; case 2: return _h2Star3; default: return _h2Star1; }
-      }
-      if (difficulty == 'hiragana_3') {
-        switch (currentStars) { case 0: return _h3Star1; case 1: return _h3Star2; case 2: return _h3Star3; default: return _h3Star1; }
-      }
-      if (difficulty == 'hiragana_4') {
-        switch (currentStars) { case 0: return _h4Star1; case 1: return _h4Star2; case 2: return _h4Star3; default: return _h4Star1; }
-      }
-      if (difficulty == 'greetings') {
-        switch (currentStars) { case 0: return _greetStar1; case 1: return _greetStar2; case 2: return _greetStar3; default: return _greetStar1; }
-      }
-      if (difficulty == 'numbers') {
-        switch (currentStars) { case 0: return _numStar1; case 1: return _numStar2; case 2: return _numStar3; default: return _numStar1; }
-      }
-      if (difficulty == 'verbs') {
-        switch (currentStars) { case 0: return _verbStar1; case 1: return _verbStar2; case 2: return _verbStar3; default: return _verbStar1; }
-      }
       if (difficulty == 'test') return _u1UnitTest;
+      if (difficulty == 'hiragana_1') return _getStarSet(_h1Star1, _h1Star1, _h1Star1, currentStars);
+      if (difficulty == 'hiragana_2') return _getStarSet(_h2Star1, _h2Star1, _h2Star1, currentStars);
+      if (difficulty == 'hiragana_3') return _getStarSet(_h3Star1, _h3Star1, _h3Star1, currentStars);
+      if (difficulty == 'hiragana_4') return _getStarSet(_h4Star1, _h4Star1, _h4Star1, currentStars);
+      if (difficulty == 'greetings') return _getStarSet(_greetStar1, _greetStar1, _greetStar1, currentStars);
+      if (difficulty == 'numbers') return _getStarSet(_numStar1, _numStar1, _numStar1, currentStars);
+      if (difficulty == 'verbs') return _getStarSet(_verbStar1, _verbStar1, _verbStar1, currentStars);
     }
-
-    // ================= UNIT 2 (KATAKANA) =================
     if (unit == 2) {
-      if (difficulty == 'katakana_1') {
-        switch (currentStars) { case 0: return _k1Star1; case 1: return _k1Star2; case 2: return _k1Star3; default: return _k1Star1; }
-      }
-      if (difficulty == 'katakana_2') {
-        switch (currentStars) { case 0: return _k2Star1; case 1: return _k2Star2; case 2: return _k2Star3; default: return _k2Star1; }
-      }
-      if (difficulty == 'katakana_3') {
-        switch (currentStars) { case 0: return _k3Star1; case 1: return _k3Star2; case 2: return _k3Star3; default: return _k3Star1; }
-      }
-      if (difficulty == 'katakana_4') {
-        switch (currentStars) { case 0: return _k4Star1; case 1: return _k4Star2; case 2: return _k4Star3; default: return _k4Star1; }
-      }
-      if (difficulty == 'katakana_words') {
-        switch (currentStars) { case 0: return _kataWordStar1; case 1: return _kataWordStar2; case 2: return _kataWordStar3; default: return _kataWordStar1; }
-      }
-      if (difficulty == 'loanwords') {
-        switch (currentStars) { case 0: return _loanStar1; case 1: return _loanStar2; case 2: return _loanStar3; default: return _loanStar1; }
-      }
       if (difficulty == 'test') return _u2UnitTest;
+      if (difficulty == 'katakana_1') return _getStarSet(_k1Star1, _k1Star1, _k1Star1, currentStars);
+      if (difficulty == 'katakana_2') return _getStarSet(_k2Star1, _k2Star1, _k2Star1, currentStars);
+      if (difficulty == 'katakana_3') return _getStarSet(_k3Star1, _k3Star1, _k3Star1, currentStars);
+      if (difficulty == 'katakana_4') return _getStarSet(_k4Star1, _k4Star1, _k4Star1, currentStars);
+      if (difficulty == 'katakana_words') return _getStarSet(_kataWordStar1, _kataWordStar1, _kataWordStar1, currentStars);
+      if (difficulty == 'loanwords') return _getStarSet(_loanWordStar1, _loanWordStar1, _loanWordStar1, currentStars);
     }
-
-    return _h1Star1; // Fallback
+    if (unit == 3) {
+      if (difficulty == 'test') return _u3UnitTest;
+      if (difficulty == 'kanji_numbers') return _getStarSet(_knStar1, _knStar1, _knStar1, currentStars);
+      if (difficulty == 'kanji_nature') return _getStarSet(_kanjiNatureStar1, _kanjiNatureStar1, _kanjiNatureStar1, currentStars);
+      if (difficulty == 'kanji_people') return _getStarSet(_kanjiPeopleStar1, _kanjiPeopleStar1, _kanjiPeopleStar1, currentStars);
+    }
+    if (unit == 4) {
+      if (difficulty == 'test') return _u4UnitTest;
+      if (difficulty == 'grammar_particles') return _getStarSet(_gpStar1, _gpStar1, _gpStar1, currentStars);
+      if (difficulty == 'grammar_verbs_1') return _getStarSet(_gv1Star1, _gv1Star1, _gv1Star1, currentStars);
+      if (difficulty == 'grammar_verbs_2') return _getStarSet(_gv2Star1, _gv2Star1, _gv2Star1, currentStars);
+      if (difficulty == 'grammar_adjectives') return _getStarSet(_adjStar1, _adjStar1, _adjStar1, currentStars);
+    }
+    return _h1Star1;
   }
 
-  // =========================================================================
-  // 📚 UNIT 1: HIRAGANA (Data Tetap Sama Seperti Sebelumnya)
-  // =========================================================================
+  static List<Map<String, dynamic>> _getStarSet(List<Map<String, dynamic>> s1, List<Map<String, dynamic>> s2, List<Map<String, dynamic>> s3, int stars) {
+    if (stars == 0) return s1;
+    if (stars == 1) return s2;
+    return s3;
+  }
+
+  // --- UNIT 1: HIRAGANA (12 Soal) ---
   static final List<Map<String, dynamic>> _h1Star1 = [
-    { 'type': 'multiple_choice', 'question': 'Pilihlah romaji yang tepat:', 'japanese': 'あ', 'correctIndex': 0, 'options': [{'code': 'A', 'text': 'a', 'romaji': 'a'}, {'code': 'B', 'text': 'i', 'romaji': 'i'}, {'code': 'C', 'text': 'u', 'romaji': 'u'}, {'code': 'D', 'text': 'e', 'romaji': 'e'}] },
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'い', 'answer': 'i' },
+    { 'type': 'multiple_choice', 'question': 'A:', 'japanese': 'あ', 'correctIndex': 0, 'options': [{'code': 'A', 'text': 'a', 'romaji': ''}, {'code': 'B', 'text': 'i', 'romaji': ''}, {'code': 'C', 'text': 'u', 'romaji': ''}, {'code': 'D', 'text': 'e', 'romaji': ''}] },
+    { 'type': 'essay', 'question': 'I:', 'japanese': 'い', 'answer': 'i' },
+    { 'type': 'essay', 'question': 'U:', 'japanese': 'う', 'answer': 'u' },
+    { 'type': 'essay', 'question': 'E:', 'japanese': 'え', 'answer': 'e' },
+    { 'type': 'essay', 'question': 'O:', 'japanese': 'お', 'answer': 'o' },
+    { 'type': 'essay', 'question': 'Ka:', 'japanese': 'か', 'answer': 'ka' },
+    { 'type': 'essay', 'question': 'Ki:', 'japanese': 'き', 'answer': 'ki' },
+    { 'type': 'essay', 'question': 'Ku:', 'japanese': 'く', 'answer': 'ku' },
+    { 'type': 'essay', 'question': 'Ke:', 'japanese': 'け', 'answer': 'ke' },
+    { 'type': 'essay', 'question': 'Ko:', 'japanese': 'こ', 'answer': 'ko' },
+    { 'type': 'essay', 'question': 'Sa:', 'japanese': 'さ', 'answer': 'sa' },
+    { 'type': 'essay', 'question': 'Shi:', 'japanese': 'し', 'answer': 'shi' },
   ];
-  static final List<Map<String, dynamic>> _h1Star2 = [
-    { 'type': 'multiple_choice', 'question': 'Pilihlah romaji yang tepat:', 'japanese': 'か', 'correctIndex': 1, 'options': [{'code': 'A', 'text': 'sa', 'romaji': 'sa'}, {'code': 'B', 'text': 'ka', 'romaji': 'ka'}, {'code': 'C', 'text': 'ta', 'romaji': 'ta'}, {'code': 'D', 'text': 'na', 'romaji': 'na'}] },
+
+  static final List<Map<String, dynamic>> _h2Star1 = [
+    { 'type': 'essay', 'japanese': 'す', 'question': 'Su:', 'answer': 'su' },
+    { 'type': 'essay', 'japanese': 'せ', 'question': 'Se:', 'answer': 'se' },
+    { 'type': 'essay', 'japanese': 'そ', 'question': 'So:', 'answer': 'so' },
+    { 'type': 'essay', 'japanese': 'た', 'question': 'Ta:', 'answer': 'ta' },
+    { 'type': 'essay', 'japanese': 'ち', 'question': 'Chi:', 'answer': 'chi' },
+    { 'type': 'essay', 'japanese': 'つ', 'question': 'Tsu:', 'answer': 'tsu' },
+    { 'type': 'essay', 'japanese': 'て', 'question': 'Te:', 'answer': 'te' },
+    { 'type': 'essay', 'japanese': 'と', 'question': 'To:', 'answer': 'to' },
+    { 'type': 'essay', 'japanese': 'な', 'question': 'Na:', 'answer': 'na' },
+    { 'type': 'essay', 'japanese': 'に', 'question': 'Ni:', 'answer': 'ni' },
+    { 'type': 'essay', 'japanese': 'ぬ', 'question': 'Nu:', 'answer': 'nu' },
+    { 'type': 'essay', 'japanese': 'ね', 'question': 'Ne:', 'answer': 'ne' },
   ];
-  static final List<Map<String, dynamic>> _h1Star3 = [
-    { 'type': 'multiple_choice', 'question': 'Pengecualian! Karakter ini dibaca...', 'japanese': 'し', 'correctIndex': 2, 'options': [{'code': 'A', 'text': 'si', 'romaji': 'si'}, {'code': 'B', 'text': 'su', 'romaji': 'su'}, {'code': 'C', 'text': 'shi', 'romaji': 'shi'}, {'code': 'D', 'text': 'se', 'romaji': 'se'}] },
+
+  static final List<Map<String, dynamic>> _h3Star1 = [
+    { 'type': 'essay', 'japanese': 'の', 'question': 'No:', 'answer': 'no' },
+    { 'type': 'essay', 'japanese': 'は', 'question': 'Ha:', 'answer': 'ha' },
+    { 'type': 'essay', 'japanese': 'ひ', 'question': 'Hi:', 'answer': 'hi' },
+    { 'type': 'essay', 'japanese': 'ふ', 'question': 'Fu:', 'answer': 'fu' },
+    { 'type': 'essay', 'japanese': 'へ', 'question': 'He:', 'answer': 'he' },
+    { 'type': 'essay', 'japanese': 'ほ', 'question': 'Ho:', 'answer': 'ho' },
+    { 'type': 'essay', 'japanese': 'ま', 'question': 'Ma:', 'answer': 'ma' },
+    { 'type': 'essay', 'japanese': 'み', 'question': 'Mi:', 'answer': 'mi' },
+    { 'type': 'essay', 'japanese': 'む', 'question': 'Mu:', 'answer': 'mu' },
+    { 'type': 'essay', 'japanese': 'め', 'question': 'Me:', 'answer': 'me' },
+    { 'type': 'essay', 'japanese': 'も', 'question': 'Mo:', 'answer': 'mo' },
+    { 'type': 'essay', 'japanese': 'や', 'question': 'Ya:', 'answer': 'ya' },
   ];
-  static final List<Map<String, dynamic>> _h2Star1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari pengecualian ini:', 'japanese': 'つ', 'answer': 'tsu' }, ];
-  static final List<Map<String, dynamic>> _h2Star2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'に', 'answer': 'ni' }, ];
-  static final List<Map<String, dynamic>> _h2Star3 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'は', 'answer': 'ha' }, ];
-  static final List<Map<String, dynamic>> _h3Star1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'め', 'answer': 'me' }, ];
-  static final List<Map<String, dynamic>> _h3Star2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'る', 'answer': 'ru' }, ];
-  static final List<Map<String, dynamic>> _h3Star3 = [ { 'type': 'essay', 'question': 'Satu-satunya huruf konsonan mati dalam Jepang adalah:', 'japanese': 'ん', 'answer': 'n' }, ];
-  static final List<Map<String, dynamic>> _h4Star1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari kata "Mizu" (Air):', 'japanese': 'みず', 'answer': 'mizu' }, ];
-  static final List<Map<String, dynamic>> _h4Star2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'ぴ', 'answer': 'pi' }, ];
-  static final List<Map<String, dynamic>> _h4Star3 = [ { 'type': 'essay', 'question': 'Tuliskan romaji dari karakter berikut:', 'japanese': 'きゃ', 'answer': 'kya' }, ];
 
-  static final List<Map<String, dynamic>> _greetStar1 = [ { 'type': 'essay', 'question': 'Ketik romaji untuk "Selamat Pagi":', 'japanese': 'おはよう', 'answer': 'ohayou' } ];
-  static final List<Map<String, dynamic>> _greetStar2 = [ { 'type': 'essay', 'question': 'Ketik romaji untuk "Selamat Siang":', 'japanese': 'こんにちは', 'answer': 'konnichiwa' } ];
-  static final List<Map<String, dynamic>> _greetStar3 = [ { 'type': 'essay', 'question': 'Ketik romaji untuk "Sampai Jumpa":', 'japanese': 'さようなら', 'answer': 'sayounara' } ];
+  static final List<Map<String, dynamic>> _h4Star1 = [
+    { 'type': 'essay', 'japanese': 'ゆ', 'question': 'Yu:', 'answer': 'yu' },
+    { 'type': 'essay', 'japanese': 'よ', 'question': 'Yo:', 'answer': 'yo' },
+    { 'type': 'essay', 'japanese': 'ら', 'question': 'Ra:', 'answer': 'ra' },
+    { 'type': 'essay', 'japanese': 'り', 'question': 'Ri:', 'answer': 'ri' },
+    { 'type': 'essay', 'japanese': 'る', 'question': 'Ru:', 'answer': 'ru' },
+    { 'type': 'essay', 'japanese': 'れ', 'question': 'Re:', 'answer': 're' },
+    { 'type': 'essay', 'japanese': 'ろ', 'question': 'Ro:', 'answer': 'ro' },
+    { 'type': 'essay', 'japanese': 'わ', 'question': 'Wa:', 'answer': 'wa' },
+    { 'type': 'essay', 'japanese': 'を', 'question': 'Wo:', 'answer': 'wo' },
+    { 'type': 'essay', 'japanese': 'ん', 'question': 'N:', 'answer': 'n' },
+    { 'type': 'essay', 'japanese': 'が', 'question': 'Ga:', 'answer': 'ga' },
+    { 'type': 'essay', 'japanese': 'ぱ', 'question': 'Pa:', 'answer': 'pa' },
+  ];
 
-  static final List<Map<String, dynamic>> _numStar1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk angka 7:', 'japanese': 'なな', 'answer': 'nana' } ];
-  static final List<Map<String, dynamic>> _numStar2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk 100:', 'japanese': 'ひゃく', 'answer': 'hyaku' } ];
-  static final List<Map<String, dynamic>> _numStar3 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk Jam 3 Lewat Setengah:', 'japanese': 'さんじはん', 'answer': 'sanjihan' } ];
+  static final List<Map<String, dynamic>> _greetStar1 = [
+    { 'type': 'essay', 'question': 'Pagi:', 'japanese': 'おはよう', 'answer': 'ohayou' },
+    { 'type': 'essay', 'question': 'Siang:', 'japanese': 'こんにちは', 'answer': 'konnichiwa' },
+    { 'type': 'essay', 'question': 'Malam:', 'japanese': 'こんばんは', 'answer': 'konbanwa' },
+    { 'type': 'essay', 'question': 'Tidur:', 'japanese': 'おやすみなさい', 'answer': 'oyasuminasai' },
+    { 'type': 'essay', 'question': 'Kabar?', 'japanese': 'おげんきですか', 'answer': 'ogenkidesuka' },
+    { 'type': 'essay', 'question': 'Senang bertemu:', 'japanese': 'はじめまして', 'answer': 'hajimemashite' },
+    { 'type': 'essay', 'question': 'Terima kasih:', 'japanese': 'ありがとう', 'answer': 'arigatou' },
+    { 'type': 'essay', 'question': 'Sama-sama:', 'japanese': 'どういたしまして', 'answer': 'douitashimashite' },
+    { 'type': 'essay', 'question': 'Maaf:', 'japanese': 'ごめんなさい', 'answer': 'gomennasai' },
+    { 'type': 'essay', 'question': 'Permisi:', 'japanese': 'すみません', 'answer': 'sumimasen' },
+    { 'type': 'essay', 'question': 'Sampai jumpa:', 'japanese': 'さようなら', 'answer': 'sayounara' },
+    { 'type': 'essay', 'question': 'Nanti ya:', 'japanese': 'またね', 'answer': 'matane' },
+  ];
 
-  static final List<Map<String, dynamic>> _verbStar1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Makan":', 'japanese': 'たべる', 'answer': 'taberu' } ];
-  static final List<Map<String, dynamic>> _verbStar2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Minum":', 'japanese': 'のむ', 'answer': 'nomu' } ];
-  static final List<Map<String, dynamic>> _verbStar3 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Melihat":', 'japanese': 'みる', 'answer': 'miru' } ];
+  static final List<Map<String, dynamic>> _numStar1 = [
+    { 'type': 'essay', 'question': '1:', 'japanese': 'いち', 'answer': 'ichi' },
+    { 'type': 'essay', 'question': '2:', 'japanese': 'に', 'answer': 'ni' },
+    { 'type': 'essay', 'question': '3:', 'japanese': 'さん', 'answer': 'san' },
+    { 'type': 'essay', 'question': '4:', 'japanese': 'よん', 'answer': 'yon' },
+    { 'type': 'essay', 'question': '5:', 'japanese': 'ご', 'answer': 'go' },
+    { 'type': 'essay', 'question': '6:', 'japanese': 'ろく', 'answer': 'roku' },
+    { 'type': 'essay', 'question': '7:', 'japanese': 'なな', 'answer': 'nana' },
+    { 'type': 'essay', 'question': '8:', 'japanese': 'はち', 'answer': 'hachi' },
+    { 'type': 'essay', 'question': '9:', 'japanese': 'きゅう', 'answer': 'kyuu' },
+    { 'type': 'essay', 'question': '10:', 'japanese': 'じゅう', 'answer': 'juu' },
+    { 'type': 'essay', 'question': '100:', 'japanese': 'ひゃく', 'answer': 'hyaku' },
+    { 'type': 'essay', 'question': '1000:', 'japanese': 'せん', 'answer': 'sen' },
+  ];
 
-  // =========================================================================
-  // 🔥 UNIT TESTS 1 (30 SOAL CAMPURAN - BERPACU DENGAN WAKTU 20 MENIT)
-  // =========================================================================
+  static final List<Map<String, dynamic>> _verbStar1 = [
+    { 'type': 'essay', 'question': 'Makan:', 'japanese': 'たべる', 'answer': 'taberu' },
+    { 'type': 'essay', 'question': 'Minum:', 'japanese': 'のむ', 'answer': 'nomu' },
+    { 'type': 'essay', 'question': 'Melihat:', 'japanese': 'みる', 'answer': 'miru' },
+    { 'type': 'essay', 'question': 'Mendengar:', 'japanese': 'きく', 'answer': 'kiku' },
+    { 'type': 'essay', 'question': 'Membaca:', 'japanese': 'よむ', 'answer': 'yomu' },
+    { 'type': 'essay', 'question': 'Menulis:', 'japanese': 'かく', 'answer': 'kaku' },
+    { 'type': 'essay', 'question': 'Pergi:', 'japanese': 'いく', 'answer': 'iku' },
+    { 'type': 'essay', 'question': 'Datang:', 'japanese': 'くる', 'answer': 'kuru' },
+    { 'type': 'essay', 'question': 'Pulang:', 'japanese': 'かえる', 'answer': 'kaeru' },
+    { 'type': 'essay', 'question': 'Tidur:', 'japanese': 'ねる', 'answer': 'neru' },
+    { 'type': 'essay', 'question': 'Bermain:', 'japanese': 'あそぶ', 'answer': 'asobu' },
+    { 'type': 'essay', 'question': 'Membeli:', 'japanese': 'かう', 'answer': 'kau' },
+  ];
+
   static final List<Map<String, dynamic>> _u1UnitTest = [
-    // --- Bagian 1: Hiragana Acak ---
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'む', 'answer': 'mu' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'を', 'answer': 'wo' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'け', 'answer': 'ke' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'ち', 'answer': 'chi' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'ぬ', 'answer': 'nu' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'ふ', 'answer': 'fu' },
-    { 'type': 'multiple_choice', 'question': 'Karakter "Ya" yang benar adalah...', 'japanese': 'や', 'correctIndex': 0, 'options': [{'code': 'A', 'text': 'ya', 'romaji': ''}, {'code': 'B', 'text': 'yu', 'romaji': ''}, {'code': 'C', 'text': 'yo', 'romaji': ''}, {'code': 'D', 'text': 'wa', 'romaji': ''}] },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'が', 'answer': 'ga' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'ぽ', 'answer': 'po' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji karakter ini:', 'japanese': 'じゃ', 'answer': 'ja' },
+    ..._h1Star1, ..._h2Star1, ..._greetStar1.sublist(0, 6)
+  ].sublist(0, 30);
 
-    // --- Bagian 2: Kosakata & Salam ---
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Sepatu', 'japanese': 'くつ', 'answer': 'kutsu' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Guru', 'japanese': 'せんせい', 'answer': 'sensei' },
-    { 'type': 'multiple_choice', 'question': 'Pilih ucapan "Selamat Malam" yang tepat:', 'japanese': 'こんばんは', 'correctIndex': 2, 'options': [{'code': 'A', 'text': 'Konnichiwa', 'romaji': ''}, {'code': 'B', 'text': 'Ohayou', 'romaji': ''}, {'code': 'C', 'text': 'Konbanwa', 'romaji': ''}, {'code': 'D', 'text': 'Sayounara', 'romaji': ''}] },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Tas', 'japanese': 'かばん', 'answer': 'kaban' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Telepon', 'japanese': 'でんわ', 'answer': 'denwa' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Selamat Tidur', 'japanese': 'おやすみなさい', 'answer': 'oyasuminasai' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Terima Kasih', 'japanese': 'ありがとう', 'answer': 'arigatou' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Maaf', 'japanese': 'ごめんなさい', 'answer': 'gomennasai' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Rumah', 'japanese': 'いえ', 'answer': 'ie' },
-    { 'type': 'essay', 'question': 'Ubah ke romaji: Air', 'japanese': 'みず', 'answer': 'mizu' },
-
-    // --- Bagian 3: Angka & Waktu ---
-    { 'type': 'essay', 'question': 'Tuliskan romaji angka 100:', 'japanese': 'ひゃく', 'answer': 'hyaku' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji angka 7:', 'japanese': 'なな', 'answer': 'nana' },
-    { 'type': 'multiple_choice', 'question': 'Jam 4 dibaca...', 'japanese': 'よじ', 'correctIndex': 1, 'options': [{'code': 'A', 'text': 'Yon ji', 'romaji': ''}, {'code': 'B', 'text': 'Yo ji', 'romaji': ''}, {'code': 'C', 'text': 'Shi ji', 'romaji': ''}, {'code': 'D', 'text': 'Go ji', 'romaji': ''}] },
-    { 'type': 'essay', 'question': 'Tuliskan romaji Jam 9 (Pengecualian):', 'japanese': 'くじ', 'answer': 'kuji' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji angka 10.000:', 'japanese': 'いちまん', 'answer': 'ichiman' },
-
-    // --- Bagian 4: Kata Kerja ---
-    { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Makan":', 'japanese': 'たべる', 'answer': 'taberu' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Minum":', 'japanese': 'のむ', 'answer': 'nomu' },
-    { 'type': 'multiple_choice', 'question': 'Kata kerja "Melihat" adalah...', 'japanese': 'みる', 'correctIndex': 3, 'options': [{'code': 'A', 'text': 'Kiku', 'romaji': ''}, {'code': 'B', 'text': 'Hanasu', 'romaji': ''}, {'code': 'C', 'text': 'Kaku', 'romaji': ''}, {'code': 'D', 'text': 'Miru', 'romaji': ''}] },
-    { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Mendengar":', 'japanese': 'きく', 'answer': 'kiku' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Tidur":', 'japanese': 'ねる', 'answer': 'neru' },
-  ];
-
-  // =========================================================================
-  // 🔠 UNIT 2: KATAKANA BASICS 1-4
-  // =========================================================================
-
-  // Katakana 1: A, K, S
+  // --- UNIT 2: KATAKANA (Sample) ---
   static final List<Map<String, dynamic>> _k1Star1 = [
-    { 'type': 'multiple_choice', 'question': 'Pilihlah romaji yang tepat:', 'japanese': 'ア', 'correctIndex': 0, 'options': [{'code': 'A', 'text': 'a', 'romaji': ''}, {'code': 'B', 'text': 'i', 'romaji': ''}, {'code': 'C', 'text': 'u', 'romaji': ''}, {'code': 'D', 'text': 'e', 'romaji': ''}] },
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'イ', 'answer': 'i' },
-  ];
-  static final List<Map<String, dynamic>> _k1Star2 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'カ', 'answer': 'ka' },
-  ];
-  static final List<Map<String, dynamic>> _k1Star3 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'サ', 'answer': 'sa' },
+    { 'type': 'essay', 'japanese': 'ア', 'question': 'A:', 'answer': 'a' },
+    { 'type': 'essay', 'japanese': 'イ', 'question': 'I:', 'answer': 'i' },
+    { 'type': 'essay', 'japanese': 'ウ', 'question': 'U:', 'answer': 'u' },
+    { 'type': 'essay', 'japanese': 'エ', 'question': 'E:', 'answer': 'e' },
+    { 'type': 'essay', 'japanese': 'オ', 'question': 'O:', 'answer': 'o' },
+    { 'type': 'essay', 'japanese': 'カ', 'question': 'Ka:', 'answer': 'ka' },
+    { 'type': 'essay', 'japanese': 'キ', 'question': 'Ki:', 'answer': 'ki' },
+    { 'type': 'essay', 'japanese': 'ク', 'question': 'Ku:', 'answer': 'ku' },
+    { 'type': 'essay', 'japanese': 'ケ', 'question': 'Ke:', 'answer': 'ke' },
+    { 'type': 'essay', 'japanese': 'コ', 'question': 'Ko:', 'answer': 'ko' },
+    { 'type': 'essay', 'japanese': 'サ', 'question': 'Sa:', 'answer': 'sa' },
+    { 'type': 'essay', 'japanese': 'シ', 'question': 'Shi:', 'answer': 'shi' },
   ];
 
-  // Katakana 2: T, N, H
   static final List<Map<String, dynamic>> _k2Star1 = [
-    { 'type': 'essay', 'question': 'Mirip dengan tanda senyum, karakter ini dibaca:', 'japanese': 'ツ', 'answer': 'tsu' },
-  ];
-  static final List<Map<String, dynamic>> _k2Star2 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'ニ', 'answer': 'ni' },
-  ];
-  static final List<Map<String, dynamic>> _k2Star3 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'ハ', 'answer': 'ha' },
+    { 'type': 'essay', 'japanese': 'ス', 'question': 'Su:', 'answer': 'su' },
+    { 'type': 'essay', 'japanese': 'セ', 'question': 'Se:', 'answer': 'se' },
+    { 'type': 'essay', 'japanese': 'ソ', 'question': 'So:', 'answer': 'so' },
+    { 'type': 'essay', 'japanese': 'タ', 'question': 'Ta:', 'answer': 'ta' },
+    { 'type': 'essay', 'japanese': 'チ', 'question': 'Chi:', 'answer': 'chi' },
+    { 'type': 'essay', 'japanese': 'ツ', 'question': 'Tsu:', 'answer': 'tsu' },
+    { 'type': 'essay', 'japanese': 'テ', 'question': 'Te:', 'answer': 'te' },
+    { 'type': 'essay', 'japanese': 'ト', 'question': 'To:', 'answer': 'to' },
+    { 'type': 'essay', 'japanese': 'ナ', 'question': 'Na:', 'answer': 'na' },
+    { 'type': 'essay', 'japanese': 'ニ', 'question': 'Ni:', 'answer': 'ni' },
+    { 'type': 'essay', 'japanese': 'ヌ', 'question': 'Nu:', 'answer': 'nu' },
+    { 'type': 'essay', 'japanese': 'ネ', 'question': 'Ne:', 'answer': 'ne' },
   ];
 
-  // Katakana 3: M, Y, R, W
   static final List<Map<String, dynamic>> _k3Star1 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'マ', 'answer': 'ma' },
-  ];
-  static final List<Map<String, dynamic>> _k3Star2 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji dari Katakana berikut:', 'japanese': 'ヤ', 'answer': 'ya' },
-  ];
-  static final List<Map<String, dynamic>> _k3Star3 = [
-    { 'type': 'essay', 'question': 'Mirip huruf V, Katakana ini dibaca:', 'japanese': 'ワ', 'answer': 'wa' },
-    { 'type': 'essay', 'question': 'Konsonan tunggal dalam Katakana:', 'japanese': 'ン', 'answer': 'n' },
+    { 'type': 'essay', 'japanese': 'ノ', 'question': 'No:', 'answer': 'no' },
+    { 'type': 'essay', 'japanese': 'ハ', 'question': 'Ha:', 'answer': 'ha' },
+    { 'type': 'essay', 'japanese': 'ヒ', 'question': 'Hi:', 'answer': 'hi' },
+    { 'type': 'essay', 'japanese': 'フ', 'question': 'Fu:', 'answer': 'fu' },
+    { 'type': 'essay', 'japanese': 'ヘ', 'question': 'He:', 'answer': 'he' },
+    { 'type': 'essay', 'japanese': 'ホ', 'question': 'Ho:', 'answer': 'ho' },
+    { 'type': 'essay', 'japanese': 'マ', 'question': 'Ma:', 'answer': 'ma' },
+    { 'type': 'essay', 'japanese': 'ミ', 'question': 'Mi:', 'answer': 'mi' },
+    { 'type': 'essay', 'japanese': 'ム', 'question': 'Mu:', 'answer': 'mu' },
+    { 'type': 'essay', 'japanese': 'メ', 'question': 'Me:', 'answer': 'me' },
+    { 'type': 'essay', 'japanese': 'モ', 'question': 'Mo:', 'answer': 'mo' },
+    { 'type': 'essay', 'japanese': 'ヤ', 'question': 'Ya:', 'answer': 'ya' },
   ];
 
-  // Katakana 4: Dakuten & Handakuten
   static final List<Map<String, dynamic>> _k4Star1 = [
-    { 'type': 'essay', 'question': 'Katakana "Ga" ditulis dengan tanda kutip:', 'japanese': 'ガ', 'answer': 'ga' },
-  ];
-  static final List<Map<String, dynamic>> _k4Star2 = [
-    { 'type': 'essay', 'question': 'Katakana "Pa" ditulis dengan bulatan:', 'japanese': 'パ', 'answer': 'pa' },
-  ];
-  static final List<Map<String, dynamic>> _k4Star3 = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji gabungan berikut:', 'japanese': 'キャ', 'answer': 'kya' },
+    { 'type': 'essay', 'japanese': 'ユ', 'question': 'Yu:', 'answer': 'yu' },
+    { 'type': 'essay', 'japanese': 'ヨ', 'question': 'Yo:', 'answer': 'yo' },
+    { 'type': 'essay', 'japanese': 'ラ', 'question': 'Ra:', 'answer': 'ra' },
+    { 'type': 'essay', 'japanese': 'リ', 'question': 'Ri:', 'answer': 'ri' },
+    { 'type': 'essay', 'japanese': 'ル', 'question': 'Ru:', 'answer': 'ru' },
+    { 'type': 'essay', 'japanese': 'レ', 'question': 'Re:', 'answer': 're' },
+    { 'type': 'essay', 'japanese': 'ロ', 'question': 'Ro:', 'answer': 'ro' },
+    { 'type': 'essay', 'japanese': 'ワ', 'question': 'Wa:', 'answer': 'wa' },
+    { 'type': 'essay', 'japanese': 'ヲ', 'question': 'Wo:', 'answer': 'wo' },
+    { 'type': 'essay', 'japanese': 'ン', 'question': 'N:', 'answer': 'n' },
+    { 'type': 'essay', 'japanese': 'ガ', 'question': 'Ga:', 'answer': 'ga' },
+    { 'type': 'essay', 'japanese': 'パ', 'question': 'Pa:', 'answer': 'pa' },
   ];
 
-  // =========================================================================
-  // 🎌 KATAKANA WORDS & LOANWORDS
-  // =========================================================================
-  static final List<Map<String, dynamic>> _kataWordStar1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Kamera":', 'japanese': 'カメラ', 'answer': 'kamera' }, ];
-  static final List<Map<String, dynamic>> _kataWordStar2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "TV":', 'japanese': 'テレビ', 'answer': 'terebi' }, ];
-  static final List<Map<String, dynamic>> _kataWordStar3 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Hotel":', 'japanese': 'ホテル', 'answer': 'hoteru' }, ];
-
-  static final List<Map<String, dynamic>> _loanStar1 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Coffee":', 'japanese': 'コーヒー', 'answer': 'koohii' }, ];
-  static final List<Map<String, dynamic>> _loanStar2 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Computer":', 'japanese': 'コンピューター', 'answer': 'konpyuutaa' }, ];
-  static final List<Map<String, dynamic>> _loanStar3 = [ { 'type': 'essay', 'question': 'Tuliskan romaji untuk "Smartphone":', 'japanese': 'スマホ', 'answer': 'sumaho' }, ];
-
-  static final List<Map<String, dynamic>> _u2UnitTest = [
-    { 'type': 'essay', 'question': 'Tuliskan romaji Katakana untuk A:', 'japanese': 'ア', 'answer': 'a' },
-    { 'type': 'essay', 'question': 'Tuliskan romaji untuk Kopi:', 'japanese': 'コーヒー', 'answer': 'koohii' },
+  static final List<Map<String, dynamic>> _kataWordStar1 = [
+    { 'type': 'essay', 'japanese': 'カメラ', 'question': 'Kamera:', 'answer': 'kamera' },
+    { 'type': 'essay', 'japanese': 'テレビ', 'question': 'TV:', 'answer': 'terebi' },
+    { 'type': 'essay', 'japanese': 'ホテル', 'question': 'Hotel:', 'answer': 'hoteru' },
+    { 'type': 'essay', 'japanese': 'バス', 'question': 'Bus:', 'answer': 'basu' },
+    { 'type': 'essay', 'japanese': 'トイレ', 'question': 'Toilet:', 'answer': 'toire' },
+    { 'type': 'essay', 'japanese': 'ドア', 'question': 'Door:', 'answer': 'doa' },
+    { 'type': 'essay', 'japanese': 'ペン', 'question': 'Pen:', 'answer': 'pen' },
+    { 'type': 'essay', 'japanese': 'パン', 'question': 'Roti:', 'answer': 'pan' },
+    { 'type': 'essay', 'japanese': 'ワイン', 'question': 'Wine:', 'answer': 'wain' },
+    { 'type': 'essay', 'japanese': 'ケーキ', 'question': 'Kue:', 'answer': 'keeki' },
+    { 'type': 'essay', 'japanese': 'コーヒー', 'question': 'Kopi:', 'answer': 'koohii' },
+    { 'type': 'essay', 'japanese': 'タクシー', 'question': 'Taksi:', 'answer': 'takushii' },
   ];
+
+  static final List<Map<String, dynamic>> _loanWordStar1 = [
+    { 'type': 'essay', 'japanese': 'レストラン', 'question': 'Restoran:', 'answer': 'resutoran' },
+    { 'type': 'essay', 'japanese': 'スーパー', 'question': 'Supermarket:', 'answer': 'suupaa' },
+    { 'type': 'essay', 'japanese': 'デパート', 'question': 'Department Store:', 'answer': 'depaato' },
+    { 'type': 'essay', 'japanese': 'コンビニ', 'question': 'Convenience Store:', 'answer': 'konbini' },
+    { 'type': 'essay', 'japanese': 'サラリーマン', 'question': 'Office Worker:', 'answer': 'sarariiman' },
+    { 'type': 'essay', 'japanese': 'スマートフォン', 'question': 'Smartphone:', 'answer': 'sumaatofon' },
+    { 'type': 'essay', 'japanese': 'コンピューター', 'question': 'Computer:', 'answer': 'konpyuutaa' },
+    { 'type': 'essay', 'japanese': 'インターネット', 'question': 'Internet:', 'answer': 'intaanetto' },
+    { 'type': 'essay', 'japanese': 'ピザ', 'question': 'Pizza:', 'answer': 'piza' },
+    { 'type': 'essay', 'japanese': 'サラダ', 'question': 'Salad:', 'answer': 'sarada' },
+    { 'type': 'essay', 'japanese': 'スポーツ', 'question': 'Sport:', 'answer': 'supootsu' },
+    { 'type': 'essay', 'japanese': 'ネクタイ', 'question': 'Necktie:', 'answer': 'nekutai' },
+  ];
+
+  static final List<Map<String, dynamic>> _u2UnitTest = [..._k1Star1, ..._kataWordStar1, ..._loanWordStar1.sublist(0, 6)];
+
+  // --- UNIT 3: BASIC KANJI ---
+  static final List<Map<String, dynamic>> _knStar1 = [
+    { 'type': 'essay', 'question': 'Satu (1):', 'japanese': '一', 'answer': 'ichi' },
+    { 'type': 'essay', 'question': 'Dua (2):', 'japanese': '二', 'answer': 'ni' },
+    { 'type': 'essay', 'question': 'Tiga (3):', 'japanese': '三', 'answer': 'san' },
+    { 'type': 'essay', 'question': 'Empat (4):', 'japanese': '四', 'answer': 'yon' },
+    { 'type': 'essay', 'question': 'Lima (5):', 'japanese': '五', 'answer': 'go' },
+    { 'type': 'essay', 'question': 'Enam (6):', 'japanese': '六', 'answer': 'roku' },
+    { 'type': 'essay', 'question': 'Tujuh (7):', 'japanese': '七', 'answer': 'nana' },
+    { 'type': 'essay', 'question': 'Delapan (8):', 'japanese': '八', 'answer': 'hachi' },
+    { 'type': 'essay', 'question': 'Sembilan (9):', 'japanese': '九', 'answer': 'kyuu' },
+    { 'type': 'essay', 'question': 'Sepuluh (10):', 'japanese': '十', 'answer': 'juu' },
+    { 'type': 'essay', 'question': 'Seratus (100):', 'japanese': '百', 'answer': 'hyaku' },
+    { 'type': 'essay', 'question': 'Seribu (1000):', 'japanese': '千', 'answer': 'sen' },
+  ];
+
+  static final List<Map<String, dynamic>> _kanjiNatureStar1 = [
+    { 'type': 'essay', 'question': 'Matahari:', 'japanese': '日', 'answer': 'hi' },
+    { 'type': 'essay', 'question': 'Bulan:', 'japanese': '月', 'answer': 'tsuki' },
+    { 'type': 'essay', 'question': 'Api:', 'japanese': '火', 'answer': 'hi' },
+    { 'type': 'essay', 'question': 'Air:', 'japanese': '水', 'answer': 'mizu' },
+    { 'type': 'essay', 'question': 'Pohon:', 'japanese': '木', 'answer': 'ki' },
+    { 'type': 'essay', 'question': 'Logam/Uang:', 'japanese': '金', 'answer': 'kane' },
+    { 'type': 'essay', 'question': 'Tanah:', 'japanese': '土', 'answer': 'tsuchi' },
+    { 'type': 'essay', 'question': 'Gunung:', 'japanese': '山', 'answer': 'yama' },
+    { 'type': 'essay', 'question': 'Sungai:', 'japanese': '川', 'answer': 'kawa' },
+    { 'type': 'essay', 'question': 'Sawah:', 'japanese': '田', 'answer': 'ta' },
+    { 'type': 'essay', 'question': 'Langit:', 'japanese': '天', 'answer': 'ten' },
+    { 'type': 'essay', 'question': 'Batu:', 'japanese': '石', 'answer': 'ishi' },
+  ];
+
+  static final List<Map<String, dynamic>> _kanjiPeopleStar1 = [
+    { 'type': 'essay', 'question': 'Orang:', 'japanese': '人', 'answer': 'hito' },
+    { 'type': 'essay', 'question': 'Anak:', 'japanese': '子', 'answer': 'ko' },
+    { 'type': 'essay', 'question': 'Wanita:', 'japanese': '女', 'answer': 'onna' },
+    { 'type': 'essay', 'question': 'Pria:', 'japanese': '男', 'answer': 'otoko' },
+    { 'type': 'essay', 'question': 'Mata:', 'japanese': '目', 'answer': 'me' },
+    { 'type': 'essay', 'question': 'Mulut:', 'japanese': '口', 'answer': 'kuchi' },
+    { 'type': 'essay', 'question': 'Telinga:', 'japanese': '耳', 'answer': 'mimi' },
+    { 'type': 'essay', 'question': 'Tangan:', 'japanese': '手', 'answer': 'te' },
+    { 'type': 'essay', 'question': 'Kaki:', 'japanese': '足', 'answer': 'ashi' },
+    { 'type': 'essay', 'question': 'Kekuatan:', 'japanese': '力', 'answer': 'chikara' },
+    { 'type': 'essay', 'question': 'Gerbang:', 'japanese': '門', 'answer': 'mon' },
+    { 'type': 'essay', 'question': 'Ayah:', 'japanese': '父', 'answer': 'chichi' },
+  ];
+
+  static final List<Map<String, dynamic>> _u3UnitTest = [..._knStar1, ..._kanjiNatureStar1, ..._kanjiPeopleStar1.sublist(0, 6)];
+
+  // --- UNIT 4: BASIC GRAMMAR ---
+  static final List<Map<String, dynamic>> _gpStar1 = [
+    { 'type': 'essay', 'question': 'Partikel Topik:', 'japanese': 'は', 'answer': 'wa' },
+    { 'type': 'essay', 'question': 'Partikel Objek:', 'japanese': 'を', 'answer': 'wo' },
+    { 'type': 'essay', 'question': 'Partikel Juga:', 'japanese': 'も', 'answer': 'mo' },
+    { 'type': 'essay', 'question': 'Partikel Lokasi/Tujuan:', 'japanese': 'に', 'answer': 'ni' },
+    { 'type': 'essay', 'question': 'Partikel Arah:', 'japanese': 'へ', 'answer': 'he' },
+    { 'type': 'essay', 'question': 'Partikel Lokasi Kejadian:', 'japanese': 'で', 'answer': 'de' },
+    { 'type': 'essay', 'question': 'Partikel Bersama/Dan:', 'japanese': 'と', 'answer': 'to' },
+    { 'type': 'essay', 'question': 'Partikel Kepemilikan:', 'japanese': 'の', 'answer': 'no' },
+    { 'type': 'essay', 'question': 'Partikel Subjek:', 'japanese': 'が', 'answer': 'ga' },
+    { 'type': 'essay', 'question': 'Dari:', 'japanese': 'から', 'answer': 'kara' },
+    { 'type': 'essay', 'question': 'Sampai:', 'japanese': 'まで', 'answer': 'made' },
+    { 'type': 'essay', 'question': 'Partikel Pertanyaan:', 'japanese': 'か', 'answer': 'ka' },
+  ];
+
+  static final List<Map<String, dynamic>> _gv1Star1 = [
+    { 'type': 'essay', 'question': 'Makan:', 'japanese': 'たべる', 'answer': 'taberu' },
+    { 'type': 'essay', 'question': 'Minum:', 'japanese': 'のむ', 'answer': 'nomu' },
+    { 'type': 'essay', 'question': 'Pergi:', 'japanese': 'いく', 'answer': 'iku' },
+    { 'type': 'essay', 'question': 'Datang:', 'japanese': 'くる', 'answer': 'kuru' },
+    { 'type': 'essay', 'question': 'Melakukan:', 'japanese': 'する', 'answer': 'suru' },
+    { 'type': 'essay', 'question': 'Membeli:', 'japanese': 'かう', 'answer': 'kau' },
+    { 'type': 'essay', 'question': 'Mengerti:', 'japanese': 'わかる', 'answer': 'wakaru' },
+    { 'type': 'essay', 'question': 'Berbicara:', 'japanese': 'はなす', 'answer': 'hanasu' },
+    { 'type': 'essay', 'question': 'Ada (Benda Mati):', 'japanese': 'あります', 'answer': 'arimasu' },
+    { 'type': 'essay', 'question': 'Ada (Benda Hidup):', 'japanese': 'います', 'answer': 'imasu' },
+    { 'type': 'essay', 'question': 'Bekerja:', 'japanese': 'はたらく', 'answer': 'hataraku' },
+    { 'type': 'essay', 'question': 'Belajar:', 'japanese': 'べんきょうする', 'answer': 'benkyousuru' },
+  ];
+
+  static final List<Map<String, dynamic>> _gv2Star1 = [
+    { 'type': 'essay', 'question': 'Melihat:', 'japanese': 'みる', 'answer': 'miru' },
+    { 'type': 'essay', 'question': 'Mendengar:', 'japanese': 'きく', 'answer': 'kiku' },
+    { 'type': 'essay', 'question': 'Menulis:', 'japanese': 'かく', 'answer': 'kaku' },
+    { 'type': 'essay', 'question': 'Membaca:', 'japanese': 'よむ', 'answer': 'yomu' },
+    { 'type': 'essay', 'question': 'Berenang:', 'japanese': 'およぐ', 'answer': 'oyogu' },
+    { 'type': 'essay', 'question': 'Menunggu:', 'japanese': 'まつ', 'answer': 'matsu' },
+    { 'type': 'essay', 'question': 'Pulang:', 'japanese': 'かえる', 'answer': 'kaeru' },
+    { 'type': 'essay', 'question': 'Mengambil:', 'japanese': 'とる', 'answer': 'toru' },
+    { 'type': 'essay', 'question': 'Berdiri:', 'japanese': 'たつ', 'answer': 'tatsu' },
+    { 'type': 'essay', 'question': 'Duduk:', 'japanese': 'すわる', 'answer': 'suwaru' },
+    { 'type': 'essay', 'question': 'Mengenakan:', 'japanese': 'きる', 'answer': 'kiru' },
+    { 'type': 'essay', 'question': 'Mati:', 'japanese': 'しぬ', 'answer': 'shinu' },
+  ];
+
+  static final List<Map<String, dynamic>> _adjStar1 = [
+    { 'type': 'essay', 'question': 'Enak:', 'japanese': 'おいしい', 'answer': 'oishii' },
+    { 'type': 'essay', 'question': 'Mahal:', 'japanese': 'たかい', 'answer': 'takai' },
+    { 'type': 'essay', 'question': 'Murah:', 'japanese': 'やすい', 'answer': 'yasui' },
+    { 'type': 'essay', 'question': 'Besar:', 'japanese': 'おおきい', 'answer': 'ookii' },
+    { 'type': 'essay', 'question': 'Kecil:', 'japanese': 'ちいさい', 'answer': 'chiisai' },
+    { 'type': 'essay', 'question': 'Baru:', 'japanese': 'あたらしい', 'answer': 'atarashii' },
+    { 'type': 'essay', 'question': 'Lama/Tua:', 'japanese': 'ふるい', 'answer': 'furui' },
+    { 'type': 'essay', 'question': 'Bagus:', 'japanese': 'いい', 'answer': 'ii' },
+    { 'type': 'essay', 'question': 'Buruk:', 'japanese': 'わるい', 'answer': 'warui' },
+    { 'type': 'essay', 'question': 'Sulit:', 'japanese': 'むずかしい', 'answer': 'muzukashii' },
+    { 'type': 'essay', 'question': 'Mudah:', 'japanese': 'やさしい', 'answer': 'yasashii' },
+    { 'type': 'essay', 'question': 'Sangat:', 'japanese': 'とても', 'answer': 'totemo' },
+  ];
+
+  static final List<Map<String, dynamic>> _u4UnitTest = [..._gpStar1, ..._gv1Star1, ..._adjStar1.sublist(0, 6)];
 }

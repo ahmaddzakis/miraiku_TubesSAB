@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/game_manager.dart';
+import 'screen_simulation_test.dart';
 
 class SimulationScreen extends StatefulWidget {
   const SimulationScreen({super.key});
@@ -45,7 +46,9 @@ class _SimulationScreenState extends State<SimulationScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(_t("Unlock Simulation", "Buka Simulasi"), style: TextStyle(fontWeight: FontWeight.w900, color: textColor)),
         content: Text(
-          _t("Unlock JLPT N5 Simulation for 150 XP? This will give you permanent access.", "Buka Simulasi JLPT N5 seharga 150 XP? Kamu akan mendapatkan akses permanen."),
+          globalIsPremium.value 
+            ? _t("You have Premium access! Unlock JLPT N5 Simulation for free?", "Kamu memiliki akses Premium! Buka Simulasi JLPT N5 secara gratis?")
+            : _t("Unlock JLPT N5 Simulation for 150 XP? This will give you permanent access.", "Buka Simulasi JLPT N5 seharga 150 XP? Kamu akan mendapatkan akses permanen."),
           style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
         ),
         actions: [
@@ -54,7 +57,12 @@ class _SimulationScreenState extends State<SimulationScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
               Navigator.pop(context);
-              if (globalXP.value >= 150) {
+              if (globalIsPremium.value) {
+                // Free for premium
+                await Supabase.instance.client.auth.updateUser(UserAttributes(data: {'unlocked_sim_n5': true}));
+                setState(() => _isUnlocked = true);
+                _showSuccessUnlock();
+              } else if (globalXP.value >= 150) {
                 globalXP.value -= 150;
                 await GameManager.syncToCloud();
                 
@@ -159,8 +167,10 @@ class _SimulationScreenState extends State<SimulationScreen> {
   }
 
   void _startTest() {
-    // Navigate to actual test screen or show test overlay
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Starting Test...")));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SimulationTestScreen()),
+    );
   }
 
   String _t(String en, String id) {
@@ -171,54 +181,58 @@ class _SimulationScreenState extends State<SimulationScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)));
 
-    final bool isDark = globalDarkMode.value;
-    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
-    final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
-    final Color subTextColor = isDark ? Colors.white70 : Colors.black54;
+    return ValueListenableBuilder<bool>(
+      valueListenable: globalDarkMode,
+      builder: (context, isDark, _) {
+        final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
+        final Color textColor = isDark ? Colors.white : const Color(0xFF3E362E);
+        final Color subTextColor = isDark ? Colors.white70 : Colors.black54;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 30),
-              Text(
-                _t("JAPANESE PROFICIENCY", "KEMAMPUAN BAHASA JEPANG"),
-                style: const TextStyle(color: Color(0xFFCC6633), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _t("JLPT N5 Full\nMock", "Simulasi Penuh\nJLPT N5"),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600, height: 1.2, color: textColor),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _t(
-                    "Experience the complete standardized test environment. This simulation follows the official JLPT structure and timing to prepare you for success.",
-                    "Rasakan lingkungan ujian berstandar yang sesungguhnya. Simulasi ini mengikuti struktur dan waktu JLPT resmi untuk mempersiapkan kelulusanmu."
-                ),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: subTextColor, fontSize: 14, height: 1.5),
-              ),
-              const SizedBox(height: 30),
+        return Scaffold(
+          backgroundColor: bgColor,
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 30),
+                  Text(
+                    _t("JAPANESE PROFICIENCY", "KEMAMPUAN BAHASA JEPANG"),
+                    style: const TextStyle(color: Color(0xFFCC6633), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _t("JLPT N5 Full\nMock", "Simulasi Penuh\nJLPT N5"),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600, height: 1.2, color: textColor),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _t(
+                        "Experience the complete standardized test environment. This simulation follows the official JLPT structure and timing to prepare you for success.",
+                        "Rasakan lingkungan ujian berstandar yang sesungguhnya. Simulasi ini mengikuti struktur dan waktu JLPT resmi untuk mempersiapkan kelulusanmu."
+                    ),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: subTextColor, fontSize: 14, height: 1.5),
+                  ),
+                  const SizedBox(height: 30),
 
-              _buildExamStructureCard(isDark, textColor, subTextColor),
-              const SizedBox(height: 20),
-              _buildOneAttemptCard(isDark, textColor, subTextColor),
-              const SizedBox(height: 20),
-              _buildRequirementNote(isDark, textColor),
-              const SizedBox(height: 30),
-              _buildUnlockButtonSection(subTextColor),
-              const SizedBox(height: 40),
-            ],
+                  _buildExamStructureCard(isDark, textColor, subTextColor),
+                  const SizedBox(height: 20),
+                  _buildOneAttemptCard(isDark, textColor, subTextColor),
+                  const SizedBox(height: 20),
+                  _buildRequirementNote(isDark, textColor),
+                  const SizedBox(height: 30),
+                  _buildUnlockButtonSection(subTextColor),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

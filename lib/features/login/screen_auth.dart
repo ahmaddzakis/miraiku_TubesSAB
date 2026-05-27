@@ -17,6 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isLoginMode = true;
   bool _isSignUpStep2 = false;
@@ -487,12 +488,15 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on AuthException catch (error) {
       final msg = error.message.toLowerCase();
-      if (msg.contains("already registered") || 
+      if (msg.contains("invalid login credentials")) {
+        _showErrorDialog(_t("Invalid email or password", "Email atau kata sandi salah"));
+      } else if (msg.contains("already registered") || 
           msg.contains("already exists") ||
           msg.contains("user_already_exists") ||
           msg.contains("already in use") ||
           msg.contains("sudah terdaftar")) {
         _showAccountExistsDialog(_emailController.text.trim());
+        if (!_isLoginMode) setState(() => _isSignUpStep2 = false);
       } else {
         _showErrorDialog(error.message);
       }
@@ -622,6 +626,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     _descController.dispose();
     super.dispose();
@@ -745,18 +750,28 @@ class _AuthScreenState extends State<AuthScreen> {
                                           onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
                                           validator: (v) => (v == null || v.length < 6) ? _t("Min. 6 chars", "Min. 6 karakter") : null,
                                         ),
+                                        if (!_isLoginMode && !_isSignUpStep2) ...[
+                                          const SizedBox(height: 18),
+                                          _buildTextField(
+                                            controller: _confirmPasswordController, label: _t("Confirm Password", "Konfirmasi Sandi"), 
+                                            icon: Icons.lock_clock_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
+                                            isPassword: true, obscure: _obscurePassword,
+                                            validator: (v) => (v != _passwordController.text) ? _t("Passwords don't match", "Sandi tidak cocok") : null,
+                                          ),
+                                        ],
                                       ] else ...[
                                         _buildTextField(
                                           controller: _nameController, label: _t("Display Name", "Nama Tampilan"), 
                                           icon: Icons.person_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
                                           hints: [AutofillHints.name],
-                                          validator: (v) => (v == null || v.isEmpty) ? _t("Name required", "Nama wajib diisi") : null,
+                                          validator: (v) => (v == null || v.trim().isEmpty) ? _t("Name required", "Nama wajib diisi") : null,
                                         ),
                                         const SizedBox(height: 18),
                                         _buildTextField(
                                           controller: _descController, label: "Bio", 
                                           icon: Icons.info_outline_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
                                           hints: [AutofillHints.jobTitle],
+                                          validator: (v) => (v == null || v.trim().isEmpty) ? _t("Bio required", "Bio wajib diisi") : null,
                                         ),
                                       ],
 
@@ -779,32 +794,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                             if (!_isLoginMode && !_isSignUpStep2) {
                                               if (_formKey.currentState!.validate()) {
                                                 FocusScope.of(context).unfocus();
-                                                
-                                                // Pre-validate email availability by trying a "silent" signup
-                                                setState(() => _isLoading = true);
-                                                try {
-                                                  final res = await Supabase.instance.client.auth.signUp(
-                                                    email: _emailController.text.trim(),
-                                                    password: _passwordController.text.trim(),
-                                                  );
-                                                  
-                                                  if (res.user?.identities?.isEmpty ?? false) {
-                                                    _showAccountExistsDialog(_emailController.text.trim());
-                                                  } else {
-                                                    setState(() => _isSignUpStep2 = true);
-                                                  }
-                                                } on AuthException catch (e) {
-                                                  final msg = e.message.toLowerCase();
-                                                  if (msg.contains("already") || msg.contains("exists") || msg.contains("terdaftar")) {
-                                                    _showAccountExistsDialog(_emailController.text.trim());
-                                                  } else {
-                                                    _showErrorDialog(e.message);
-                                                  }
-                                                } catch (e) {
-                                                  _showErrorDialog(e.toString());
-                                                } finally {
-                                                  if (mounted) setState(() => _isLoading = false);
-                                                }
+                                                setState(() => _isSignUpStep2 = true);
                                               }
                                             } else {
                                               _handleAuth();
@@ -876,7 +866,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                   _isSignUpStep2 = false;
                                   _googleIdToken = null;
                                   _googleAccessToken = null;
-                                  _formKey.currentState?.reset();
+                                  _passwordController.clear();
+                                  _confirmPasswordController.clear();
                                 }
                               });
                             },

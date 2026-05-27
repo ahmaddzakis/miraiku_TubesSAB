@@ -14,8 +14,10 @@ final ValueNotifier<String> globalTimerText = ValueNotifier<String>("Penuh");
 
 final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
 final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
+final ValueNotifier<bool> globalIsPremium = ValueNotifier<bool>(false);
 final ValueNotifier<List<String>> globalLearnedHiragana = ValueNotifier<List<String>>([]);
 final ValueNotifier<List<String>> globalLearnedKatakana = ValueNotifier<List<String>>([]);
+final ValueNotifier<List<String>> globalLearnedKanji = ValueNotifier<List<String>>([]);
 
 class GameManager {
   static const int maxHearts = 5;
@@ -51,6 +53,7 @@ class GameManager {
 
     globalDarkMode.value = meta['setting_dark'] ?? prefs.getBool('setting_dark') ?? false;
     globalLanguage.value = meta['setting_lang'] ?? prefs.getString('setting_lang') ?? 'en';
+    globalIsPremium.value = meta['is_premium'] ?? prefs.getBool('is_premium') ?? false;
 
     if (meta['learned_hiragana'] != null) {
       globalLearnedHiragana.value = List<String>.from(meta['learned_hiragana']);
@@ -62,6 +65,12 @@ class GameManager {
       globalLearnedKatakana.value = List<String>.from(meta['learned_katakana']);
     } else {
       globalLearnedKatakana.value = prefs.getStringList('learned_katakana_list') ?? [];
+    }
+
+    if (meta['learned_kanji'] != null) {
+      globalLearnedKanji.value = List<String>.from(meta['learned_kanji']);
+    } else {
+      globalLearnedKanji.value = prefs.getStringList('learned_kanji_list') ?? [];
     }
 
     // Restore timestamps untuk streak & heart recovery agar sinkron antar perangkat
@@ -82,11 +91,14 @@ class GameManager {
     prefs.setInt('gm_streak', globalStreak.value);
     prefs.setBool('setting_dark', globalDarkMode.value);
     prefs.setString('setting_lang', globalLanguage.value);
+    prefs.setBool('is_premium', globalIsPremium.value);
     prefs.setStringList('learned_hiragana_list', globalLearnedHiragana.value);
     prefs.setStringList('learned_katakana_list', globalLearnedKatakana.value);
+    prefs.setStringList('learned_kanji_list', globalLearnedKanji.value);
     // Backward compatibility for simple length storage if needed
     prefs.setInt('learned_hiragana', globalLearnedHiragana.value.length);
     prefs.setInt('learned_katakana', globalLearnedKatakana.value.length);
+    prefs.setInt('learned_kanji', globalLearnedKanji.value.length);
   }
 
   // Reset semua progress ke default (digunakan saat logout)
@@ -95,17 +107,22 @@ class GameManager {
     globalHearts.value = 5;
     globalXP.value = 0;
     globalStreak.value = 0;
+    globalIsPremium.value = false;
     globalLearnedHiragana.value = [];
     globalLearnedKatakana.value = [];
+    globalLearnedKanji.value = [];
     
     // Hapus semua data terkait game di SharedPreferences agar tidak bocor ke user lain
     await prefs.remove('gm_hearts');
     await prefs.remove('gm_xp');
     await prefs.remove('gm_streak');
+    await prefs.remove('is_premium');
     await prefs.remove('learned_hiragana_list');
     await prefs.remove('learned_katakana_list');
+    await prefs.remove('learned_kanji_list');
     await prefs.remove('learned_hiragana');
     await prefs.remove('learned_katakana');
+    await prefs.remove('learned_kanji');
     await prefs.remove('gm_last_login');
     await prefs.remove('gm_last_heart_loss');
     await prefs.remove('setting_dark');
@@ -148,8 +165,10 @@ class GameManager {
           'gm_streak': globalStreak.value,
           'setting_dark': globalDarkMode.value,
           'setting_lang': globalLanguage.value,
+          'is_premium': globalIsPremium.value,
           'learned_hiragana': globalLearnedHiragana.value,
           'learned_katakana': globalLearnedKatakana.value,
+          'learned_kanji': globalLearnedKanji.value,
           'gm_last_login': prefs.getString('gm_last_login'),
           'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
         };
@@ -233,6 +252,12 @@ class GameManager {
   static void _startTicker() {
     _uiTimer?.cancel();
     _uiTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      if (globalIsPremium.value) {
+        globalHearts.value = maxHearts;
+        globalTimerText.value = "∞";
+        return;
+      }
+
       if (globalHearts.value >= maxHearts) {
         globalTimerText.value = "Penuh";
         return;
@@ -275,6 +300,8 @@ class GameManager {
 
   // Fungsi Kurangi Nyawa (Saat salah jawab)
   static Future<void> decreaseHeart() async {
+    if (globalIsPremium.value) return; // Infinite Hearts for Premium users
+
     if (globalHearts.value > 0) {
       final prefs = await SharedPreferences.getInstance();
 

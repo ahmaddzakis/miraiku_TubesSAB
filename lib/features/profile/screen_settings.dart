@@ -233,11 +233,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                       decoration: InputDecoration(
                         counterText: "",
-                        labelText: _t("Bio / Location", "Bio / Lokasi"),
+                        labelText: _t("Bio", "Bio"),
                         labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
                         filled: true,
                         fillColor: fieldBg,
-                        prefixIcon: const Icon(Icons.location_on_rounded, color: Color(0xFFB5B0A8)),
+                        prefixIcon: const Icon(Icons.description_rounded, color: Color(0xFFB5B0A8)),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                       ),

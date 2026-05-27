@@ -10,6 +10,7 @@ import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
 import 'features/login/screen_auth.dart';
 import 'core/game_manager.dart';
+import 'core/notification_service.dart';
 
 // ==========================================
 // 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
@@ -27,6 +28,8 @@ void main() async {
   );
 
   await GameManager.init();
+  await NotificationService.init();
+  await NotificationService.scheduleDailyReminder();
 
   runApp(const MiraikuApp());
 }

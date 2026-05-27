@@ -28,7 +28,11 @@ class _LearnScreenState extends State<LearnScreen> {
   int _u2Kata1Stars = 0, _u2Kata2Stars = 0, _u2Kata3Stars = 0, _u2Kata4Stars = 0;
   int _u2Words1Stars = 0, _u2Words2Stars = 0, _u2TestCompleted = 0;
 
-  int _userHearts = 5;
+  // --- STATE UNIT 3 (BASIC KANJI) ---
+  int _u3NumStars = 0, _u3NatureStars = 0, _u3PeopleStars = 0, _u3TestCompleted = 0;
+
+  // --- STATE UNIT 4 (BASIC GRAMMAR) ---
+  int _u4ParticlesStars = 0, _u4Verbs1Stars = 0, _u4Verbs2Stars = 0, _u4AdjectivesStars = 0, _u4TestCompleted = 0;
 
   @override
   void initState() {
@@ -55,6 +59,19 @@ class _LearnScreenState extends State<LearnScreen> {
       _u2Words1Stars = prefs.getInt('u2_words1_stars') ?? 0;
       _u2Words2Stars = prefs.getInt('u2_words2_stars') ?? 0;
       _u2TestCompleted = prefs.getInt('u2_test_stars') ?? 0;
+
+      // Unit 3 States
+      _u3NumStars = prefs.getInt('u3_num_stars') ?? 0;
+      _u3NatureStars = prefs.getInt('u3_nature_stars') ?? 0;
+      _u3PeopleStars = prefs.getInt('u3_people_stars') ?? 0;
+      _u3TestCompleted = prefs.getInt('u3_test_stars') ?? 0;
+
+      // Unit 4 States
+      _u4ParticlesStars = prefs.getInt('u4_particles_stars') ?? 0;
+      _u4Verbs1Stars = prefs.getInt('u4_verbs1_stars') ?? 0;
+      _u4Verbs2Stars = prefs.getInt('u4_verbs2_stars') ?? 0;
+      _u4AdjectivesStars = prefs.getInt('u4_adjectives_stars') ?? 0;
+      _u4TestCompleted = prefs.getInt('u4_test_stars') ?? 0;
     });
   }
 
@@ -78,8 +95,10 @@ class _LearnScreenState extends State<LearnScreen> {
             final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
             final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-            // Kunci Pembuka Unit 2
+            // Kunci Pembuka Unit 2 & 3 & 4
             bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
+            bool isUnit3Unlocked = _u2TestCompleted >= 1;
+            bool isUnit4Unlocked = _u3TestCompleted >= 1;
 
             return Scaffold(
               backgroundColor: bgColor,
@@ -159,11 +178,11 @@ class _LearnScreenState extends State<LearnScreen> {
                 setState(() { if (_u2Kata4Stars < 3) { _u2Kata4Stars++; _saveStarProgress('u2_kata4_stars', _u2Kata4Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Katakana Words 1", "Kosakata Katakana 1"), _u2Words1Stars, _u2Words1Stars >= 3 ? NodeStatus.completed : (_u2Kata4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words_1', () {
+              _buildClickableNode(context, _t("Katakana Words 1", "Kosakata Katakana 1"), _u2Words1Stars, _u2Words1Stars >= 3 ? NodeStatus.completed : (_u2Kata4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words', () {
                 setState(() { if (_u2Words1Stars < 3) { _u2Words1Stars++; _saveStarProgress('u2_words1_stars', _u2Words1Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Katakana Words 2", "Kosakata Katakana 2"), _u2Words2Stars, _u2Words2Stars >= 3 ? NodeStatus.completed : (_u2Words1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words_2', () {
+              _buildClickableNode(context, _t("Katakana Words 2", "Kosakata Katakana 2"), _u2Words2Stars, _u2Words2Stars >= 3 ? NodeStatus.completed : (_u2Words1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'loanwords', () {
                 setState(() { if (_u2Words2Stars < 3) { _u2Words2Stars++; _saveStarProgress('u2_words2_stars', _u2Words2Stars); } });
               }),
               _buildLeftConnector(borderColor),
@@ -177,6 +196,76 @@ class _LearnScreenState extends State<LearnScreen> {
                   if (_u2TestCompleted == 0) {
                     _u2TestCompleted = 1;
                     _saveStarProgress('u2_test_stars', 1);
+                  }
+                });
+              },
+              ),
+
+              const SizedBox(height: 40),
+              Divider(thickness: 2, color: borderColor),
+              const SizedBox(height: 20),
+
+              // ==================== UNIT 3 (KANJI) ====================
+              _buildUnit3HeaderCard(isDark, isUnit3Unlocked),
+              const SizedBox(height: 40),
+
+              _buildClickableNode(context, _t("Kanji Numbers", "Kanji Angka"), _u3NumStars, _u3NumStars >= 3 ? NodeStatus.completed : (isUnit3Unlocked ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_numbers', () {
+                setState(() { if (_u3NumStars < 3) { _u3NumStars++; _saveStarProgress('u3_num_stars', _u3NumStars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Nature & Elements", "Alam & Elemen"), _u3NatureStars, _u3NatureStars >= 3 ? NodeStatus.completed : (_u3NumStars >= 3 ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_nature', () {
+                setState(() { if (_u3NatureStars < 3) { _u3NatureStars++; _saveStarProgress('u3_nature_stars', _u3NatureStars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("People & Directions", "Orang & Arah"), _u3PeopleStars, _u3PeopleStars >= 3 ? NodeStatus.completed : (_u3NatureStars >= 3 ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_people', () {
+                setState(() { if (_u3PeopleStars < 3) { _u3PeopleStars++; _saveStarProgress('u3_people_stars', _u3PeopleStars); } });
+              }),
+              _buildLeftConnector(borderColor),
+
+              // UNIT TEST 3
+              _buildClickableNode(
+                context, _t("Unit 3 Test\n20 min", "Ujian Unit 3\n20 mnt"), 0,
+                _u3TestCompleted >= 1 ? NodeStatus.completed : (_u3PeopleStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                3, 'test', () {
+                setState(() {
+                  if (_u3TestCompleted == 0) {
+                    _u3TestCompleted = 1;
+                    _saveStarProgress('u3_test_stars', 1);
+                  }
+                });
+              },
+              ),
+
+              // ==================== UNIT 4 (GRAMMAR) ====================
+              _buildUnit4HeaderCard(isDark, isUnit4Unlocked),
+              const SizedBox(height: 40),
+
+              _buildClickableNode(context, _t("Basic Particles", "Partikel Dasar"), _u4ParticlesStars, _u4ParticlesStars >= 3 ? NodeStatus.completed : (isUnit4Unlocked ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_particles', () {
+                setState(() { if (_u4ParticlesStars < 3) { _u4ParticlesStars++; _saveStarProgress('u4_particles_stars', _u4ParticlesStars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Verb Basics 1", "Kata Kerja 1"), _u4Verbs1Stars, _u4Verbs1Stars >= 3 ? NodeStatus.completed : (_u4ParticlesStars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_1', () {
+                setState(() { if (_u4Verbs1Stars < 3) { _u4Verbs1Stars++; _saveStarProgress('u4_verbs1_stars', _u4Verbs1Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Verb Basics 2", "Kata Kerja 2"), _u4Verbs2Stars, _u4Verbs2Stars >= 3 ? NodeStatus.completed : (_u4Verbs1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_2', () {
+                setState(() { if (_u4Verbs2Stars < 3) { _u4Verbs2Stars++; _saveStarProgress('u4_verbs2_stars', _u4Verbs2Stars); } });
+              }),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Adjectives", "Kata Sifat"), _u4AdjectivesStars, _u4AdjectivesStars >= 3 ? NodeStatus.completed : (_u4Verbs2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_adjectives', () {
+                setState(() { if (_u4AdjectivesStars < 3) { _u4AdjectivesStars++; _saveStarProgress('u4_adjectives_stars', _u4AdjectivesStars); } });
+              }),
+              _buildLeftConnector(borderColor),
+
+              // UNIT TEST 4
+              _buildClickableNode(
+                context, _t("Unit 4 Test\n20 min", "Ujian Unit 4\n20 mnt"), 0,
+                _u4TestCompleted >= 1 ? NodeStatus.completed : (_u4AdjectivesStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                4, 'test', () {
+                setState(() {
+                  if (_u4TestCompleted == 0) {
+                    _u4TestCompleted = 1;
+                    _saveStarProgress('u4_test_stars', 1);
                   }
                 });
               },
@@ -210,10 +299,6 @@ class _LearnScreenState extends State<LearnScreen> {
               currentStars: stars, 
               currentHearts: currentHearts, 
               onQuizPassed: onSuccess, 
-              onHeartDecreased: (h) { 
-                // Biarkan ExerciseScreen menangani logika, tapi GameManager yang pegang state
-                GameManager.decreaseHeart();
-              }
             )));
           },
           child: PathNode(title: title, status: status, stars: stars, alignment: Alignment.centerLeft, onReplaySelected: (selectedStarIndex) {
@@ -256,16 +341,161 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
+  Widget _buildUnit3HeaderCard(bool isDark, bool unlocked) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        color: unlocked ? const Color(0xFF1CB0F6) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'UNIT 3',
+              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+          ),
+          const SizedBox(height: 8),
+          Text(
+              _t('BASIC KANJI', 'KANJI DASAR'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
+          ),
+          const SizedBox(height: 12),
+          Text(
+              unlocked ? _t('Master the essential ideograms for N5 level', 'Kuasai ideogram penting untuk level N5') : _t('Complete Unit 2 Test to unlock', 'Selesaikan Ujian Unit 2 untuk membuka akses'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnit4HeaderCard(bool isDark, bool unlocked) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        color: unlocked ? const Color(0xFFFF4B4B) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'UNIT 4',
+              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+          ),
+          const SizedBox(height: 8),
+          Text(
+              _t('BASIC GRAMMAR', 'TATA BAHASA DASAR'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
+          ),
+          const SizedBox(height: 12),
+          Text(
+              unlocked ? _t('Construct sentences with particles and verbs', 'Susun kalimat dengan partikel dan kata kerja') : _t('Complete Unit 3 Test to unlock', 'Selesaikan Ujian Unit 3 untuk membuka akses'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNoHeartsDialog() {
     final bool isDark = globalDarkMode.value;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F6F0),
-        title: Text(_t('💔 Out of Hearts!', '💔 Nyawa Anda Habis!'), style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF2D2622)), textAlign: TextAlign.center),
-        content: Text(_t('You cannot start a new lesson. Please wait or restore your hearts.', 'Anda tidak dapat memulai latihan baru. Silakan tunggu beberapa saat atau pulihkan nyawa.'), textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(_t('UNDERSTOOD', 'MENGERTI'), style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.bold)))],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Column(
+          children: [
+            const Icon(Icons.favorite_border_rounded, color: Color(0xFFE53935), size: 60),
+            const SizedBox(height: 16),
+            Text(
+              _t('Nyawa Habis!', 'Nyawa Habis!'),
+              style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333), fontSize: 22),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _t(
+                'Don\'t give up! Mistakes are the best teachers. Restore your hearts and keep going!',
+                'Jangan menyerah! Kesalahan adalah guru terbaik. Pulihkan nyawa dan teruslah belajar!'
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF4B4B4B), height: 1.5, fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.flash_on, color: Colors.orange, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    "150 XP per Nyawa",
+                    style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        actions: [
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  onPressed: () async {
+                    bool success = await GameManager.buyHeartWithXP();
+                    if (!mounted) return;
+                    if (success) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_t('Heart restored! Go for it!', 'Nyawa berhasil dipulihkan! Semangat!')),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_t('Not enough XP!', 'XP tidak cukup!'))),
+                      );
+                    }
+                  },
+                  child: Text(_t('RESTORE WITH XP', 'BELI DENGAN XP'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  _t('LATER', 'NANTI SAJA'),
+                  style: TextStyle(color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }

@@ -102,6 +102,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     _availableWords.clear();
 
     final currentQ = _questions[_currentQuestionIndex];
+
+    // 🔥 MAIN AUDIO JIKA ADA
+    if (currentQ['audio'] != null) {
+      SoundManager.playSound(currentQ['audio']);
+    }
+
     if (currentQ['type'] == 'essay') {
       String correctAnswer = currentQ['answer'].toString().toLowerCase();
       _availableWords.add(correctAnswer);
@@ -142,7 +148,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
       if (_isCurrentAnswerCorrect) {
         SoundManager.playSound('benar.mp3');
-        GameManager.addXP(75);
+        // Hanya beri XP jika bukan replay (stars masih 0)
+        if (widget.currentStars == 0) {
+          GameManager.addXP(25);
+        }
       } else {
         SoundManager.playSound('salah.mp3');
 
@@ -284,35 +293,95 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _showGameOverDialog() {
+    final bool isDark = globalDarkMode.value;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
-        title: const Text('😢 Nyawa Habis!', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFE53935)), textAlign: TextAlign.center),
-        content: const Text(
-            'Kamu telah kehabisan nyawa. Tunggu beberapa saat agar nyawa pulih kembali, atau beli nyawa menggunakan XP di halaman utama.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF4B4B4B), height: 1.5)
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Column(
+          children: [
+            const Icon(Icons.heart_broken_rounded, color: Color(0xFFE53935), size: 64),
+            const SizedBox(height: 16),
+            Text(
+              'Gagal Itu Wajar!',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : const Color(0xFFE53935),
+                fontSize: 22,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Jangan menyerah! Setiap kesalahan adalah langkah menuju kesuksesan. Yuk, pulihkan nyawa dan coba lagi!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF4B4B4B), height: 1.5, fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.flash_on, color: Colors.orange, size: 20),
+                const SizedBox(width: 4),
+                Text(
+                  "Butuh 150 XP untuk 1 Nyawa",
+                  style: TextStyle(
+                    color: isDark ? Colors.orangeAccent : Colors.orange.shade800,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         actions: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFCC6633),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  onPressed: () async {
+                    bool success = await GameManager.buyHeartWithXP();
+                    if (!mounted) return;
+                    if (success) {
+                      Navigator.pop(context); // Tutup dialog Game Over
+                      // Tidak perlu Navigator.pop lagi agar tetap di ExerciseScreen
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("XP tidak cukup!")),
+                      );
+                    }
+                  },
+                  child: const Text('BELI NYAWA (150 XP)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1)),
+                ),
               ),
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text('KEMBALI KE MENU', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
-            ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'KEMBALI KE MENU',
+                  style: TextStyle(color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           )
         ],
       ),
@@ -321,28 +390,54 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   void _showResultDialog(bool isPassed) {
     int newStarsCount = isPassed ? (widget.currentStars + 1).clamp(0, 3) : widget.currentStars;
+    int xpGained = widget.currentStars == 0 ? _score * 25 : 0;
     SoundManager.playSound('benar.mp3');
+    final bool isDark = globalDarkMode.value;
+
+    String motivation = "Wah hebat! Terus asah kemampuanmu!";
+    if (_score == _originalQuestionCount) {
+      motivation = "Luar biasa! Kamu semakin dekat dengan kefasihan!";
+    } else if (_score > _originalQuestionCount / 2) {
+      motivation = "Keren sekali! Jangan berhenti di sini!";
+    }
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         title: Text(
-          isTestMode ? '🏆 Unit Test Lulus!' : '🎉 Latihan Sempurna!',
-          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4CAF50)),
+          isTestMode ? '🏆 Unit Test Lulus!' : '🎉 Latihan Selesai!',
+          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4CAF50), fontSize: 24),
           textAlign: TextAlign.center,
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Jawaban Benar: $_originalQuestionCount / $_originalQuestionCount',
+              motivation,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF4B4B4B), fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(color: isDark ? Colors.white : const Color(0xFF333333), fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9F6F0),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem(Icons.flash_on, "$xpGained", "XP", Colors.orange),
+                  _buildStatItem(Icons.favorite, "${globalHearts.value}", "HP", Colors.red),
+                  _buildStatItem(Icons.check_circle, "$_score/$_originalQuestionCount", "Skor", Colors.green),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
             // JIKA MODE TEST, SEMBUNYIKAN BINTANG. JIKA NORMAL, TAMPILKAN BINTANG.
             if (!isTestMode) ...[
@@ -352,49 +447,50 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   return Icon(
                     index < newStarsCount ? Icons.star_rounded : Icons.star_border_rounded,
                     color: const Color(0xFFFFC107),
-                    size: 48,
+                    size: 40,
                   );
                 }),
               ),
-              const SizedBox(height: 20),
             ] else ...[
-              const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC107), size: 70),
-              const SizedBox(height: 20),
+              const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC107), size: 60),
             ],
-
-            Text(
-              isTestMode
-                  ? "Luar Biasa! Kamu berhasil membuktikan kemampuanmu dengan menyelesaikan ujian sebelum waktu habis."
-                  : (newStarsCount >= 3
-                  ? "Luar Biasa! Anda telah menaklukkan rintangan dan menguasai tahap ini sepenuhnya!"
-                  : "Kerja Bagus! Anda berhasil merampungkan semua soal."),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF666666), fontSize: 14, height: 1.5),
-            ),
           ],
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 56,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFCC6633),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
-              child: const Text('LANJUTKAN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
+              child: const Text('LANJUTKAN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1)),
             ),
           )
         ],
       ),
     );
   }
+
+  Widget _buildStatItem(IconData icon, String value, String label, Color color) {
+    final bool isDark = globalDarkMode.value;
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 28),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
+        Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -405,169 +501,189 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     bool isButtonEnabled = _isAnswered ||
         (isMultipleChoice ? selectedOption != null : _selectedWords.isNotEmpty);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F6F0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // HEADER & PROGRESS BAR
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => _showExitConfirmationDialog(),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE8E3DA))),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF8C8A87), size: 24),
-                        ),
-                      ),
-                      Text(
-                        isTestMode ? "UNIT TEST" : "MIRAIKU - ${widget.difficulty.toUpperCase()}",
-                        style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.5),
-                      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: globalDarkMode,
+      builder: (context, isDark, _) {
+        final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
+        final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
+        final Color subTextColor = isDark ? Colors.white70 : const Color(0xFF8C8A87);
+        final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-                      // ==========================================
-                      // 🔁 LOGIKA UI KANAN ATAS (TIMER VS NYAWA)
-                      // ==========================================
-                      if (isTestMode)
-                      // UI TIMER KHUSUS UNIT TEST
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _timeLeft <= 30 ? Colors.red.withValues(alpha: 0.15) : const Color(0xFFCC6633).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: _timeLeft <= 30 ? Colors.red : Colors.transparent),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.timer_rounded, color: _timeLeft <= 30 ? Colors.red : const Color(0xFFCC6633), size: 20),
-                              const SizedBox(width: 6),
-                              Text(
-                                  _formattedTime,
-                                  style: TextStyle(
-                                      color: _timeLeft <= 30 ? Colors.red : const Color(0xFFCC6633),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 16
-                                  )
+        return Scaffold(
+          backgroundColor: bgColor,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // HEADER & PROGRESS BAR
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _showExitConfirmationDialog(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: borderColor),
                               ),
-                            ],
+                              child: Icon(Icons.close_rounded, color: subTextColor, size: 24),
+                            ),
                           ),
-                        )
-                      else
-                      // UI NYAWA UNTUK MODE NORMAL
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.favorite_rounded, color: Color(0xFFE53935), size: 20),
-                              const SizedBox(width: 4),
-                              ValueListenableBuilder<int>(
-                                  valueListenable: globalHearts,
-                                  builder: (context, hearts, child) {
-                                    return Text("$hearts", style: const TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w900, fontSize: 16));
-                                  }
+                          Text(
+                            isTestMode ? "UNIT TEST" : "MIRAIKU - ${widget.difficulty.toUpperCase()}",
+                            style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.5),
+                          ),
+
+                          // ==========================================
+                          // 🔁 LOGIKA UI KANAN ATAS (TIMER VS NYAWA)
+                          // ==========================================
+                          if (isTestMode)
+                          // UI TIMER KHUSUS UNIT TEST
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _timeLeft <= 30 ? Colors.red.withValues(alpha: 0.15) : const Color(0xFFCC6633).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _timeLeft <= 30 ? Colors.red : Colors.transparent),
                               ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("PROGRES BELAJAR", style: TextStyle(color: Color(0xFF8C8A87), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                      Text("$_score/$_originalQuestionCount", style: const TextStyle(color: Color(0xFF4B4B4B), fontSize: 14, fontWeight: FontWeight.w900)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Stack(
-                    children: [
-                      Container(
-                        height: 10,
-                        width: double.infinity,
-                        decoration: BoxDecoration(color: const Color(0xFFE8E3DA), borderRadius: BorderRadius.circular(10)),
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOutCubic,
-                        height: 10,
-                        width: MediaQuery.of(context).size.width * 0.85 * progressPercent,
-                        decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // KONTEN SOAL & JAWABAN
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      currentQuestion['question'],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 18, fontStyle: FontStyle.italic, color: Color(0xFF4B4B4B), fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE8E3DA), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.timer_rounded, color: _timeLeft <= 30 ? Colors.red : const Color(0xFFCC6633), size: 20),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                      _formattedTime,
+                                      style: TextStyle(
+                                          color: _timeLeft <= 30 ? Colors.red : const Color(0xFFCC6633),
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16
+                                      )
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                          // UI NYAWA UNTUK MODE NORMAL
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.favorite_rounded, color: Color(0xFFE53935), size: 20),
+                                  const SizedBox(width: 4),
+                                  ValueListenableBuilder<int>(
+                                      valueListenable: globalHearts,
+                                      builder: (context, hearts, child) {
+                                        return Text("$hearts", style: const TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w900, fontSize: 16));
+                                      }
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
-                      child: Center(
-                        child: Text(
-                          currentQuestion['japanese'],
-                          style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: Color(0xFF333333)),
-                        ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("PROGRES BELAJAR", style: TextStyle(color: subTextColor, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          Text("$_score/$_originalQuestionCount", style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w900)),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    if (isMultipleChoice) ...[
-                      ListView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: currentQuestion['options'].length,
-                        itemBuilder: (context, index) {
-                          final option = currentQuestion['options'][index];
-                          return _buildOption(index, option['code'], option['text'], option['romaji'], currentQuestion['correctIndex']);
-                        },
+                      const SizedBox(height: 12),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 10,
+                            width: double.infinity,
+                            decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(10)),
+                          ),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeOutCubic,
+                            height: 10,
+                            width: MediaQuery.of(context).size.width * 0.85 * progressPercent,
+                            decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ],
                       ),
-                    ] else ...[
-                      _buildWordBankInput(),
-                    ]
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
 
-      bottomNavigationBar: _buildBottomActionBar(isButtonEnabled, isMultipleChoice, currentQuestion),
+                // KONTEN SOAL & JAWABAN
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          currentQuestion['question'],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic, color: textColor, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 24),
+
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: borderColor, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              currentQuestion['japanese'],
+                              style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        if (isMultipleChoice) ...[
+                          ListView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: currentQuestion['options'].length,
+                            itemBuilder: (context, index) {
+                              final option = currentQuestion['options'][index];
+                              return _buildOption(index, option['code'], option['text'], option['romaji'], currentQuestion['correctIndex']);
+                            },
+                          ),
+                        ] else ...[
+                          _buildWordBankInput(),
+                        ]
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          bottomNavigationBar: _buildBottomActionBar(isButtonEnabled, isMultipleChoice, currentQuestion),
+        );
+      },
     );
   }
 
+
   // WIDGET WORD BANK
   Widget _buildWordBankInput() {
+    final bool isDark = globalDarkMode.value;
+    final Color inputBg = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEFEBE1);
+    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -576,12 +692,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFEBE1),
+            color: inputBg,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE8E3DA), width: 2),
+            border: Border.all(color: borderColor, width: 2),
           ),
           child: _selectedWords.isEmpty
-              ? const Center(child: Text("Ketuk pilihan di bawah untuk mengisi", style: TextStyle(color: Color(0xFFB5B0A8), fontStyle: FontStyle.italic)))
+              ? Center(child: Text("Ketuk pilihan di bawah untuk mengisi", style: TextStyle(color: isDark ? Colors.white38 : const Color(0xFFB5B0A8), fontStyle: FontStyle.italic)))
               : Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -624,7 +740,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   Widget _buildWordTile({required String word, required bool isActive, required VoidCallback onTap}) {
+    final bool isDark = globalDarkMode.value;
     bool isDisabled = _isAnswered;
+
+    Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFD6D1C4);
+    Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
+
+    if (isDisabled) {
+      bgColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE8E3DA).withValues(alpha: 0.5);
+      borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA);
+      textColor = isDark ? Colors.white38 : const Color(0xFFB5B0A8);
+    } else if (isActive) {
+      bgColor = isDark ? const Color(0xFF4A2B18) : const Color(0xFFF6E7DC);
+      borderColor = const Color(0xFFCC6633);
+      textColor = const Color(0xFFCC6633);
+    }
 
     return GestureDetector(
       onTap: isDisabled ? null : onTap,
@@ -632,10 +763,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: isDisabled ? const Color(0xFFE8E3DA).withValues(alpha: 0.5) : (isActive ? const Color(0xFFF6E7DC) : Colors.white),
+          color: bgColor,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-              color: isDisabled ? const Color(0xFFE8E3DA) : (isActive ? const Color(0xFFCC6633) : const Color(0xFFD6D1C4)),
+              color: borderColor,
               width: 1.5
           ),
         ),
@@ -644,7 +775,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
-            color: isDisabled ? const Color(0xFFB5B0A8) : (isActive ? const Color(0xFFCC6633) : const Color(0xFF4B4B4B)),
+            color: textColor,
           ),
         ),
       ),
@@ -652,9 +783,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   Widget _buildBottomActionBar(bool isButtonEnabled, bool isMultipleChoice, Map<String, dynamic> currentQuestion) {
-    Color panelColor = Colors.white;
+    final bool isDark = globalDarkMode.value;
+    Color panelColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     if (_isAnswered) {
-      panelColor = _isCurrentAnswerCorrect ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
+      panelColor = _isCurrentAnswerCorrect
+          ? (isDark ? const Color(0xFF1B3320) : const Color(0xFFE8F5E9))
+          : (isDark ? const Color(0xFF331B1B) : const Color(0xFFFFEBEE));
     }
 
     return AnimatedContainer(
@@ -668,7 +802,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       ),
       decoration: BoxDecoration(
         color: panelColor,
-        border: Border(top: BorderSide(color: _isAnswered ? Colors.transparent : const Color(0xFFE8E3DA), width: 1)),
+        border: Border(top: BorderSide(color: _isAnswered ? Colors.transparent : (isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA)), width: 1)),
         boxShadow: _isAnswered ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, -5))],
       ),
       child: Column(
@@ -708,8 +842,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           isMultipleChoice
                               ? currentQuestion['options'][currentQuestion['correctIndex']]['text']
                               : currentQuestion['answer'],
-                          style: const TextStyle(
-                            color: Color(0xFFE53935),
+                          style: TextStyle(
+                            color: isDark ? Colors.redAccent : const Color(0xFFE53935),
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
                           ),
@@ -730,7 +864,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 backgroundColor: _isAnswered
                     ? (_isCurrentAnswerCorrect ? const Color(0xFF4CAF50) : const Color(0xFFE53935))
                     : const Color(0xFFCC6633),
-                disabledBackgroundColor: const Color(0xFFE8E3DA),
+                disabledBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: _isAnswered ? 0 : (isButtonEnabled ? 4 : 0),
               ),
@@ -748,7 +882,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     ? (_currentQuestionIndex == _questions.length - 1 ? "SELESAI" : "LANJUTKAN")
                     : "CEK JAWABAN",
                 style: TextStyle(
-                    color: isButtonEnabled ? Colors.white : const Color(0xFFAFAFAF),
+                    color: isButtonEnabled ? Colors.white : (isDark ? Colors.white24 : const Color(0xFFAFAFAF)),
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
                     letterSpacing: 1
@@ -762,34 +896,36 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   Widget _buildOption(int index, String code, String text, String romaji, int correctIndex) {
+    final bool isDark = globalDarkMode.value;
     bool isSelected = selectedOption == index;
-    Color borderColor = const Color(0xFFE8E3DA);
-    Color bgColor = Colors.white;
-    Color letterBoxColor = const Color(0xFFF9F6F0);
-    Color letterTextColor = const Color(0xFF8C8A87);
-    Color mainTextColor = const Color(0xFF4B4B4B);
+
+    Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+    Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    Color letterBoxColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9F6F0);
+    Color letterTextColor = isDark ? Colors.white60 : const Color(0xFF8C8A87);
+    Color mainTextColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
 
     if (_isAnswered) {
       if (index == correctIndex) {
         borderColor = const Color(0xFF4CAF50);
-        bgColor = const Color(0xFFE8F5E9);
+        bgColor = isDark ? const Color(0xFF1B3320) : const Color(0xFFE8F5E9);
         letterBoxColor = const Color(0xFF4CAF50);
         letterTextColor = Colors.white;
-        mainTextColor = const Color(0xFF2E7D32);
+        mainTextColor = isDark ? Colors.white : const Color(0xFF2E7D32);
       } else if (isSelected && index != correctIndex) {
         borderColor = const Color(0xFFE53935);
-        bgColor = const Color(0xFFFFEBEE);
+        bgColor = isDark ? const Color(0xFF331B1B) : const Color(0xFFFFEBEE);
         letterBoxColor = const Color(0xFFE53935);
         letterTextColor = Colors.white;
-        mainTextColor = const Color(0xFFC62828);
+        mainTextColor = isDark ? Colors.white : const Color(0xFFC62828);
       } else {
-        bgColor = Colors.white.withValues(alpha: 0.5);
-        borderColor = const Color(0xFFE8E3DA).withValues(alpha: 0.5);
-        mainTextColor = const Color(0xFF8C8A87).withValues(alpha: 0.5);
+        bgColor = isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.5);
+        borderColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE8E3DA).withValues(alpha: 0.5);
+        mainTextColor = isDark ? Colors.white24 : const Color(0xFF8C8A87).withValues(alpha: 0.5);
       }
     } else if (isSelected) {
       borderColor = const Color(0xFFCC6633);
-      bgColor = const Color(0xFFF6E7DC);
+      bgColor = isDark ? const Color(0xFF4A2B18) : const Color(0xFFF6E7DC);
       letterBoxColor = const Color(0xFFCC6633);
       letterTextColor = Colors.white;
       mainTextColor = const Color(0xFFCC6633);
@@ -834,4 +970,5 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       ),
     );
   }
+
 }

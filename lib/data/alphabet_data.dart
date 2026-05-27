@@ -92,4 +92,48 @@ class AlphabetData {
     {'jp': 'ビャ', 'ro': 'BYA'}, {'jp': 'ビュ', 'ro': 'BYU'}, {'jp': 'ビョ', 'ro': 'BYO'},
     {'jp': 'ピャ', 'ro': 'PYA'}, {'jp': 'ピュ', 'ro': 'PYU'}, {'jp': 'ピョ', 'ro': 'PYO'},
   ];
+
+  // ==========================================
+  // 📚 3. KANJI (BASIC N5)
+  // ==========================================
+
+  // Numbers 1-10
+  static const List<Map<String, String>> kanjiNumbers = [
+    {'jp': '一', 'ro': 'ICHI', 'en': 'One', 'id': 'Satu'},
+    {'jp': '二', 'ro': 'NI', 'en': 'Two', 'id': 'Dua'},
+    {'jp': '三', 'ro': 'SAN', 'en': 'Three', 'id': 'Tiga'},
+    {'jp': '四', 'ro': 'YON', 'en': 'Four', 'id': 'Empat'},
+    {'jp': '五', 'ro': 'GO', 'en': 'Five', 'id': 'Lima'},
+    {'jp': '六', 'ro': 'ROKU', 'en': 'Six', 'id': 'Enam'},
+    {'jp': '七', 'ro': 'NANA', 'en': 'Seven', 'id': 'Tujuh'},
+    {'jp': '八', 'ro': 'HACHI', 'en': 'Eight', 'id': 'Delapan'},
+    {'jp': '九', 'ro': 'KYUU', 'en': 'Nine', 'id': 'Sembilan'},
+    {'jp': '十', 'ro': 'JUU', 'en': 'Ten', 'id': 'Sepuluh'},
+  ];
+
+  // Nature & Elements
+  static const List<Map<String, String>> kanjiNature = [
+    {'jp': '日', 'ro': 'HI', 'en': 'Sun/Day', 'id': 'Matahari/Hari'},
+    {'jp': '月', 'ro': 'TSUKI', 'en': 'Moon/Month', 'id': 'Bulan'},
+    {'jp': '火', 'ro': 'HI', 'en': 'Fire', 'id': 'Api'},
+    {'jp': '水', 'ro': 'MIZU', 'en': 'Water', 'id': 'Air'},
+    {'jp': '木', 'ro': 'KI', 'en': 'Tree', 'id': 'Pohon'},
+    {'jp': '金', 'ro': 'KANE', 'en': 'Gold/Money', 'id': 'Emas/Uang'},
+    {'jp': '土', 'ro': 'TSUCHI', 'en': 'Soil/Earth', 'id': 'Tanah'},
+    {'jp': '山', 'ro': 'YAMA', 'en': 'Mountain', 'id': 'Gunung'},
+    {'jp': '川', 'ro': 'KAWA', 'en': 'River', 'id': 'Sungai'},
+    {'jp': '田', 'ro': 'TA', 'en': 'Rice Field', 'id': 'Sawah'},
+  ];
+
+  // People & Directions
+  static const List<Map<String, String>> kanjiPeople = [
+    {'jp': '人', 'ro': 'HITO', 'en': 'Person', 'id': 'Orang'},
+    {'jp': '子', 'ro': 'KO', 'en': 'Child', 'id': 'Anak'},
+    {'jp': '女', 'ro': 'ONNA', 'en': 'Woman', 'id': 'Wanita'},
+    {'jp': '男', 'ro': 'OTOKO', 'en': 'Man', 'id': 'Pria'},
+    {'jp': '上', 'ro': 'UE', 'en': 'Up', 'id': 'Atas'},
+    {'jp': '下', 'ro': 'SHITA', 'en': 'Down', 'id': 'Bawah'},
+    {'jp': '左', 'ro': 'HIDARI', 'en': 'Left', 'id': 'Kiri'},
+    {'jp': '右', 'ro': 'MIGI', 'en': 'Right', 'id': 'Kanan'},
+  ];
 }
