@@ -359,9 +359,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     bool success = await GameManager.buyHeartWithXP();
                     if (!mounted) return;
                     if (success) {
+                      if (!mounted) return;
                       Navigator.pop(context); // Tutup dialog Game Over
-                      // Tidak perlu Navigator.pop lagi agar tetap di ExerciseScreen
                     } else {
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("XP tidak cukup!")),
                       );
@@ -536,8 +537,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             ),
                           ),
                           Text(
-                            isTestMode ? "UNIT TEST" : "MIRAIKU - ${widget.difficulty.toUpperCase()}",
-                            style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.5),
+                            isTestMode ? "EVALUASI CAPAIAN AKHIR" : "UNIT ${widget.unit} • QUIZ",
+                            style: const TextStyle(
+                              color: Color(0xFFCC6633), 
+                              fontWeight: FontWeight.w900, 
+                              fontSize: 11, 
+                              letterSpacing: 2.2
+                            ),
                           ),
 
                           // ==========================================
@@ -588,27 +594,33 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text("PROGRES BELAJAR", style: TextStyle(color: subTextColor, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                          Text("$_score/$_originalQuestionCount", style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w900)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Stack(
                         children: [
                           Container(
-                            height: 10,
+                            height: 6,
                             width: double.infinity,
-                            decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: borderColor, 
+                              borderRadius: BorderRadius.circular(10)
+                            ),
                           ),
                           AnimatedContainer(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeOutCubic,
-                            height: 10,
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeOutBack,
+                            height: 6,
                             width: MediaQuery.of(context).size.width * 0.85 * progressPercent,
-                            decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCC6633), 
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFCC6633).withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2)
+                                )
+                              ]
+                            ),
                           ),
                         ],
                       ),
@@ -616,54 +628,74 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   ),
                 ),
 
-                // KONTEN SOAL & JAWABAN
+                // KONTEN SOAL & JAWABAN DENGAN ANIMASI
                 Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          currentQuestion['question'],
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic, color: textColor, fontWeight: FontWeight.w600),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 600),
+                    switchInCurve: Curves.easeOutQuart,
+                    switchOutCurve: Curves.easeInQuart,
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      var offsetAnimation = Tween<Offset>(
+                        begin: const Offset(0.3, 0.0),
+                        end: Offset.zero,
+                      ).animate(animation);
+                      
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
                         ),
-                        const SizedBox(height: 24),
+                      );
+                    },
+                    child: SingleChildScrollView(
+                      key: ValueKey<int>(_currentQuestionIndex),
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildQuestionHeader(textColor),
+                          const SizedBox(height: 24),
 
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: borderColor, width: 1.5),
-                            boxShadow: [
-                              BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              currentQuestion['japanese'],
-                              style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333)),
+                          Hero(
+                            tag: 'quiz_card_$_currentQuestionIndex',
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(color: borderColor, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFCC6633).withValues(alpha: 0.08), 
+                                    blurRadius: 20, 
+                                    offset: const Offset(0, 10)
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  currentQuestion['japanese'],
+                                  style: TextStyle(
+                                    fontSize: 64, 
+                                    fontWeight: FontWeight.w900, 
+                                    color: isDark ? Colors.white : const Color(0xFF333333),
+                                    letterSpacing: 2
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-                        if (isMultipleChoice) ...[
-                          ListView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: currentQuestion['options'].length,
-                            itemBuilder: (context, index) {
-                              final option = currentQuestion['options'][index];
-                              return _buildOption(index, option['code'], option['text'], option['romaji'], currentQuestion['correctIndex']);
-                            },
-                          ),
-                        ] else ...[
-                          _buildWordBankInput(),
-                        ]
-                      ],
+                          if (isMultipleChoice) ...[
+                            _buildAnimatedOptions(currentQuestion, isDark)
+                          ] else ...[
+                            _buildWordBankInput(),
+                          ]
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -892,6 +924,53 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQuestionHeader(Color textColor) {
+    final currentQuestion = _questions[_currentQuestionIndex];
+    return Column(
+      children: [
+        Text(
+          currentQuestion['question'] ?? 'Terjemahkan karakter ini:',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: textColor,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (currentQuestion['audio'] != null) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => SoundManager.playSound(currentQuestion['audio']),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.volume_up_rounded, color: Color(0xFFCC6633), size: 32),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAnimatedOptions(Map<String, dynamic> currentQuestion, bool isDark) {
+    final options = currentQuestion['options'] as List;
+    return Column(
+      children: List.generate(options.length, (index) {
+        final option = options[index];
+        return _buildOption(
+          index,
+          option['code'],
+          option['text'],
+          option['romaji'] ?? '',
+          currentQuestion['correctIndex'],
+        );
+      }),
     );
   }
 

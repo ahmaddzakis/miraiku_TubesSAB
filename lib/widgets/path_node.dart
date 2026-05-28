@@ -97,7 +97,6 @@ class PathNode extends StatelessWidget {
               children: [
                 Row(children: List.generate(3, (index) => Icon(index < starDisplay ? Icons.star_rounded : Icons.star_border_rounded, color: const Color(0xFFFFC107), size: 20))),
                 const SizedBox(width: 12),
-                Text('Bintang $starDisplay', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF4B4B4B), fontWeight: FontWeight.w900, fontSize: 16)),
               ],
             )
         )

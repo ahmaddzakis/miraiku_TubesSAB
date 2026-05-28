@@ -287,11 +287,15 @@ class _LearnScreenState extends State<LearnScreen> {
   Widget _buildLeftConnector(Color color) => Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 28), child: Container(width: 6, height: 35, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))));
 
   Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess) {
+    final bool isTestNode = title.toLowerCase().contains('test') || title.toLowerCase().contains('ujian');
+
     return ValueListenableBuilder<int>(
       valueListenable: globalHearts,
       builder: (context, currentHearts, _) {
         return GestureDetector(
-          onTap: status == NodeStatus.locked ? null : () {
+          onTap: (status == NodeStatus.locked || (status == NodeStatus.completed && (stars >= 3 || isTestNode)))
+              ? null
+              : () {
             if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
             Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
               unit: unit, 
@@ -301,9 +305,22 @@ class _LearnScreenState extends State<LearnScreen> {
               onQuizPassed: onSuccess, 
             )));
           },
-          child: PathNode(title: title, status: status, stars: stars, alignment: Alignment.centerLeft, onReplaySelected: (selectedStarIndex) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: selectedStarIndex)));
-          }),
+          child: PathNode(
+            title: title, 
+            status: status, 
+            stars: stars, 
+            alignment: Alignment.centerLeft, 
+            onReplaySelected: (selectedStarIndex) {
+              if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
+                unit: unit, 
+                difficulty: diff, 
+                currentStars: selectedStarIndex,
+                currentHearts: currentHearts,
+                onQuizPassed: onSuccess,
+              )));
+            },
+          ),
         );
       }
     );

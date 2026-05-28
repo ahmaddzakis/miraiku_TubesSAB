@@ -237,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
                         filled: true,
                         fillColor: fieldBg,
-                        prefixIcon: const Icon(Icons.description_rounded, color: Color(0xFFB5B0A8)),
+                        prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                       ),

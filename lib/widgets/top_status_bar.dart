@@ -203,7 +203,7 @@ class TopStatusBar extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎁 Login 7 hari berturut-turut untuk mendapatkan bonus 500 XP!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                child: const Text("🎁 Login setiap hari untuk klaim 50 XP & bonus Mingguan di Profil!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
 
@@ -268,7 +268,7 @@ class TopStatusBar extends StatelessWidget {
                             // KONTEN XP
                             if (type == 'xp') ...[
                               Text(
-                                "Total XP kamu saat ini: $currentXP\nKamu akan mendapatkan 75 XP setiap kali berhasil menjawab soal dengan benar.",
+                                "Total XP kamu saat ini: $currentXP\nKamu akan mendapatkan 25 XP setiap kali berhasil menjawab soal latihan dengan benar.",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5),
                               ),
@@ -276,7 +276,7 @@ class TopStatusBar extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎯 Kumpulkan 1500 XP untuk membuka mode Evaluasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                child: const Text("🎯 Kumpulkan 500 XP untuk membuka mode Simulasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
                           ],

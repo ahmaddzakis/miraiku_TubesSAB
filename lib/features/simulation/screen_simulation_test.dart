@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/game_manager.dart';
 import '../../core/sound_manager.dart';
 import '../../data/simulation_data.dart';
@@ -88,8 +89,14 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
     }
   }
 
-  void _finishTest() {
+  void _finishTest() async {
     _timer?.cancel();
+
+    // Increment simulation count in SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    int currentCount = prefs.getInt('simulation_completed_count') ?? 0;
+    await prefs.setInt('simulation_completed_count', currentCount + 1);
+
     // Calculate results and show dialog
     final int totalQuestions = _questions.length;
     final double percentage = (_score / totalQuestions) * 100;
