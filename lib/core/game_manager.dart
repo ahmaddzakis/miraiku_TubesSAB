@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +19,7 @@ final ValueNotifier<bool> globalIsPremium = ValueNotifier<bool>(false);
 final ValueNotifier<List<String>> globalLearnedHiragana = ValueNotifier<List<String>>([]);
 final ValueNotifier<List<String>> globalLearnedKatakana = ValueNotifier<List<String>>([]);
 final ValueNotifier<List<String>> globalLearnedKanji = ValueNotifier<List<String>>([]);
+final ValueNotifier<List<dynamic>> globalSimulationHistory = ValueNotifier<List<dynamic>>([]);
 
 class GameManager {
   static const int maxHearts = 5;
@@ -73,12 +75,29 @@ class GameManager {
       globalLearnedKanji.value = prefs.getStringList('learned_kanji_list') ?? [];
     }
 
+    if (meta['simulation_history'] != null) {
+      globalSimulationHistory.value = List<dynamic>.from(meta['simulation_history']);
+    } else {
+      final historyJson = prefs.getString('simulation_history') ?? '[]';
+      globalSimulationHistory.value = jsonDecode(historyJson);
+    }
+
     // Restore timestamps untuk streak & heart recovery agar sinkron antar perangkat
     if (meta['gm_last_login'] != null) {
       prefs.setString('gm_last_login', meta['gm_last_login']);
     }
     if (meta['gm_last_heart_loss'] != null) {
       prefs.setString('gm_last_heart_loss', meta['gm_last_heart_loss']);
+    }
+    if (meta['gm_last_daily_claim'] != null) {
+      prefs.setString('gm_last_daily_claim', meta['gm_last_daily_claim']);
+    } else {
+      prefs.remove('gm_last_daily_claim');
+    }
+    if (meta['gm_first_profile_bonus'] != null) {
+      prefs.setBool('gm_first_profile_bonus', meta['gm_first_profile_bonus']);
+    } else {
+      prefs.remove('gm_first_profile_bonus');
     }
 
     _saveProgressToLocal(prefs);
@@ -95,10 +114,12 @@ class GameManager {
     prefs.setStringList('learned_hiragana_list', globalLearnedHiragana.value);
     prefs.setStringList('learned_katakana_list', globalLearnedKatakana.value);
     prefs.setStringList('learned_kanji_list', globalLearnedKanji.value);
-    // Backward compatibility for simple length storage if needed
-    prefs.setInt('learned_hiragana', globalLearnedHiragana.value.length);
-    prefs.setInt('learned_katakana', globalLearnedKatakana.value.length);
-    prefs.setInt('learned_kanji', globalLearnedKanji.value.length);
+    prefs.setString('simulation_history', jsonEncode(globalSimulationHistory.value));
+    
+    // Simpan juga timestamp ke local agar sinkron
+    if (prefs.getString('gm_last_login') == null) {
+       // default jika belum ada
+    }
   }
 
   // Reset semua progress ke default (digunakan saat logout)
@@ -111,22 +132,25 @@ class GameManager {
     globalLearnedHiragana.value = [];
     globalLearnedKatakana.value = [];
     globalLearnedKanji.value = [];
+    globalSimulationHistory.value = [];
     
     // Hapus semua data terkait game di SharedPreferences agar tidak bocor ke user lain
-    await prefs.remove('gm_hearts');
-    await prefs.remove('gm_xp');
-    await prefs.remove('gm_streak');
-    await prefs.remove('is_premium');
-    await prefs.remove('learned_hiragana_list');
-    await prefs.remove('learned_katakana_list');
-    await prefs.remove('learned_kanji_list');
-    await prefs.remove('learned_hiragana');
-    await prefs.remove('learned_katakana');
-    await prefs.remove('learned_kanji');
-    await prefs.remove('gm_last_login');
-    await prefs.remove('gm_last_heart_loss');
-    await prefs.remove('setting_dark');
-    await prefs.remove('setting_lang');
+    final keys = prefs.getKeys();
+    for (String key in keys) {
+      if (key.startsWith('u1_') || 
+          key.startsWith('u2_') || 
+          key.startsWith('u3_') || 
+          key.startsWith('u4_') ||
+          key.startsWith('gm_') ||
+          key.startsWith('learned_') ||
+          key.startsWith('setting_') ||
+          key == 'is_premium' ||
+          key == 'simulation_completed_count' ||
+          key == 'simulation_history' ||
+          key == 'last_claimed_streak') {
+        await prefs.remove(key);
+      }
+    }
   }
 
   static void _startAuthListener() {
@@ -169,8 +193,11 @@ class GameManager {
           'learned_hiragana': globalLearnedHiragana.value,
           'learned_katakana': globalLearnedKatakana.value,
           'learned_kanji': globalLearnedKanji.value,
+          'simulation_history': globalSimulationHistory.value,
           'gm_last_login': prefs.getString('gm_last_login'),
           'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
+          'gm_last_daily_claim': prefs.getString('gm_last_daily_claim'),
+          'gm_first_profile_bonus': prefs.getBool('gm_first_profile_bonus'),
         };
 
         // Tambahkan data profil jika disediakan

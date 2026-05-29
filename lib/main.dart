@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // IMPORT WAJIB UNTUK SUPABASE
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/top_status_bar.dart';
@@ -13,13 +14,17 @@ import 'core/game_manager.dart';
 import 'core/notification_service.dart';
 
 // ==========================================
-// 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
+// 🌍 GLOBAL NAVIGATOR KEY
 // ==========================================
-// Variabel dipindahkan ke core/game_manager.dart untuk sentralisasi
-
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 📦 LOAD PERSISTENT SETTINGS
+  final prefs = await SharedPreferences.getInstance();
+  globalDarkMode.value = prefs.getBool('is_dark_mode') ?? false;
+  globalLanguage.value = prefs.getString('app_language') ?? 'en';
 
   // 🔗 INISIALISASI SUPABASE
   await Supabase.initialize(
@@ -28,8 +33,11 @@ void main() async {
   );
 
   await GameManager.init();
-  await NotificationService.init();
-  await NotificationService.scheduleDailyReminder();
+  
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermissions();
+  await notificationService.scheduleDailyStudyReminder();
 
   runApp(const MiraikuApp());
 }
@@ -46,6 +54,7 @@ class MiraikuApp extends StatelessWidget {
           valueListenable: globalLanguage,
           builder: (context, language, _) {
             return MaterialApp(
+              navigatorKey: navigatorKey,
               debugShowCheckedModeBanner: false,
               title: 'Miraiku',
               theme: ThemeData(
@@ -125,9 +134,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             const TopStatusBar(),
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
+                duration: const Duration(milliseconds: 400),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
                 transitionBuilder: (Widget child, Animation<double> animation) {
                   return FadeTransition(
                     opacity: animation,

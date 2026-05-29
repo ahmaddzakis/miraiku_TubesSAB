@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/game_manager.dart';
+import '../../core/notification_service.dart';
+import 'screen_activity_history.dart';
+import 'screen_notifications.dart';
 import 'screen_settings.dart';
 
 class _AchievementBadge {
@@ -32,8 +35,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Local Statistics
   int _lastClaimedStreak = 0;
   bool _isDailyClaimedToday = false;
+  bool _hasNewActivity = false;
 
-    // Achievements Status
+  // Achievements Status
   bool _claimedHiragana = false;
   bool _claimedKatakana = false;
   bool _claimedKanji = false;
@@ -52,15 +56,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _initPrefs();
-    _loadSupabaseUserData();
   }
 
   Future<void> _initPrefs() async {
     prefs = await SharedPreferences.getInstance();
+    await _loadLocalStats();
+    _loadSupabaseUserData();
     setState(() {
       _isPrefsInitialized = true;
     });
-    _loadLocalStats();
   }
 
   void _loadSupabaseUserData() {
@@ -85,47 +89,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _claimed14Days = meta['ach_14d'] ?? false;
           _claimed30Days = meta['ach_30d'] ?? false;
           _claimedMirai = meta['ach_mirai'] ?? false;
+
+          // Cek tanggal klaim harian dari Cloud Supabase (Anti-Cheat)
+          final String today = DateTime.now().toIso8601String().substring(0, 10);
+          final String? cloudLastClaim = meta['gm_last_daily_claim'];
+
+          if (cloudLastClaim == today) {
+            _isDailyClaimedToday = true;
+            prefs.setString('gm_last_daily_claim', today); // Sinkronisasi ke lokal
+          }
         });
       }
     }
   }
 
   Future<void> _loadLocalStats() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    final now = DateTime.now();
-    final today = "${now.year}-${now.month}-${now.day}";
-    final lastClaim = prefs.getString('last_daily_xp_claim');
+    // Gunakan format standar internasional YYYY-MM-DD
+    final String today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastClaim = prefs.getString('gm_last_daily_claim');
+    final hasNewActivity = prefs.getBool('has_new_activity') ?? false;
 
     setState(() {
       _lastClaimedStreak = prefs.getInt('last_claimed_streak') ?? 0;
       _isDailyClaimedToday = (lastClaim == today);
+      _hasNewActivity = hasNewActivity;
     });
 
     // Award bonus if first time setting up
-    if (prefs.getBool('first_profile_bonus') == null) {
+    if (prefs.getBool('gm_first_profile_bonus') == null) {
       await GameManager.addXP(200);
-      await prefs.setBool('first_profile_bonus', true);
+      await prefs.setBool('gm_first_profile_bonus', true);
+    }
+  }
+
+  Future<void> _claimDailyReward() async {
+    if (_isDailyClaimedToday) {
+      if (mounted) {
+        _showErrorDialog(
+            _t("Already Claimed", "Sudah Diklaim"),
+            _t("Come back tomorrow for more rewards!", "Kembali lagi besok untuk hadiah lainnya!")
+        );
+      }
+      return;
+    }
+
+    final String today = DateTime.now().toIso8601String().substring(0, 10);
+
+    await GameManager.addXP(50);
+    await prefs.setString('gm_last_daily_claim', today);
+
+    try {
+      await _supabase.auth.updateUser(UserAttributes(data: {
+        'gm_last_daily_claim': today,
+      }));
+    } catch (e) {
+      debugPrint("Gagal update daily claim ke Supabase: $e");
+    }
+
+    setState(() {
+      _isDailyClaimedToday = true;
+    });
+
+    if (mounted) {
+      _showSuccessDialog(_t("Daily Reward: +50 XP!", "Hadiah Harian: +50 XP!"));
     }
   }
 
   Future<void> _claimAchievement(String key) async {
-    // Validasi lokal agar tidak bisa diklaim dua kali
     final meta = _supabase.auth.currentUser?.userMetadata;
     if (meta != null && meta[key] == true) return;
 
     try {
-      // 1. Update di Supabase (Cloud)
       await _supabase.auth.updateUser(UserAttributes(data: {
         key: true,
       }));
-      
-      // 2. Tambahkan XP ke global state
       await GameManager.addXP(200);
-      
-      // 3. Refresh data
-      _loadSupabaseUserData(); 
-      
+      _loadSupabaseUserData();
       if (mounted) {
         _showSuccessDialog(_t("Achievement Claimed! +200 XP", "Pencapaian Diklaim! +200 XP"));
       }
@@ -210,35 +249,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _claimDailyReward() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now();
-    final today = "${now.year}-${now.month}-${now.day}";
-    final lastClaim = prefs.getString('last_daily_xp_claim');
-
-    if (lastClaim == today) {
-      if (mounted) {
-        _showErrorDialog(
-          _t("Already Claimed", "Sudah Diklaim"), 
-          _t("Come back tomorrow for more rewards!", "Kembali lagi besok untuk hadiah lainnya!")
-        );
-      }
-      return;
-    }
-
-    // Hadiah Baru: 50 XP
-    await GameManager.addXP(50);
-    await prefs.setString('last_daily_xp_claim', today);
-    
-    setState(() {
-      _isDailyClaimedToday = true;
-    });
-
-    if (mounted) {
-      _showSuccessDialog(_t("Daily Reward: +50 XP!", "Hadiah Harian: +50 XP!"));
-    }
-  }
-
   String _t(String en, String id) {
     return globalLanguage.value == 'id' ? id : en;
   }
@@ -257,286 +267,159 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final Color subTextColor = isDark ? Colors.white70 : const Color(0xFF8C8A87);
         final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-    // LOCAL STATS
-    final int simulationCount = prefs.getInt('simulation_completed_count') ?? 0;
-    final bool isUnit1Finished = (prefs.getInt('u1_test_stars') ?? 0) >= 1;
-    final bool isUnit2Finished = (prefs.getInt('u2_test_stars') ?? 0) >= 1;
-    final bool isUnit3Finished = (prefs.getInt('u3_test_stars') ?? 0) >= 1;
-    final bool isUnit4Finished = (prefs.getInt('u4_test_stars') ?? 0) >= 1;
-    final bool isAllUnitsFinished = isUnit1Finished && isUnit2Finished && isUnit3Finished && isUnit4Finished;
+        // LOCAL STATS
+        final int simulationCount = prefs.getInt('simulation_completed_count') ?? 0;
+        final bool isUnit1Finished = (prefs.getInt('u1_test_stars') ?? 0) >= 1;
+        final bool isUnit2Finished = (prefs.getInt('u2_test_stars') ?? 0) >= 1;
+        final bool isUnit3Finished = (prefs.getInt('u3_test_stars') ?? 0) >= 1;
+        final bool isUnit4Finished = (prefs.getInt('u4_test_stars') ?? 0) >= 1;
+        final bool isAllUnitsFinished = isUnit1Finished && isUnit2Finished && isUnit3Finished && isUnit4Finished;
 
-    final int claimedCount = [
-      _claimedHiragana, _claimedKatakana, _claimedKanji, _claimedAlphabetMaster,
-      _claimedSim, _claimed3Days, _claimed7Days, _claimed14Days, _claimed30Days, _claimedMirai
-    ].where((c) => c).length;
+        final int claimedCount = [
+          _claimedHiragana, _claimedKatakana, _claimedKanji, _claimedAlphabetMaster,
+          _claimedSim, _claimed3Days, _claimed7Days, _claimed14Days, _claimed30Days, _claimedMirai
+        ].where((c) => c).length;
 
-    return Scaffold(
+        return Scaffold(
           backgroundColor: bgColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              _loadSupabaseUserData();
-              await _loadLocalStats();
-            },
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 32),
-                        // PROFILE HEADER
-                        Center(
-                          child: Stack(
+          body: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                _loadSupabaseUserData();
+                await _loadLocalStats();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                child: Column(
+                  children: [
+                    // 1. Ikon Lonceng sekarang di dalam Scroll View (Ikut terscroll)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 16.0, right: 16.0),
+                        child: IconButton(
+                          icon: Stack(
+                            clipBehavior: Clip.none,
                             children: [
-                              Container(
-                                width: 130,
-                                height: 130,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFFCC6633), width: 3),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: CircleAvatar(
-                                    radius: 60,
-                                    backgroundColor: cardColor,
-                                    backgroundImage: _getAvatarImage(),
+                              Icon(Icons.notifications_rounded, size: 28, color: textColor),
+                              if (_hasNewActivity)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: bgColor, width: 2),
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
+                          onPressed: () async {
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool('has_new_activity', false);
+                            setState(() => _hasNewActivity = false);
+                            if (context.mounted) {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityHistoryScreen()));
+                            }
+                          },
                         ),
-                        const SizedBox(height: 24),
-                        Text(_userName, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: textColor)),
-                        const SizedBox(height: 8),
-                        Text(_userDesc, style: TextStyle(fontSize: 14, color: subTextColor, fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 4),
-                        Text(_userEmail, style: TextStyle(fontSize: 14, color: subTextColor.withValues(alpha: 0.6))),
-                        
-                        const SizedBox(height: 32),
-                        
-                        // DAILY LOGIN REWARDS CARD
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: GestureDetector(
-                            onTap: _claimDailyReward,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: cardColor,
-                                borderRadius: BorderRadius.circular(32),
-                                border: Border.all(
-                                  color: _isDailyClaimedToday ? borderColor : const Color(0xFFCC6633),
-                                  width: _isDailyClaimedToday ? 1 : 2.5,
-                                ),
-                                boxShadow: _isDailyClaimedToday ? [] : [
-                                  BoxShadow(
-                                    color: const Color(0xFFCC6633).withValues(alpha: 0.2),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 8),
-                                  )
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: (_isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633)).withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Icon(
-                                      _isDailyClaimedToday ? Icons.check_circle_rounded : Icons.card_giftcard_rounded, 
-                                      color: _isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633), 
-                                      size: 32
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(_t("Daily Login Rewards", "Hadiah Login Harian"), style: TextStyle(color: subTextColor, fontSize: 13, fontWeight: FontWeight.bold)),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              _isDailyClaimedToday ? _t("Already Claimed", "Sudah Diklaim") : "50",
-                                              style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w900),
-                                            ),
-                                            if (!_isDailyClaimedToday) ...[
-                                              const SizedBox(width: 6),
-                                              const Icon(Icons.flash_on, color: Color(0xFFCC6633), size: 22),
-                                              const SizedBox(width: 2),
-                                              const Text("XP", style: TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 16)),
-                                            ]
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // PROFILE HEADER
+                    Center(
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 130,
+                            height: 130,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFCC6633), width: 3),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: CircleAvatar(
+                                radius: 60,
+                                backgroundColor: cardColor,
+                                backgroundImage: _getAvatarImage(),
                               ),
                             ),
                           ),
-                        ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(_userName, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: textColor)),
+                    const SizedBox(height: 8),
+                    Text(_userDesc, style: TextStyle(fontSize: 14, color: subTextColor, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 4),
+                    Text(_userEmail, style: TextStyle(fontSize: 14, color: subTextColor.withOpacity(0.6))),
 
-                        const SizedBox(height: 32),
-                        
-                        // ACHIEVEMENTS SECTION
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 32),
+
+                    // DAILY LOGIN REWARDS CARD
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: GestureDetector(
+                        onTap: _claimDailyReward,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(
+                              color: _isDailyClaimedToday ? borderColor : const Color(0xFFCC6633),
+                              width: _isDailyClaimedToday ? 1 : 2.5,
+                            ),
+                            boxShadow: _isDailyClaimedToday ? [] : [
+                              BoxShadow(
+                                color: const Color(0xFFCC6633).withOpacity(0.2),
+                                blurRadius: 15,
+                                offset: const Offset(0, 8),
+                              )
+                            ],
+                          ),
+                          child: Row(
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(_t("Achievements", "Pencapaian"), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor)),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFCC6633).withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.emoji_events_rounded, color: Color(0xFFCC6633), size: 16),
-                                        const SizedBox(width: 4),
-                                        Text("$claimedCount / 10", style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: (_isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633)).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Icon(
+                                    _isDailyClaimedToday ? Icons.check_circle_rounded : Icons.card_giftcard_rounded,
+                                    color: _isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633),
+                                    size: 32
+                                ),
                               ),
-                              const SizedBox(height: 20),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: Row(
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.text("あ"),
-                                      bgColor: const Color(0xFFE8F5E9),
-                                      accentColor: const Color(0xFF4CAF50),
-                                      title: _t("Hiragana Master", "Ahli Hiragana"),
-                                      progress: (globalLearnedHiragana.value.length / 46).clamp(0.0, 1.0),
-                                      progressLabel: "${globalLearnedHiragana.value.length}/46",
-                                      isCompleted: globalLearnedHiragana.value.length >= 46,
-                                      isClaimed: _claimedHiragana,
-                                      onClaim: () => _claimAchievement('ach_hira'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.text("ア"),
-                                      bgColor: const Color(0xFFE3F2FD),
-                                      accentColor: const Color(0xFF2196F3),
-                                      title: _t("Katakana Master", "Ahli Katakana"),
-                                      progress: (globalLearnedKatakana.value.length / 46).clamp(0.0, 1.0),
-                                      progressLabel: "${globalLearnedKatakana.value.length}/46",
-                                      isCompleted: globalLearnedKatakana.value.length >= 46,
-                                      isClaimed: _claimedKatakana,
-                                      onClaim: () => _claimAchievement('ach_kata'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.text("漢"),
-                                      bgColor: const Color(0xFFF3E5F5),
-                                      accentColor: const Color(0xFF9C27B0),
-                                      title: _t("Kanji Learner", "Pembelajar Kanji"),
-                                      progress: (globalLearnedKanji.value.length / 28).clamp(0.0, 1.0),
-                                      progressLabel: "${globalLearnedKanji.value.length}/28",
-                                      isCompleted: globalLearnedKanji.value.length >= 28,
-                                      isClaimed: _claimedKanji,
-                                      onClaim: () => _claimAchievement('ach_kanji'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("ABC"),
-                                      bgColor: const Color(0xFFEFEBE9),
-                                      accentColor: const Color(0xFF795548),
-                                      title: _t("Alphabet Master", "Penguasa Alfabet"),
-                                      progress: (_claimedHiragana && _claimedKatakana && _claimedKanji) ? 1.0 : 0.0,
-                                      progressLabel: "Unit 1-3 Complete",
-                                      isCompleted: _claimedHiragana && _claimedKatakana && _claimedKanji,
-                                      isClaimed: _claimedAlphabetMaster,
-                                      onClaim: () => _claimAchievement('ach_alphabet'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("SIM"),
-                                      bgColor: const Color(0xFFFFF3E0),
-                                      accentColor: const Color(0xFFFF9800),
-                                      title: _t("Simulator Pro", "Pro Simulator"),
-                                      progress: (simulationCount / 10).clamp(0.0, 1.0),
-                                      progressLabel: "$simulationCount/10",
-                                      isCompleted: simulationCount >= 10,
-                                      isClaimed: _claimedSim,
-                                      onClaim: () => _claimAchievement('ach_sim'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("3"),
-                                      bgColor: const Color(0xFFFCE4EC),
-                                      accentColor: const Color(0xFFE91E63),
-                                      title: _t("3 Days Streak", "3 Hari Beruntun"),
-                                      progress: (globalStreak.value / 3).clamp(0.0, 1.0),
-                                      progressLabel: "${globalStreak.value}/3",
-                                      isCompleted: globalStreak.value >= 3,
-                                      isClaimed: _claimed3Days,
-                                      onClaim: () => _claimAchievement('ach_3d'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("7"),
-                                      bgColor: const Color(0xFFFCE4EC),
-                                      accentColor: const Color(0xFFE91E63),
-                                      title: _t("7 Days Streak", "7 Hari Beruntun"),
-                                      progress: (globalStreak.value / 7).clamp(0.0, 1.0),
-                                      progressLabel: "${globalStreak.value}/7",
-                                      isCompleted: globalStreak.value >= 7,
-                                      isClaimed: _claimed7Days,
-                                      onClaim: () => _claimAchievement('ach_7d'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("14"),
-                                      bgColor: const Color(0xFFFCE4EC),
-                                      accentColor: const Color(0xFFE91E63),
-                                      title: _t("14 Days Streak", "14 Hari Beruntun"),
-                                      progress: (globalStreak.value / 14).clamp(0.0, 1.0),
-                                      progressLabel: "${globalStreak.value}/14",
-                                      isCompleted: globalStreak.value >= 14,
-                                      isClaimed: _claimed14Days,
-                                      onClaim: () => _claimAchievement('ach_14d'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("30"),
-                                      bgColor: const Color(0xFFFCE4EC),
-                                      accentColor: const Color(0xFFE91E63),
-                                      title: _t("30 Days Streak", "30 Hari Beruntun"),
-                                      progress: (globalStreak.value / 30).clamp(0.0, 1.0),
-                                      progressLabel: "${globalStreak.value}/30",
-                                      isCompleted: globalStreak.value >= 30,
-                                      isClaimed: _claimed30Days,
-                                      onClaim: () => _claimAchievement('ach_30d'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                    ),
-                                    _buildAchievementCardH(
-                                      badge: _AchievementBadge.label("未来"),
-                                      bgColor: const Color(0xFFFCE4EC),
-                                      accentColor: const Color(0xFFE91E63),
-                                      title: _t("Mirai", "Mirai"),
-                                      progress: isAllUnitsFinished ? 1.0 : 0.0,
-                                      progressLabel: isAllUnitsFinished ? "COMPLETED" : "Unit 1-4",
-                                      isCompleted: isAllUnitsFinished,
-                                      isClaimed: _claimedMirai,
-                                      onClaim: () => _claimAchievement('ach_mirai'),
-                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                    Text(_t("Daily Login Rewards", "Hadiah Login Harian"), style: TextStyle(color: subTextColor, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _isDailyClaimedToday ? _t("Already Claimed", "Sudah Diklaim") : "50",
+                                          style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w900),
+                                        ),
+                                        if (!_isDailyClaimedToday) ...[
+                                          const SizedBox(width: 6),
+                                          const Icon(Icons.flash_on, color: Color(0xFFCC6633), size: 22),
+                                          const SizedBox(width: 2),
+                                          const Text("XP", style: TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 16)),
+                                        ]
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -544,92 +427,231 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         ),
+                      ),
+                    ),
 
-                        const SizedBox(height: 32),
-                        
-                        // MENU OPTIONS
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: cardColor, 
-                              borderRadius: BorderRadius.circular(32), 
-                              border: Border.all(color: borderColor)
-                            ),
-                            child: Column(
+                    const SizedBox(height: 32),
+
+                    // ACHIEVEMENTS SECTION
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(_t("Achievements", "Pencapaian"), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFCC6633).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.emoji_events_rounded, color: Color(0xFFCC6633), size: 16),
+                                    const SizedBox(width: 4),
+                                    Text("$claimedCount / 10", style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
                               children: [
-                                _buildMenuTile(
-                                  context: context, 
-                                  icon: Icons.settings_rounded, 
-                                  title: _t("Settings", "Pengaturan"), 
-                                  subtitle: _t("Manage your account preferences", "Kelola preferensi akunmu"), 
-                                  color: Colors.orange, 
-                                  textColor: textColor, 
-                                  subTextColor: subTextColor, 
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())), 
-                                  isDark: isDark
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.text("あ"),
+                                  bgColor: const Color(0xFFE8F5E9),
+                                  accentColor: const Color(0xFF4CAF50),
+                                  title: _t("Hiragana Master", "Ahli Hiragana"),
+                                  progress: (globalLearnedHiragana.value.length / 46).clamp(0.0, 1.0),
+                                  progressLabel: "${globalLearnedHiragana.value.length}/46",
+                                  isCompleted: globalLearnedHiragana.value.length >= 46,
+                                  isClaimed: _claimedHiragana,
+                                  onClaim: () => _claimAchievement('ach_hira'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
                                 ),
-                                Divider(height: 1, color: borderColor, indent: 70),
-                                _buildMenuTile(
-                                  context: context, 
-                                  icon: Icons.notifications_rounded, 
-                                  title: _t("Notifications", "Notifikasi"), 
-                                  subtitle: _t("Daily reminders & info", "Pengingat harian & info"), 
-                                  color: Colors.orangeAccent, 
-                                  textColor: textColor, 
-                                  subTextColor: subTextColor, 
-                                  onTap: () {}, 
-                                  isDark: isDark
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.text("ア"),
+                                  bgColor: const Color(0xFFE3F2FD),
+                                  accentColor: const Color(0xFF2196F3),
+                                  title: _t("Katakana Master", "Ahli Katakana"),
+                                  progress: (globalLearnedKatakana.value.length / 46).clamp(0.0, 1.0),
+                                  progressLabel: "${globalLearnedKatakana.value.length}/46",
+                                  isCompleted: globalLearnedKatakana.value.length >= 46,
+                                  isClaimed: _claimedKatakana,
+                                  onClaim: () => _claimAchievement('ach_kata'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
                                 ),
-                                Divider(height: 1, color: borderColor, indent: 70),
-                                _buildMenuTile(
-                                  context: context, 
-                                  icon: Icons.logout_rounded, 
-                                  title: _t("Logout", "Keluar"), 
-                                  subtitle: _t("Sign out from Miraiku account", "Keluar dari akun Miraiku"), 
-                                  color: Colors.redAccent, 
-                                  textColor: textColor, 
-                                  subTextColor: subTextColor, 
-                                  onTap: () => _showLogoutConfirmation(context, isDark), 
-                                  isLogout: true, 
-                                  isDark: isDark
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.text("漢"),
+                                  bgColor: const Color(0xFFF3E5F5),
+                                  accentColor: const Color(0xFF9C27B0),
+                                  title: _t("Kanji Learner", "Pembelajar Kanji"),
+                                  progress: (globalLearnedKanji.value.length / 28).clamp(0.0, 1.0),
+                                  progressLabel: "${globalLearnedKanji.value.length}/28",
+                                  isCompleted: globalLearnedKanji.value.length >= 28,
+                                  isClaimed: _claimedKanji,
+                                  onClaim: () => _claimAchievement('ach_kanji'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("ABC"),
+                                  bgColor: const Color(0xFFEFEBE9),
+                                  accentColor: const Color(0xFF795548),
+                                  title: _t("Alphabet Master", "Penguasa Alfabet"),
+                                  progress: (_claimedHiragana && _claimedKatakana && _claimedKanji) ? 1.0 : 0.0,
+                                  progressLabel: "Unit 1-3 Complete",
+                                  isCompleted: _claimedHiragana && _claimedKatakana && _claimedKanji,
+                                  isClaimed: _claimedAlphabetMaster,
+                                  onClaim: () => _claimAchievement('ach_alphabet'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("SIM"),
+                                  bgColor: const Color(0xFFFFF3E0),
+                                  accentColor: const Color(0xFFFF9800),
+                                  title: _t("Simulator Pro", "Pro Simulator"),
+                                  progress: (simulationCount / 10).clamp(0.0, 1.0),
+                                  progressLabel: "$simulationCount/10",
+                                  isCompleted: simulationCount >= 10,
+                                  isClaimed: _claimedSim,
+                                  onClaim: () => _claimAchievement('ach_sim'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("3"),
+                                  bgColor: const Color(0xFFFCE4EC),
+                                  accentColor: const Color(0xFFE91E63),
+                                  title: _t("3 Days Streak", "3 Hari Beruntun"),
+                                  progress: (globalStreak.value / 3).clamp(0.0, 1.0),
+                                  progressLabel: "${globalStreak.value}/3",
+                                  isCompleted: globalStreak.value >= 3,
+                                  isClaimed: _claimed3Days,
+                                  onClaim: () => _claimAchievement('ach_3d'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("7"),
+                                  bgColor: const Color(0xFFFCE4EC),
+                                  accentColor: const Color(0xFFE91E63),
+                                  title: _t("7 Days Streak", "7 Hari Beruntun"),
+                                  progress: (globalStreak.value / 7).clamp(0.0, 1.0),
+                                  progressLabel: "${globalStreak.value}/7",
+                                  isCompleted: globalStreak.value >= 7,
+                                  isClaimed: _claimed7Days,
+                                  onClaim: () => _claimAchievement('ach_7d'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("14"),
+                                  bgColor: const Color(0xFFFCE4EC),
+                                  accentColor: const Color(0xFFE91E63),
+                                  title: _t("14 Days Streak", "14 Hari Beruntun"),
+                                  progress: (globalStreak.value / 14).clamp(0.0, 1.0),
+                                  progressLabel: "${globalStreak.value}/14",
+                                  isCompleted: globalStreak.value >= 14,
+                                  isClaimed: _claimed14Days,
+                                  onClaim: () => _claimAchievement('ach_14d'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("30"),
+                                  bgColor: const Color(0xFFFCE4EC),
+                                  accentColor: const Color(0xFFE91E63),
+                                  title: _t("30 Days Streak", "30 Hari Beruntun"),
+                                  progress: (globalStreak.value / 30).clamp(0.0, 1.0),
+                                  progressLabel: "${globalStreak.value}/30",
+                                  isCompleted: globalStreak.value >= 30,
+                                  isClaimed: _claimed30Days,
+                                  onClaim: () => _claimAchievement('ach_30d'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                ),
+                                _buildAchievementCardH(
+                                  badge: _AchievementBadge.label("未来"),
+                                  bgColor: const Color(0xFFFCE4EC),
+                                  accentColor: const Color(0xFFE91E63),
+                                  title: _t("Mirai", "Mirai"),
+                                  progress: isAllUnitsFinished ? 1.0 : 0.0,
+                                  progressLabel: isAllUnitsFinished ? "COMPLETED" : "Unit 1-4",
+                                  isCompleted: isAllUnitsFinished,
+                                  isClaimed: _claimedMirai,
+                                  onClaim: () => _claimAchievement('ach_mirai'),
+                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 120),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(height: 32),
+
+                    // MENU OPTIONS
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: borderColor)
+                        ),
+                        child: Column(
+                          children: [
+                            _buildMenuTile(
+                                context: context,
+                                icon: Icons.settings_rounded,
+                                title: _t("Settings", "Pengaturan"),
+                                subtitle: _t("Manage your account preferences", "Kelola preferensi akunmu"),
+                                color: Colors.orange,
+                                textColor: textColor,
+                                subTextColor: subTextColor,
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+                                isDark: isDark
+                            ),
+                            Divider(height: 1, color: borderColor, indent: 70),
+                            _buildMenuTile(
+                                context: context,
+                                icon: Icons.notifications_rounded,
+                                title: _t("Notifications", "Notifikasi"),
+                                subtitle: _t("Daily reminders & info", "Pengingat harian & info"),
+                                color: Colors.orangeAccent,
+                                textColor: textColor,
+                                subTextColor: subTextColor,
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+                                isDark: isDark
+                            ),
+                            Divider(height: 1, color: borderColor, indent: 70),
+                            _buildMenuTile(
+                                context: context,
+                                icon: Icons.logout_rounded,
+                                title: _t("Logout", "Keluar"),
+                                subtitle: _t("Sign out from Miraiku account", "Keluar dari akun Miraiku"),
+                                color: Colors.redAccent,
+                                textColor: textColor,
+                                subTextColor: subTextColor,
+                                onTap: () => _showLogoutConfirmation(context, isDark),
+                                isLogout: true,
+                                isDark: isDark
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 120),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildStatCard(BuildContext context, IconData icon, String label, ValueListenable<dynamic> notifier, Color color, bool isDark, Color cardColor, Color textColor, Color subTextColor, Color borderColor, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20), border: Border.all(color: borderColor)),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            ValueListenableBuilder(
-              valueListenable: notifier,
-              builder: (context, value, _) => Text(value.toString(), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor)),
-            ),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: subTextColor)),
-          ],
-        ),
-      ),
     );
   }
 
@@ -651,77 +673,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isCompleted && !isClaimed ? const Color(0xFF58CC02).withValues(alpha: 0.5) : borderColor,
-          width: isCompleted && !isClaimed ? 2 : 1
+        width: 150,
+        height: 240, // Tinggi dibuat seragam agar kotak terlihat rapi
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+              color: isCompleted && !isClaimed ? const Color(0xFF58CC02).withOpacity(0.5) : borderColor,
+              width: isCompleted && !isClaimed ? 2 : 1
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-              shape: BoxShape.circle
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Text(
-                  badge.text,
-                  style: TextStyle(
-                    fontSize: badge.isLabel ? 14 : 24,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white38 : Colors.black26
-                  )
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
+                    shape: BoxShape.circle
                 ),
-                if (isCompleted)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(color: Color(0xFF58CC02), shape: BoxShape.circle),
-                      child: const Icon(Icons.check_rounded, size: 12, color: Colors.white),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Text(
+                        badge.text,
+                        style: TextStyle(
+                            fontSize: badge.isLabel ? 14 : 24,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white38 : Colors.black26
+                        )
                     ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor, height: 1.1)
-          ),
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-              valueColor: AlwaysStoppedAnimation<Color>(isCompleted ? const Color(0xFF58CC02) : const Color(0xFFCC6633))
-            )
-          ),
-          const SizedBox(height: 12),
-          bottomWidget
-        ]
-      )
+                    if (isCompleted)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(color: Color(0xFF58CC02), shape: BoxShape.circle),
+                          child: const Icon(Icons.check_rounded, size: 12, color: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor, height: 1.1)
+              ),
+              const Spacer(), // Spacer ini akan mendorong elemen di bawahnya agar selalu rata bawah
+              ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
+                      valueColor: AlwaysStoppedAnimation<Color>(isCompleted ? const Color(0xFF58CC02) : const Color(0xFFCC6633))
+                  )
+              ),
+              const SizedBox(height: 12),
+              bottomWidget
+            ]
+        )
     );
   }
 
   Widget _buildMenuTile({required BuildContext context, required IconData icon, required String title, required String subtitle, required Color color, required Color textColor, required Color subTextColor, required VoidCallback onTap, bool isLogout = false, required bool isDark}) {
-    return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isLogout ? (isDark ? Colors.red.withValues(alpha: 0.2) : const Color(0xFFFFF1F1)) : color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: color, size: 22)), title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)), subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)), onTap: onTap);
+    return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isLogout ? (isDark ? Colors.red.withOpacity(0.2) : const Color(0xFFFFF1F1)) : color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: color, size: 22)), title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)), subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)), onTap: onTap);
   }
 
   void _showLogoutConfirmation(BuildContext context, bool isDark) {

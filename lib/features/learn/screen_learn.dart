@@ -43,7 +43,7 @@ class _LearnScreenState extends State<LearnScreen> {
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _u1Hira1Stars = prefs.getInt('u1_hira1_stars') ?? 0;
+      _u1Hira1Stars = prefs.getInt('u1_hira1_stars') ?? 0; // Default 0 untuk user baru agar tidak "Replay"
       _u1Hira2Stars = prefs.getInt('u1_hira2_stars') ?? 0;
       _u1Hira3Stars = prefs.getInt('u1_hira3_stars') ?? 0;
       _u1Hira4Stars = prefs.getInt('u1_hira4_stars') ?? 0;
@@ -164,27 +164,27 @@ class _LearnScreenState extends State<LearnScreen> {
 
               _buildClickableNode(context, _t("Katakana Basics 1", "Katakana Dasar 1"), _u2Kata1Stars, _u2Kata1Stars >= 3 ? NodeStatus.completed : (isUnit2Unlocked ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_1', () {
                 setState(() { if (_u2Kata1Stars < 3) { _u2Kata1Stars++; _saveStarProgress('u2_kata1_stars', _u2Kata1Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: A, I, U, E, O, KA, KI, KU, KE, KO, SA, SHI", hintId: "Pelajari Katakana: A, I, U, E, O, KA, KI, KU, KE, KO, SA, SHI"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Basics 2", "Katakana Dasar 2"), _u2Kata2Stars, _u2Kata2Stars >= 3 ? NodeStatus.completed : (_u2Kata1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_2', () {
                 setState(() { if (_u2Kata2Stars < 3) { _u2Kata2Stars++; _saveStarProgress('u2_kata2_stars', _u2Kata2Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: SU, SE, SO, TA, CHI, TSU, TE, TO, NA, NI, NU, NE", hintId: "Pelajari Katakana: SU, SE, SO, TA, CHI, TSU, TE, TO, NA, NI, NU, NE"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Basics 3", "Katakana Dasar 3"), _u2Kata3Stars, _u2Kata3Stars >= 3 ? NodeStatus.completed : (_u2Kata2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_3', () {
                 setState(() { if (_u2Kata3Stars < 3) { _u2Kata3Stars++; _saveStarProgress('u2_kata3_stars', _u2Kata3Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: NO, HA, HI, FU, HE, HO, MA, MI, MU, ME, MO, YA", hintId: "Pelajari Katakana: NO, HA, HI, FU, HE, HO, MA, MI, MU, ME, MO, YA"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Basics 4", "Katakana Dasar 4"), _u2Kata4Stars, _u2Kata4Stars >= 3 ? NodeStatus.completed : (_u2Kata3Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_4', () {
                 setState(() { if (_u2Kata4Stars < 3) { _u2Kata4Stars++; _saveStarProgress('u2_kata4_stars', _u2Kata4Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: YU, YO, RA, RI, RU, RE, RO, WA, WO, N, GA, PA", hintId: "Pelajari Katakana: YU, YO, RA, RI, RU, RE, RO, WA, WO, N, GA, PA"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Words 1", "Kosakata Katakana 1"), _u2Words1Stars, _u2Words1Stars >= 3 ? NodeStatus.completed : (_u2Kata4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words', () {
                 setState(() { if (_u2Words1Stars < 3) { _u2Words1Stars++; _saveStarProgress('u2_words1_stars', _u2Words1Stars); } });
-              }),
+              }, hintEn: "Common Katakana words: Camera, TV, Hotel, Bus, Toilet...", hintId: "Kata Katakana umum: Kamera, TV, Hotel, Bus, Toilet..."),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Words 2", "Kosakata Katakana 2"), _u2Words2Stars, _u2Words2Stars >= 3 ? NodeStatus.completed : (_u2Words1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'loanwords', () {
                 setState(() { if (_u2Words2Stars < 3) { _u2Words2Stars++; _saveStarProgress('u2_words2_stars', _u2Words2Stars); } });
-              }),
+              }, hintEn: "More loanwords: Restaurant, Supermarket, Department Store, Pizza...", hintId: "Lebih banyak kata serapan: Restoran, Supermarket, Toserba, Pizza..."),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 2
@@ -211,15 +211,15 @@ class _LearnScreenState extends State<LearnScreen> {
 
               _buildClickableNode(context, _t("Kanji Numbers", "Kanji Angka"), _u3NumStars, _u3NumStars >= 3 ? NodeStatus.completed : (isUnit3Unlocked ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_numbers', () {
                 setState(() { if (_u3NumStars < 3) { _u3NumStars++; _saveStarProgress('u3_num_stars', _u3NumStars); } });
-              }),
+              }, hintEn: "Learn Kanji for numbers 1-10, 100, and 1000", hintId: "Pelajari Kanji untuk angka 1-10, 100, dan 1000"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Nature & Elements", "Alam & Elemen"), _u3NatureStars, _u3NatureStars >= 3 ? NodeStatus.completed : (_u3NumStars >= 3 ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_nature', () {
                 setState(() { if (_u3NatureStars < 3) { _u3NatureStars++; _saveStarProgress('u3_nature_stars', _u3NatureStars); } });
-              }),
+              }, hintEn: "Kanji for Sun, Moon, Fire, Water, Wood, Gold, Earth, Mountain, River...", hintId: "Kanji untuk Matahari, Bulan, Api, Air, Kayu, Logam, Tanah, Gunung, Sungai..."),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("People & Directions", "Orang & Arah"), _u3PeopleStars, _u3PeopleStars >= 3 ? NodeStatus.completed : (_u3NatureStars >= 3 ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_people', () {
                 setState(() { if (_u3PeopleStars < 3) { _u3PeopleStars++; _saveStarProgress('u3_people_stars', _u3PeopleStars); } });
-              }),
+              }, hintEn: "Kanji for Person, Child, Woman, Man, Eye, Mouth, Ear, Hand, Foot...", hintId: "Kanji untuk Orang, Anak, Wanita, Pria, Mata, Mulut, Telinga, Tangan, Kaki..."),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 3
@@ -242,19 +242,19 @@ class _LearnScreenState extends State<LearnScreen> {
 
               _buildClickableNode(context, _t("Basic Particles", "Partikel Dasar"), _u4ParticlesStars, _u4ParticlesStars >= 3 ? NodeStatus.completed : (isUnit4Unlocked ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_particles', () {
                 setState(() { if (_u4ParticlesStars < 3) { _u4ParticlesStars++; _saveStarProgress('u4_particles_stars', _u4ParticlesStars); } });
-              }),
+              }, hintEn: "Master essential particles: wa, wo, mo, ni, he, de, to, no, ga...", hintId: "Kuasai partikel penting: wa, wo, mo, ni, he, de, to, no, ga..."),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Verb Basics 1", "Kata Kerja 1"), _u4Verbs1Stars, _u4Verbs1Stars >= 3 ? NodeStatus.completed : (_u4ParticlesStars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_1', () {
                 setState(() { if (_u4Verbs1Stars < 3) { _u4Verbs1Stars++; _saveStarProgress('u4_verbs1_stars', _u4Verbs1Stars); } });
-              }),
+              }, hintEn: "Common verbs: taberu, nomu, iku, kuru, suru, kau, wakaru...", hintId: "Kata kerja umum: taberu, nomu, iku, kuru, suru, kau, wakaru..."),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Verb Basics 2", "Kata Kerja 2"), _u4Verbs2Stars, _u4Verbs2Stars >= 3 ? NodeStatus.completed : (_u4Verbs1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_2', () {
                 setState(() { if (_u4Verbs2Stars < 3) { _u4Verbs2Stars++; _saveStarProgress('u4_verbs2_stars', _u4Verbs2Stars); } });
-              }),
+              }, hintEn: "More verbs: miru, kiku, kaku, yomu, oyogu, matsu, kaeru...", hintId: "Lebih banyak kata kerja: miru, kiku, kaku, yomu, oyogu, matsu, kaeru..."),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Adjectives", "Kata Sifat"), _u4AdjectivesStars, _u4AdjectivesStars >= 3 ? NodeStatus.completed : (_u4Verbs2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_adjectives', () {
                 setState(() { if (_u4AdjectivesStars < 3) { _u4AdjectivesStars++; _saveStarProgress('u4_adjectives_stars', _u4AdjectivesStars); } });
-              }),
+              }, hintEn: "Common adjectives: oishii, takai, yasui, ookii, chiisai, ii, warui...", hintId: "Kata sifat umum: oishii, takai, yasui, ookii, chiisai, ii, warui..."),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 4
@@ -286,7 +286,7 @@ class _LearnScreenState extends State<LearnScreen> {
   // --- HELPER BUILDER ---
   Widget _buildLeftConnector(Color color) => Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 28), child: Container(width: 6, height: 35, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))));
 
-  Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess) {
+  Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess, {String? hintEn, String? hintId}) {
     final bool isTestNode = title.toLowerCase().contains('test') || title.toLowerCase().contains('ujian');
 
     return ValueListenableBuilder<int>(
@@ -302,7 +302,9 @@ class _LearnScreenState extends State<LearnScreen> {
               difficulty: diff, 
               currentStars: stars, 
               currentHearts: currentHearts, 
-              onQuizPassed: onSuccess, 
+              onQuizPassed: onSuccess,
+              isReplay: status == NodeStatus.completed,
+              hint: globalLanguage.value == 'id' ? hintId : hintEn,
             )));
           },
           child: PathNode(
@@ -318,6 +320,8 @@ class _LearnScreenState extends State<LearnScreen> {
                 currentStars: selectedStarIndex,
                 currentHearts: currentHearts,
                 onQuizPassed: onSuccess,
+                isReplay: true,
+                hint: globalLanguage.value == 'id' ? hintId : hintEn,
               )));
             },
           ),
@@ -341,7 +345,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 2',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -371,7 +375,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 3',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -401,7 +405,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 4',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -451,7 +455,7 @@ class _LearnScreenState extends State<LearnScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Colors.orange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -484,7 +488,7 @@ class _LearnScreenState extends State<LearnScreen> {
                   ),
                   onPressed: () async {
                     bool success = await GameManager.buyHeartWithXP();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     if (success) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(

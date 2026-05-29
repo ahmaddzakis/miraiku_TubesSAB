@@ -26,7 +26,7 @@ class CustomBottomNavBar extends StatelessWidget {
           builder: (context, lang, _) {
             // --- VARIABEL WARNA DINAMIS ---
             final Color navBgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F6F0);
-            final Color shadowColor = isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05);
+            final Color shadowColor = isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05);
             final Color inactiveColor = isDark ? Colors.white54 : const Color(0xFF8C8A87);
 
             return Container(
@@ -78,10 +78,11 @@ class CustomBottomNavBar extends StatelessWidget {
       child: InkWell(
         onTap: () => onTap(index),
         borderRadius: BorderRadius.circular(12),
-        splashColor: const Color(0xFFCC6633).withValues(alpha: 0.2), // Menggunakan withValues agar tidak warning
+        splashColor: const Color(0xFFCC6633).withOpacity(0.2), // Menggunakan withOpacity agar tidak warning
         highlightColor: Colors.transparent,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFFCC6633) : Colors.transparent,

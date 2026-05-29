@@ -194,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
+                    Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withOpacity(0.3), borderRadius: BorderRadius.circular(10))),
                     const SizedBox(height: 24),
                     Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                     const SizedBox(height: 24),
@@ -222,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: fieldBg,
                         prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFFB5B0A8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                       ),
                     ),
@@ -238,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: fieldBg,
                         prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                       ),
                     ),
@@ -312,7 +312,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
+                      Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withOpacity(0.3), borderRadius: BorderRadius.circular(10))),
                       const SizedBox(height: 24),
                       Text(_t("Change Password", "Ubah Kata Sandi"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                       const SizedBox(height: 24),
@@ -329,7 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFB5B0A8)),
                             onPressed: () => setModalState(() => obscureText = !obscureText),
                           ),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
                           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                         ),
                       ),
@@ -341,7 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           labelText: _t("Confirm Password", "Konfirmasi Sandi"),
                           filled: true, fillColor: fieldBg,
                           prefixIcon: const Icon(Icons.lock_clock_rounded, color: Color(0xFFB5B0A8)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
                           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                         ),
                       ),
@@ -507,8 +507,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsContainer({required List<Widget> children, required Color cardColor, required Color borderColor}) { return Container(decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(children: children)); }
+  Widget _buildSettingsContainer({required List<Widget> children, required Color cardColor, required Color borderColor}) { return Container(decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(children: children)); }
   Widget _buildLanguageTile({required String title, required Color textColor}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: const Icon(Icons.language_rounded, color: Color(0xFFCC6633), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: Row(mainAxisSize: MainAxisSize.min, children: [Text(_language == 'en' ? "English" : "Indonesia", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8C8A87))), const SizedBox(width: 8), const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFF8C8A87))]), onTap: _showLanguageDialog); }
-  Widget _buildSwitchTile({required String title, required IconData icon, required bool value, required ValueChanged<bool> onChanged, required Color textColor}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: Icon(icon, color: const Color(0xFFCC6633), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: Switch(value: value, onChanged: onChanged, activeThumbColor: Colors.white, activeTrackColor: const Color(0xFFCC6633), inactiveTrackColor: const Color(0xFF8C8A87).withValues(alpha: 0.3))); }
+  Widget _buildSwitchTile({required String title, required IconData icon, required bool value, required ValueChanged<bool> onChanged, required Color textColor}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: Icon(icon, color: const Color(0xFFCC6633), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: Switch(value: value, onChanged: onChanged, activeThumbColor: Colors.white, activeTrackColor: const Color(0xFFCC6633), inactiveTrackColor: const Color(0xFF8C8A87).withOpacity(0.3))); }
   Widget _buildLinkTile({required String title, required IconData icon, String? trailingText, required Color textColor, VoidCallback? onTap}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: Icon(icon, color: const Color(0xFF8C8A87), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: trailingText != null ? Text(trailingText, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8C8A87))) : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFF8C8A87)), onTap: trailingText == null ? onTap : null); }
 }

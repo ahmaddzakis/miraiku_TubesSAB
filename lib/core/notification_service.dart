@@ -1,71 +1,82 @@
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz_data;
-import 'game_manager.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class NotificationService {
-  static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  // Singleton pattern
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
 
-  static Future<void> init() async {
-    tz_data.initializeTimeZones();
-    
-    final AndroidInitializationSettings initializationSettingsAndroid =
+  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+
+  /// Panggil ini di main.dart: await NotificationService().init();
+  Future<void> init() async {
+    // 1. Inisialisasi Timezone
+    tz.initializeTimeZones();
+    final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
+
+    // 2. Android Settings
+    const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    final DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-
-    final InitializationSettings initializationSettings = InitializationSettings(
+    const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
     );
 
     await _notificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse details) {
-        // Handle notification tap
+      onDidReceiveNotificationResponse: (details) {
+        // Logika ketika notifikasi diklik (opsional)
       },
     );
   }
 
-  static Future<void> scheduleDailyReminder() async {
-    // Tambahkan pengecekan ini agar tidak error di Windows
+  /// Panggil ini sebelum menjadwalkan (khusus Android 13+)
+  Future<void> requestPermissions() async {
+    if (Platform.isAndroid) {
+      final androidImplementation = _notificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await androidImplementation?.requestNotificationsPermission();
+      await androidImplementation?.requestExactAlarmsPermission();
+    }
+  }
+
+  /// Menjadwalkan pengingat harian jam 19:00
+  Future<void> scheduleDailyStudyReminder() async {
+    // Pastikan hanya berjalan di platform yang didukung
     if (!Platform.isAndroid && !Platform.isIOS) return;
 
-    final String title = globalLanguage.value == 'id' ? "Waktunya Belajar! ✍️" : "Time to Study! ✍️";
-    final String body = globalLanguage.value == 'id' 
-        ? "Jangan biarkan rekor belajarmu terputus. Ayo latihan 5 menit!" 
-        : "Don't let your streak break. Let's practice for 5 minutes!";
-
     await _notificationsPlugin.zonedSchedule(
-      0,
-      title,
-      body,
-      _nextInstanceAt8PM(),
-      NotificationDetails(
+      0, // ID Notifikasi
+      'Miraiku: Belajar Yuk! 🇯🇵',
+      'Waktunya belajar Bahasa Jepang! Jangan sampai rekor streak-mu putus!',
+      _nextInstanceOfSevenPM(),
+      const NotificationDetails(
         android: AndroidNotificationDetails(
-          'daily_reminders',
-          'Daily Reminders',
-          channelDescription: 'Notifications for daily study reminders',
+          'daily_study_channel',
+          'Study Reminders',
+          channelDescription: 'Notifikasi pengingat belajar harian',
           importance: Importance.max,
           priority: Priority.high,
-          showWhen: true,
         ),
-        iOS: const DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time, // Perulangan harian
     );
   }
 
-  static tz.TZDateTime _nextInstanceAt8PM() {
+  tz.TZDateTime _nextInstanceOfSevenPM() {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20, 0);
+    tz.TZDateTime scheduledDate =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 19, 0); // Jam 19:00
+
+    // Jika jam 19:00 sudah lewat hari ini, jadwalkan untuk besok
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }

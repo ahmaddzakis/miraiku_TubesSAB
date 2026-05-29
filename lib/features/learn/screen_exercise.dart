@@ -11,6 +11,8 @@ class ExerciseScreen extends StatefulWidget {
   final int currentHearts;
   final VoidCallback? onQuizPassed;
   final ValueChanged<int>? onHeartDecreased;
+  final bool isReplay;
+  final String? hint;
 
   const ExerciseScreen({
     super.key,
@@ -20,6 +22,8 @@ class ExerciseScreen extends StatefulWidget {
     this.currentHearts = 5,
     this.onQuizPassed,
     this.onHeartDecreased,
+    this.isReplay = false,
+    this.hint,
   });
 
   @override
@@ -64,8 +68,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     _originalQuestionCount = _questions.length;
     _setupWordBank();
 
-    // 🔥 JIKA MODE TEST, JALANKAN TIMER!
-    if (isTestMode) {
+    // 🔥 JIKA MODE TEST DAN BUKAN REPLAY, JALANKAN TIMER!
+    if (isTestMode && !widget.isReplay) {
       _startTimer();
     }
   }
@@ -148,8 +152,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
       if (_isCurrentAnswerCorrect) {
         SoundManager.playSound('benar.mp3');
-        // Hanya beri XP jika bukan replay (stars masih 0)
-        if (widget.currentStars == 0) {
+        // Hanya beri XP jika bukan replay
+        if (!widget.isReplay) {
           GameManager.addXP(25);
         }
       } else {
@@ -256,7 +260,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   // DIALOG WAKTU HABIS (KHUSUS UNIT TEST)
   void _showTimeUpDialog() {
-    SoundManager.playSound('salah.mp3');
+    SoundManager.playSound('defeat.mp3');
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -293,6 +297,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   void _showGameOverDialog() {
+    SoundManager.playSound('defeat.mp3');
     final bool isDark = globalDarkMode.value;
     showDialog(
       context: context,
@@ -391,8 +396,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   void _showResultDialog(bool isPassed) {
     int newStarsCount = isPassed ? (widget.currentStars + 1).clamp(0, 3) : widget.currentStars;
-    int xpGained = widget.currentStars == 0 ? _score * 25 : 0;
-    SoundManager.playSound('benar.mp3');
+    int xpGained = !widget.isReplay ? _score * 25 : 0;
+    SoundManager.playSound('victory.mp3');
     final bool isDark = globalDarkMode.value;
 
     String motivation = "Wah hebat! Terus asah kemampuanmu!";
@@ -426,13 +431,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9F6F0),
+                color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF9F6F0),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatItem(Icons.flash_on, "$xpGained", "XP", Colors.orange),
+                  _buildStatItem(Icons.flash_on, xpGained > 0 ? "+$xpGained" : "0", "XP", Colors.orange),
                   _buildStatItem(Icons.favorite, "${globalHearts.value}", "HP", Colors.red),
                   _buildStatItem(Icons.check_circle, "$_score/$_originalQuestionCount", "Skor", Colors.green),
                 ],
@@ -537,7 +542,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             ),
                           ),
                           Text(
-                            isTestMode ? "EVALUASI CAPAIAN AKHIR" : "UNIT ${widget.unit} • QUIZ",
+                            isTestMode ? "UNIT TEST" : (widget.isReplay ? "REPLAY QUIZ" : "UNIT ${widget.unit} • QUIZ"),
                             style: const TextStyle(
                               color: Color(0xFFCC6633), 
                               fontWeight: FontWeight.w900, 
@@ -554,7 +559,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                               decoration: BoxDecoration(
-                                color: _timeLeft <= 30 ? Colors.red.withValues(alpha: 0.15) : const Color(0xFFCC6633).withValues(alpha: 0.1),
+                                color: _timeLeft <= 30 ? Colors.red.withOpacity(0.15) : const Color(0xFFCC6633).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: _timeLeft <= 30 ? Colors.red : Colors.transparent),
                               ),
@@ -577,7 +582,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           // UI NYAWA UNTUK MODE NORMAL
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                              decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
                               child: Row(
                                 children: [
                                   const Icon(Icons.favorite_rounded, color: Color(0xFFE53935), size: 20),
@@ -606,8 +611,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             ),
                           ),
                           AnimatedContainer(
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeOutBack,
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeInOut,
                             height: 6,
                             width: MediaQuery.of(context).size.width * 0.85 * progressPercent,
                             decoration: BoxDecoration(
@@ -615,7 +620,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                               borderRadius: BorderRadius.circular(10),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFCC6633).withValues(alpha: 0.3),
+                                  color: const Color(0xFFCC6633).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2)
                                 )
@@ -631,12 +636,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 // KONTEN SOAL & JAWABAN DENGAN ANIMASI
                 Expanded(
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 600),
-                    switchInCurve: Curves.easeOutQuart,
-                    switchOutCurve: Curves.easeInQuart,
+                    duration: const Duration(milliseconds: 400),
+                    switchInCurve: Curves.easeInOut,
+                    switchOutCurve: Curves.easeInOut,
                     transitionBuilder: (Widget child, Animation<double> animation) {
                       var offsetAnimation = Tween<Offset>(
-                        begin: const Offset(0.3, 0.0),
+                        begin: const Offset(0.0, 0.05),
                         end: Offset.zero,
                       ).animate(animation);
                       
@@ -668,7 +673,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                 border: Border.all(color: borderColor, width: 2),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFCC6633).withValues(alpha: 0.08), 
+                                    color: const Color(0xFFCC6633).withOpacity(0.08), 
                                     blurRadius: 20, 
                                     offset: const Offset(0, 10)
                                   ),
@@ -713,7 +718,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   // WIDGET WORD BANK
   Widget _buildWordBankInput() {
     final bool isDark = globalDarkMode.value;
-    final Color inputBg = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEFEBE1);
+    final Color inputBg = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFEFEBE1);
     final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
     return Column(
@@ -780,8 +785,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
 
     if (isDisabled) {
-      bgColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE8E3DA).withValues(alpha: 0.5);
-      borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA);
+      bgColor = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E3DA).withOpacity(0.5);
+      borderColor = isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE8E3DA);
       textColor = isDark ? Colors.white38 : const Color(0xFFB5B0A8);
     } else if (isActive) {
       bgColor = isDark ? const Color(0xFF4A2B18) : const Color(0xFFF6E7DC);
@@ -792,7 +797,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     return GestureDetector(
       onTap: isDisabled ? null : onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
           color: bgColor,
@@ -824,7 +830,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
       padding: EdgeInsets.only(
           left: 24,
@@ -835,7 +841,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       decoration: BoxDecoration(
         color: panelColor,
         border: Border(top: BorderSide(color: _isAnswered ? Colors.transparent : (isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA)), width: 1)),
-        boxShadow: _isAnswered ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, -5))],
+        boxShadow: _isAnswered ? null : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, -5))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -896,7 +902,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 backgroundColor: _isAnswered
                     ? (_isCurrentAnswerCorrect ? const Color(0xFF4CAF50) : const Color(0xFFE53935))
                     : const Color(0xFFCC6633),
-                disabledBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA),
+                disabledBackgroundColor: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE8E3DA),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: _isAnswered ? 0 : (isButtonEnabled ? 4 : 0),
               ),
@@ -931,6 +937,30 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     final currentQuestion = _questions[_currentQuestionIndex];
     return Column(
       children: [
+        if (widget.hint != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFFCC6633), size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    widget.hint!,
+                    style: const TextStyle(color: Color(0xFFCC6633), fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         Text(
           currentQuestion['question'] ?? 'Terjemahkan karakter ini:',
           style: TextStyle(
@@ -980,7 +1010,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
     Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
     Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    Color letterBoxColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9F6F0);
+    Color letterBoxColor = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF9F6F0);
     Color letterTextColor = isDark ? Colors.white60 : const Color(0xFF8C8A87);
     Color mainTextColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
 
@@ -998,9 +1028,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         letterTextColor = Colors.white;
         mainTextColor = isDark ? Colors.white : const Color(0xFFC62828);
       } else {
-        bgColor = isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.5);
-        borderColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE8E3DA).withValues(alpha: 0.5);
-        mainTextColor = isDark ? Colors.white24 : const Color(0xFF8C8A87).withValues(alpha: 0.5);
+        bgColor = isDark ? Colors.white.withOpacity(0.02) : Colors.white.withOpacity(0.5);
+        borderColor = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E3DA).withOpacity(0.5);
+        mainTextColor = isDark ? Colors.white24 : const Color(0xFF8C8A87).withOpacity(0.5);
       }
     } else if (isSelected) {
       borderColor = const Color(0xFFCC6633);
@@ -1013,19 +1043,21 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     return GestureDetector(
       onTap: () => _selectOption(index),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: borderColor, width: isSelected || (_isAnswered && (index == correctIndex || isSelected)) ? 2.5 : 1.5),
-          boxShadow: isSelected && !_isAnswered ? [BoxShadow(color: const Color(0xFFCC6633).withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))] : [],
+          boxShadow: isSelected && !_isAnswered ? [BoxShadow(color: const Color(0xFFCC6633).withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))] : [],
         ),
         child: Row(
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
               width: 40,
               height: 40,
               decoration: BoxDecoration(color: letterBoxColor, borderRadius: BorderRadius.circular(10)),
@@ -1039,7 +1071,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   Text(text, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: mainTextColor)),
                   if (romaji.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(romaji, style: TextStyle(fontSize: 12, color: mainTextColor.withValues(alpha: 0.7), fontWeight: FontWeight.bold)),
+                    Text(romaji, style: TextStyle(fontSize: 12, color: mainTextColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
                   ]
                 ],
               ),
