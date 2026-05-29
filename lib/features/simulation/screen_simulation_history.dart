@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/game_manager.dart';
+import '../../data/simulation_data.dart';
 import 'simulation_result_screen.dart';
 
 class SimulationHistoryScreen extends StatefulWidget {
@@ -179,6 +180,9 @@ class _SimulationHistoryScreenState extends State<SimulationHistoryScreen> {
           timeSpentSeconds: item['timeSpentSeconds'],
           totalPoints: score,
           isPassed: passed,
+          userAnswers: item['userAnswers'] != null 
+              ? List<int?>.from(item['userAnswers']) 
+              : List.filled(SimulationData.n5Questions.length, null),
         ),
       ),
     );

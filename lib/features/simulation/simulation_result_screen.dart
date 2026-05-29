@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../../core/game_manager.dart';
-import '../../core/sound_manager.dart';
+import 'simulation_review_screen.dart';
 
 class SimulationResultScreen extends StatefulWidget {
   final int languageScore;
@@ -11,6 +11,7 @@ class SimulationResultScreen extends StatefulWidget {
   final int timeSpentSeconds;
   final double totalPoints;
   final bool isPassed;
+  final List<int?> userAnswers;
 
   const SimulationResultScreen({
     super.key,
@@ -21,6 +22,7 @@ class SimulationResultScreen extends StatefulWidget {
     required this.timeSpentSeconds,
     required this.totalPoints,
     required this.isPassed,
+    required this.userAnswers,
   });
 
   @override
@@ -31,10 +33,7 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
   @override
   void initState() {
     super.initState();
-    // Play sound on result screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      SoundManager.playSound(widget.isPassed ? 'victory.mp3' : 'defeat.mp3');
-    });
+    // Audio removed as requested
   }
 
   String _formatDuration(int seconds) {
@@ -341,6 +340,33 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                         // Action Buttons
                         Column(
                           children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SimulationReviewScreen(
+                                        userAnswers: widget.userAnswers,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: accentColor,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  _t("REVIEW EXAM", "TINJAU UJIAN"),
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             TextButton(
                               onPressed: () => Navigator.pop(context),
                               style: TextButton.styleFrom(

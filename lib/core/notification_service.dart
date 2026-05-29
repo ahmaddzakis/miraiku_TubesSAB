@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'game_manager.dart'; // Import to access globalLanguage
 
 class NotificationService {
   // Singleton pattern
@@ -45,15 +46,23 @@ class NotificationService {
     }
   }
 
-  /// Menjadwalkan pengingat harian jam 19:00
+  /// Menjadwalkan pengingat harian jam 19:00 (Bilingual)
   Future<void> scheduleDailyStudyReminder() async {
     // Pastikan hanya berjalan di platform yang didukung
     if (!Platform.isAndroid && !Platform.isIOS) return;
 
+    final String title = globalLanguage.value == 'id' 
+        ? 'Miraiku: Belajar Yuk! 🇯🇵' 
+        : 'Miraiku: Let\'s Study! 🇯🇵';
+    
+    final String body = globalLanguage.value == 'id'
+        ? 'Waktunya belajar Bahasa Jepang! Jangan sampai rekor streak-mu putus!'
+        : 'Time to learn Japanese! Don\'t let your streak break!';
+
     await _notificationsPlugin.zonedSchedule(
       0, // ID Notifikasi
-      'Miraiku: Belajar Yuk! 🇯🇵',
-      'Waktunya belajar Bahasa Jepang! Jangan sampai rekor streak-mu putus!',
+      title,
+      body,
       _nextInstanceOfSevenPM(),
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -69,6 +78,11 @@ class NotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time, // Perulangan harian
     );
+  }
+
+  /// Membatalkan semua notifikasi
+  Future<void> cancelAll() async {
+    await _notificationsPlugin.cancelAll();
   }
 
   tz.TZDateTime _nextInstanceOfSevenPM() {

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart'; // Package baru untuk auto-version
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/game_manager.dart';
+import '../../core/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -156,12 +157,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() => _language = 'en');
                 globalLanguage.value = 'en';
                 _updatePreference('setting_lang', 'en');
+                NotificationService().scheduleDailyStudyReminder(); // Update notification language
                 Navigator.pop(context);
               }),
               ListTile(title: Text("Bahasa Indonesia", style: TextStyle(color: _darkMode ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold)), trailing: _language == 'id' ? const Icon(Icons.check_circle_rounded, color: Color(0xFFCC6633)) : null, onTap: () {
                 setState(() => _language = 'id');
                 globalLanguage.value = 'id';
                 _updatePreference('setting_lang', 'id');
+                NotificationService().scheduleDailyStudyReminder(); // Update notification language
                 Navigator.pop(context);
               }),
             ],

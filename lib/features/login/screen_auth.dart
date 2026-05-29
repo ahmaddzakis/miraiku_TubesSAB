@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 // Pastikan file globals ini sesuai dengan path aslimu
 import '../../main.dart'; // atau file tempat globalLanguage dan globalDarkMode berada
 import '../../core/game_manager.dart';
+import '../../core/notification_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -342,6 +343,8 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
+    final selectedLanguage = globalLanguage.value;
+    final selectedDarkMode = globalDarkMode.value;
     setState(() => _isLoading = true);
     try {
       const webClientId = '564994938710-anv76b8tkf8uoobjohct7fohm8f4ovhu.apps.googleusercontent.com';
@@ -401,6 +404,14 @@ class _AuthScreenState extends State<AuthScreen> {
               _nameController.text = meta['full_name'] ?? "";
             });
           }
+        } else if (_isLoginMode && isAlreadyRegistered) {
+          // Sync current Auth Screen settings to the existing account
+          await Supabase.instance.client.auth.updateUser(UserAttributes(data: {
+            'setting_lang': selectedLanguage,
+            'setting_dark': selectedDarkMode,
+          }));
+          globalLanguage.value = selectedLanguage;
+          globalDarkMode.value = selectedDarkMode;
         }
       }
     } catch (error) {
@@ -423,6 +434,9 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _handleAuth() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final selectedLanguage = globalLanguage.value;
+    final selectedDarkMode = globalDarkMode.value;
+
     setState(() => _isLoading = true);
     final supabase = Supabase.instance.client;
 
@@ -432,6 +446,14 @@ class _AuthScreenState extends State<AuthScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+
+        // Sync current Auth Screen settings to the newly logged in account
+        await supabase.auth.updateUser(UserAttributes(data: {
+          'setting_lang': selectedLanguage,
+          'setting_dark': selectedDarkMode,
+        }));
+        globalLanguage.value = selectedLanguage;
+        globalDarkMode.value = selectedDarkMode;
 
         final prefs = await SharedPreferences.getInstance();
         if (_rememberMe) {
@@ -677,6 +699,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                         onTap: () async {
                                           final newLang = globalLanguage.value == 'en' ? 'id' : 'en';
                                           globalLanguage.value = newLang;
+                                          // Update notification language if reminder is enabled
+                                          SharedPreferences.getInstance().then((prefs) {
+                                            if (prefs.getBool('is_daily_reminder_on') ?? false) {
+                                              NotificationService().scheduleDailyStudyReminder();
+                                            }
+                                          });
                                           final prefs = await SharedPreferences.getInstance();
                                           await prefs.setString('app_language', newLang);
                                           await prefs.setString('setting_lang', newLang); // Sync with GameManager key

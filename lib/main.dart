@@ -36,8 +36,14 @@ void main() async {
   
   final notificationService = NotificationService();
   await notificationService.init();
-  await notificationService.requestPermissions();
-  await notificationService.scheduleDailyStudyReminder();
+  // Don't request permissions or schedule here on every boot, 
+  // do it only when the user enables it in Settings/Notifications
+  // to avoid annoying the user on first launch unless it's a returning user with preference ON.
+  final isReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
+  if (isReminderOn) {
+    await notificationService.requestPermissions();
+    await notificationService.scheduleDailyStudyReminder();
+  }
 
   runApp(const MiraikuApp());
 }

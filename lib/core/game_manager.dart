@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'sound_manager.dart';
+import 'notification_service.dart';
 
 // ==========================================
 // 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
@@ -53,8 +54,15 @@ class GameManager {
     globalXP.value = (meta['gm_xp'] as num?)?.toInt() ?? prefs.getInt('gm_xp') ?? 0;
     globalStreak.value = (meta['gm_streak'] as num?)?.toInt() ?? prefs.getInt('gm_streak') ?? 0;
 
-    globalDarkMode.value = meta['setting_dark'] ?? prefs.getBool('setting_dark') ?? false;
-    globalLanguage.value = meta['setting_lang'] ?? prefs.getString('setting_lang') ?? 'en';
+    globalDarkMode.value = meta['setting_dark'] ?? prefs.getBool('is_dark_mode') ?? prefs.getBool('setting_dark') ?? false;
+    globalLanguage.value = meta['setting_lang'] ?? prefs.getString('app_language') ?? prefs.getString('setting_lang') ?? 'en';
+    
+    // Restore notification preference and reschedule if needed
+    final bool isReminderOn = meta['is_daily_reminder_on'] ?? prefs.getBool('is_daily_reminder_on') ?? false;
+    prefs.setBool('is_daily_reminder_on', isReminderOn);
+    if (isReminderOn) {
+      NotificationService().scheduleDailyStudyReminder();
+    }
     globalIsPremium.value = meta['is_premium'] ?? prefs.getBool('is_premium') ?? false;
 
     if (meta['learned_hiragana'] != null) {
@@ -94,11 +102,23 @@ class GameManager {
     } else {
       prefs.remove('gm_last_daily_claim');
     }
-    if (meta['gm_first_profile_bonus'] != null) {
-      prefs.setBool('gm_first_profile_bonus', meta['gm_first_profile_bonus']);
-    } else {
-      prefs.remove('gm_first_profile_bonus');
+    if (meta['gm_first_profile_bonus'] == true) {
+      prefs.setBool('gm_first_profile_bonus', true);
     }
+    // Perbaikan: Jangan pernah hapus gm_first_profile_bonus secara otomatis 
+    // jika meta tidak ada, agar tidak terjadi pemberian XP berulang kali.
+    // Perbaikan: Jangan hapus gm_first_profile_bonus jika meta tidak ada, 
+    // agar tidak terjadi pemberian XP berulang kali.
+    // Jika di Cloud false tapi di Lokal true, jangan di-reset! Biarkan tetap true.
+
+    // --- RESTORE UNIT PROGRESS (u1_, u2_, u3_, u4_) ---
+    meta.forEach((key, value) {
+      if (key.startsWith('u1_') || key.startsWith('u2_') || key.startsWith('u3_') || key.startsWith('u4_')) {
+        if (value is int) {
+          prefs.setInt(key, value);
+        }
+      }
+    });
 
     _saveProgressToLocal(prefs);
   }
@@ -110,6 +130,8 @@ class GameManager {
     prefs.setInt('gm_streak', globalStreak.value);
     prefs.setBool('setting_dark', globalDarkMode.value);
     prefs.setString('setting_lang', globalLanguage.value);
+    prefs.setBool('is_dark_mode', globalDarkMode.value);
+    prefs.setString('app_language', globalLanguage.value);
     prefs.setBool('is_premium', globalIsPremium.value);
     prefs.setStringList('learned_hiragana_list', globalLearnedHiragana.value);
     prefs.setStringList('learned_katakana_list', globalLearnedKatakana.value);
@@ -133,6 +155,9 @@ class GameManager {
     globalLearnedKatakana.value = [];
     globalLearnedKanji.value = [];
     globalSimulationHistory.value = [];
+    
+    await prefs.setBool('is_daily_reminder_on', false);
+    await NotificationService().cancelAll();
     
     // Hapus semua data terkait game di SharedPreferences agar tidak bocor ke user lain
     final keys = prefs.getKeys();
@@ -189,6 +214,7 @@ class GameManager {
           'gm_streak': globalStreak.value,
           'setting_dark': globalDarkMode.value,
           'setting_lang': globalLanguage.value,
+          'is_daily_reminder_on': prefs.getBool('is_daily_reminder_on') ?? false,
           'is_premium': globalIsPremium.value,
           'learned_hiragana': globalLearnedHiragana.value,
           'learned_katakana': globalLearnedKatakana.value,
@@ -199,6 +225,14 @@ class GameManager {
           'gm_last_daily_claim': prefs.getString('gm_last_daily_claim'),
           'gm_first_profile_bonus': prefs.getBool('gm_first_profile_bonus'),
         };
+
+        // --- SYNC ALL UNIT PROGRESS ---
+        final keys = prefs.getKeys();
+        for (String key in keys) {
+          if (key.startsWith('u1_') || key.startsWith('u2_') || key.startsWith('u3_') || key.startsWith('u4_')) {
+            updateData[key] = prefs.getInt(key);
+          }
+        }
 
         // Tambahkan data profil jika disediakan
         if (displayName != null) updateData['display_name'] = displayName;

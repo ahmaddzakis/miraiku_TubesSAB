@@ -21,7 +21,13 @@ class _KanaScreenState extends State<KanaScreen> {
       return AlphabetData.kataBasic.length + AlphabetData.kataDakuon.length +
           AlphabetData.kataHandakuon.length + AlphabetData.kataYoon.length;
     } else if (_activeTab == 2) {
-      return AlphabetData.kanjiNumbers.length + AlphabetData.kanjiNature.length + AlphabetData.kanjiPeople.length;
+      return AlphabetData.kanjiNumbers.length +
+          AlphabetData.kanjiNature.length +
+          AlphabetData.kanjiPeople.length +
+          AlphabetData.kanjiTime.length +
+          AlphabetData.kanjiBody.length +
+          AlphabetData.kanjiVerbs.length +
+          AlphabetData.kanjiPlaces.length;
     }
     return 0;
   }
@@ -136,50 +142,80 @@ class _KanaScreenState extends State<KanaScreen> {
                     const SizedBox(height: 24),
 
                     Expanded(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_activeTab == 0) ...[
-                              _buildSectionTitle("GOJŪON (Basic 46)"),
-                              _buildGrid(AlphabetData.hiraBasic, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle("DAKUON"),
-                              _buildGrid(AlphabetData.hiraDakuon, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle("HANDAKUON"),
-                              _buildGrid(AlphabetData.hiraHandakuon, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle("YŌON"),
-                              _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3),
-                              const SizedBox(height: 100),
-                            ] else if (_activeTab == 1) ...[
-                              _buildSectionTitle("GOJŪON (Basic 46)"),
-                              _buildGrid(AlphabetData.kataBasic, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle("DAKUON"),
-                              _buildGrid(AlphabetData.kataDakuon, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle("HANDAKUON"),
-                              _buildGrid(AlphabetData.kataHandakuon, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle("YŌON"),
-                              _buildGrid(AlphabetData.kataYoon, isDark, crossAxisCount: 3),
-                              const SizedBox(height: 100),
-                            ] else if (_activeTab == 2) ...[
-                              _buildSectionTitle(_t("NUMBERS (1-10)", "ANGKA (1-10)")),
-                              _buildGrid(AlphabetData.kanjiNumbers, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle(_t("NATURE & ELEMENTS", "ALAM & ELEMEN")),
-                              _buildGrid(AlphabetData.kanjiNature, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 32),
-                              _buildSectionTitle(_t("PEOPLE & DIRECTIONS", "ORANG & ARAH")),
-                              _buildGrid(AlphabetData.kanjiPeople, isDark, crossAxisCount: 5),
-                              const SizedBox(height: 100),
-                            ]
-                          ],
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        switchInCurve: Curves.easeInOut,
+                        switchOutCurve: Curves.easeInOut,
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0.0, 0.05),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: SingleChildScrollView(
+                          key: ValueKey<int>(_activeTab),
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_activeTab == 0) ...[
+                                _buildSectionTitle("GOJŪON (Basic 46)"),
+                                _buildGrid(AlphabetData.hiraBasic, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle("DAKUON"),
+                                _buildGrid(AlphabetData.hiraDakuon, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle("HANDAKUON"),
+                                _buildGrid(AlphabetData.hiraHandakuon, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle("YŌON"),
+                                _buildGrid(AlphabetData.hiraYoon, isDark, crossAxisCount: 3),
+                                const SizedBox(height: 100),
+                              ] else if (_activeTab == 1) ...[
+                                _buildSectionTitle("GOJŪON (Basic 46)"),
+                                _buildGrid(AlphabetData.kataBasic, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle("DAKUON"),
+                                _buildGrid(AlphabetData.kataDakuon, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle("HANDAKUON"),
+                                _buildGrid(AlphabetData.kataHandakuon, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle("YŌON"),
+                                _buildGrid(AlphabetData.kataYoon, isDark, crossAxisCount: 3),
+                                const SizedBox(height: 100),
+                              ] else if (_activeTab == 2) ...[
+                                _buildSectionTitle(_t("NUMBERS (1-10)", "ANGKA (1-10)")),
+                                _buildGrid(AlphabetData.kanjiNumbers, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle(_t("NATURE & ELEMENTS", "ALAM & ELEMEN")),
+                                _buildGrid(AlphabetData.kanjiNature, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle(_t("PEOPLE & DIRECTIONS", "ORANG & ARAH")),
+                                _buildGrid(AlphabetData.kanjiPeople, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle(_t("TIME & DATES", "WAKTU & TANGGAL")),
+                                _buildGrid(AlphabetData.kanjiTime, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle(_t("BODY PARTS & SIZE", "BAGIAN TUBUH & UKURAN")),
+                                _buildGrid(AlphabetData.kanjiBody, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle(_t("VERBS & ACTIONS", "KATA KERJA & AKSI")),
+                                _buildGrid(AlphabetData.kanjiVerbs, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 32),
+                                _buildSectionTitle(_t("PLACES & EDUCATION", "TEMPAT & PENDIDIKAN")),
+                                _buildGrid(AlphabetData.kanjiPlaces, isDark, crossAxisCount: 5),
+                                const SizedBox(height: 100),
+                              ]
+                            ],
+                          ),
                         ),
                       ),
                     ),

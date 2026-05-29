@@ -78,6 +78,8 @@ class _LearnScreenState extends State<LearnScreen> {
   Future<void> _saveStarProgress(String key, int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
+    // Langsung cadangkan ke Cloud agar tidak hilang saat login ulang
+    await GameManager.syncToCloud();
   }
 
   String _t(String en, String id) {

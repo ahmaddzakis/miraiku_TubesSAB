@@ -25,6 +25,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
   bool _isAnswered = false;
   bool _isCurrentAnswerCorrect = false;
   late List<SimulationQuestion> _questions;
+  late List<int?> _userAnswers;
   
   Timer? _timer;
   int _timeLeft = 50 * 60; // 50 mins total (25 Language + 25 Reading)
@@ -33,6 +34,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
   void initState() {
     super.initState();
     _questions = List.from(SimulationData.n5Questions);
+    _userAnswers = List.filled(_questions.length, null);
     _languageTotal = _questions.where((q) => q.section == 'Language Knowledge').length;
     _readingTotal = _questions.where((q) => q.section == 'Reading').length;
     _startTimer();
@@ -73,6 +75,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
     final currentQuestion = _questions[_currentQuestionIndex];
     setState(() {
       _isAnswered = true;
+      _userAnswers[_currentQuestionIndex] = _selectedOption;
       _isCurrentAnswerCorrect = _selectedOption == currentQuestion.correctAnswerIndex;
       
       if (_isCurrentAnswerCorrect) {
@@ -128,6 +131,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
       'timeSpentSeconds': timeSpent,
       'totalPoints': totalPoints,
       'isPassed': isPassed,
+      'userAnswers': _userAnswers,
     };
 
     List<dynamic> history = List.from(globalSimulationHistory.value);
@@ -155,6 +159,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
             timeSpentSeconds: timeSpent,
             totalPoints: totalPoints,
             isPassed: isPassed,
+            userAnswers: _userAnswers,
           ),
         ),
       );

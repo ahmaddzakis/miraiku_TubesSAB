@@ -38,9 +38,9 @@ class _SimulationScreenState extends State<SimulationScreen> {
     final Color modalBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
 
-    // Jika sudah premium atau sudah di-unlock sebelumnya, bisa langsung konfirmasi mulai
+    // Jika sudah premium atau sudah di-unlock sebelumnya, konfirmasi mulai dengan biaya per sesi
     if (globalIsPremium.value || _isUnlocked) {
-      _startTest();
+      _showStartConfirmation();
       return;
     }
 
@@ -89,8 +89,8 @@ class _SimulationScreenState extends State<SimulationScreen> {
                   const SizedBox(height: 12),
                   Text(
                     _t(
-                      "Get permanent access to the JLPT N5 Mock Exam for 500 XP. Test your limits!",
-                      "Dapatkan akses permanen ke Simulasi Ujian JLPT N5 seharga 500 XP. Uji kemampuanmu!"
+                      "Get access to the JLPT N5 Mock Exam for 1500 XP. Test your limits!",
+                      "Dapatkan akses ke Simulasi Ujian JLPT N5 seharga 1500 XP. Uji kemampuanmu!"
                     ),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 14, height: 1.5),
@@ -114,8 +114,8 @@ class _SimulationScreenState extends State<SimulationScreen> {
                         child: ElevatedButton(
                           onPressed: () async {
                             Navigator.pop(context);
-                            if (globalXP.value >= 500) {
-                              globalXP.value -= 500;
+                            if (globalXP.value >= 1500) {
+                              globalXP.value -= 1500;
                               await GameManager.syncToCloud();
                               await Supabase.instance.client.auth.updateUser(UserAttributes(data: {'unlocked_sim_n5': true}));
                               setState(() => _isUnlocked = true);
@@ -132,7 +132,137 @@ class _SimulationScreenState extends State<SimulationScreen> {
                             elevation: 0,
                           ),
                           child: Text(
-                            _t("PAY 500 XP", "BAYAR 500 XP"),
+                            _t("PAY 1500 XP", "BAYAR 1500 XP"),
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showStartConfirmation() async {
+    final bool isDark = globalDarkMode.value;
+    final Color modalBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
+    final int cost = globalIsPremium.value ? 0 : 50;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: modalBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        contentPadding: EdgeInsets.zero,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCC6633).withOpacity(0.1),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCC6633),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFCC6633).withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      )
+                    ]
+                  ),
+                  child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 40),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+              child: Column(
+                children: [
+                  Text(
+                    _t("Ready to Start?", "Siap Memulai?"),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _t(
+                      "Believe in yourself! You've prepared well for this. Focus and do your best!",
+                      "Percayalah pada dirimu sendiri! Kamu sudah bersiap dengan baik. Fokus dan lakukan yang terbaik!"
+                    ),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 14, height: 1.5),
+                  ),
+                  if (cost > 0) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCC6633).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.flash_on_rounded, color: Color(0xFFCC6633), size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            _t("Cost: $cost XP", "Biaya: $cost XP"),
+                            style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(_t("CANCEL", "BATAL"), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            if (globalXP.value >= cost) {
+                              if (cost > 0) {
+                                globalXP.value -= cost;
+                                await GameManager.syncToCloud();
+                              }
+                              _startTest();
+                            } else {
+                              _showInsufficientXP();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFCC6633),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            _t("START", "MULAI"),
                             style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -151,7 +281,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
   void _showSuccessUnlock() {
     _showCustomDialog(
       title: _t("Simulation Unlocked!", "Simulasi Terbuka!"),
-      message: _t("You now have permanent access to JLPT N5 Simulation. 🎉", "Kamu sekarang memiliki akses permanen ke Simulasi JLPT N5. 🎉"),
+      message: _t("You now have access to JLPT N5 Simulation. Note: Each attempt costs 50 XP (Free for Premium). 🎉", "Kamu sekarang memiliki akses ke Simulasi JLPT N5. Catatan: Tiap percobaan butuh 50 XP (Gratis untuk Premium). 🎉"),
       icon: Icons.check_circle_outline_rounded,
       iconColor: Colors.green,
     );
@@ -610,7 +740,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
               const Icon(Icons.flash_on_rounded, color: Color(0xFFCC6633), size: 14),
               const SizedBox(width: 4),
               Text(
-                _t("Cost: 500 XP (Free for Premium)", "Biaya: 500 XP (Gratis untuk Premium)"),
+                _t("Cost: 1500 XP (Free for Premium)", "Biaya: 1500 XP (Gratis untuk Premium)"),
                 style: TextStyle(color: subTextColor, fontSize: 12, fontWeight: FontWeight.w500)
               ),
             ],
