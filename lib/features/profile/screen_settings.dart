@@ -129,13 +129,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Update metadata user
       await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': publicUrl}));
 
-      if (mounted) {
+      if (context.mounted) {
         setState(() { _avatarUrl = publicUrl; });
         setModalState(() {}); // Force rebuild modal
         _showAlertDialog(_t("Success", "Berhasil"), _t("Profile photo has been updated!", "Foto profil berhasil diperbarui!"));
       }
     } catch (e) {
-      if (mounted) _showAlertDialog(_t("Upload Failed", "Gagal Unggah"), e.toString());
+      if (context.mounted) _showAlertDialog(_t("Upload Failed", "Gagal Unggah"), e.toString());
     } finally {
       setModalState(() => setLoading(false));
     }
@@ -197,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withOpacity(0.3), borderRadius: BorderRadius.circular(10))),
+                    Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
                     const SizedBox(height: 24),
                     Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                     const SizedBox(height: 24),
@@ -225,7 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: fieldBg,
                         prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFFB5B0A8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                       ),
                     ),
@@ -241,7 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: fieldBg,
                         prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                       ),
                     ),
@@ -261,7 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               'display_name': nameController.text.trim(),
                               'bio': descController.text.trim(),
                             }));
-                            if (mounted) {
+                            if (context.mounted) {
                               setState(() {
                                 _userName = nameController.text.trim();
                                 _userDesc = descController.text.trim();
@@ -270,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _showAlertDialog(_t("Success", "Berhasil"), _t("Profile has been updated!", "Profil berhasil diperbarui!"));
                             }
                           } catch (e) {
-                            if (mounted) _showAlertDialog(_t("Update Failed", "Gagal Memperbarui"), e.toString());
+                            if (context.mounted) _showAlertDialog(_t("Update Failed", "Gagal Memperbarui"), e.toString());
                           } finally {
                             setModalState(() => isSaving = false);
                           }
@@ -294,10 +294,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ==================== UBAH PASSWORD (SUPABASE AUTH) ====================
   void _showChangePasswordModal() {
-    final _formKey = GlobalKey<FormState>();
-    final TextEditingController _oldPasswordController = TextEditingController();
-    final TextEditingController _newPasswordController = TextEditingController();
-    final TextEditingController _confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final TextEditingController oldPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
     bool isSaving = false;
     bool obscureText = true;
 
@@ -315,22 +315,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(color: _darkMode ? const Color(0xFF1E1E1E) : const Color(0xFFFAF7F2), borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32))),
                   child: Form(
-                    key: _formKey,
+                    key: formKey,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withOpacity(0.3), borderRadius: BorderRadius.circular(10))),
+                        Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
                         const SizedBox(height: 24),
                         Text(_t("Change Password", "Ubah Kata Sandi"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                         const SizedBox(height: 24),
                         TextFormField(
-                          controller: _oldPasswordController, obscureText: obscureText,
+                          controller: oldPasswordController, obscureText: obscureText,
                           style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                           decoration: InputDecoration(
                             labelText: _t("Old Password", "Sandi Lama"),
                             filled: true, fillColor: fieldBg,
                             prefixIcon: const Icon(Icons.lock_open_rounded, color: Color(0xFFB5B0A8)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
                             focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
@@ -344,7 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          controller: _newPasswordController, obscureText: obscureText,
+                          controller: newPasswordController, obscureText: obscureText,
                           style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                           decoration: InputDecoration(
                             labelText: _t("New Password", "Sandi Baru"),
@@ -356,7 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFB5B0A8)),
                               onPressed: () => setModalState(() => obscureText = !obscureText),
                             ),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
                             focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
@@ -373,19 +373,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          controller: _confirmPasswordController, obscureText: obscureText,
+                          controller: confirmPasswordController, obscureText: obscureText,
                           style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                           decoration: InputDecoration(
                             labelText: _t("Confirm Password", "Konfirmasi Sandi"),
                             filled: true, fillColor: fieldBg,
                             prefixIcon: const Icon(Icons.lock_clock_rounded, color: Color(0xFFB5B0A8)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
                             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
                             focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
                           ),
                           validator: (value) {
-                            if (value != _newPasswordController.text) {
+                            if (value != newPasswordController.text) {
                               return _t("Password mismatch", "Konfirmasi sandi tidak sesuai");
                             }
                             return null;
@@ -396,9 +396,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: double.infinity, height: 54,
                           child: ElevatedButton(
                             onPressed: isSaving ? null : () async {
-                              if (_formKey.currentState!.validate()) {
+                              if (formKey.currentState!.validate()) {
                                 // 1. Validasi Anti-Sama
-                                if (_oldPasswordController.text.trim() == _newPasswordController.text.trim()) {
+                                if (oldPasswordController.text.trim() == newPasswordController.text.trim()) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text(_t("New password cannot be the same as old password!", "Sandi baru tidak boleh sama dengan sandi lama!")))
                                   );
@@ -412,13 +412,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   // 2. Verifikasi Sandi Lama (Re-Autentikasi)
                                   await _supabase.auth.signInWithPassword(
                                     email: currentUserEmail,
-                                    password: _oldPasswordController.text.trim(),
+                                    password: oldPasswordController.text.trim(),
                                   );
 
                                   // Jika Re-Auth berhasil, hentikan loading untuk menampilkan dialog
                                   setModalState(() => isSaving = false);
 
-                                  if (mounted) {
+                                  if (context.mounted) {
                                     // 3. Pop-up Konfirmasi
                                     showDialog(
                                       context: context,
@@ -437,10 +437,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               // 4. Eksekusi Update
                                               try {
                                                 await _supabase.auth.updateUser(UserAttributes(
-                                                  password: _newPasswordController.text.trim(),
+                                                  password: newPasswordController.text.trim(),
                                                 ));
 
-                                                if (mounted) {
+                                                if (context.mounted) {
                                                   Navigator.pop(dialogContext); // Tutup dialog konfirmasi
                                                   Navigator.pop(context); // Tutup bottom sheet
                                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -448,7 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                                   );
                                                 }
                                               } catch (e) {
-                                                if (mounted) Navigator.pop(dialogContext);
+                                                if (context.mounted) Navigator.pop(dialogContext);
                                                 _showAlertDialog(_t("Error", "Kesalahan"), e.toString());
                                               }
                                             },
@@ -460,7 +460,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   }
                                 } on AuthException catch (_) {
                                   setModalState(() => isSaving = false);
-                                  if (mounted) {
+                                  if (context.mounted) {
                                     // Gagal Re-Auth: Munculkan Peringatan
                                     showDialog(
                                       context: context,
@@ -479,7 +479,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     );
                                   }
                                 } finally {
-                                  if (mounted) setModalState(() => isSaving = false);
+                                  if (context.mounted) setModalState(() => isSaving = false);
                                 }
                               }
                             },
@@ -518,7 +518,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         throw 'Could not launch $urlString';
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         _showAlertDialog(_t("Error", "Kesalahan"), _t("Could not open the link", "Gagal membuka tautan"));
       }
     }
@@ -620,8 +620,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsContainer({required List<Widget> children, required Color cardColor, required Color borderColor}) { return Container(decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(children: children)); }
+  Widget _buildSettingsContainer({required List<Widget> children, required Color cardColor, required Color borderColor}) { return Container(decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(children: children)); }
   Widget _buildLanguageTile({required String title, required Color textColor}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: const Icon(Icons.language_rounded, color: Color(0xFFCC6633), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: Row(mainAxisSize: MainAxisSize.min, children: [Text(_language == 'en' ? "English" : "Indonesia", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8C8A87))), const SizedBox(width: 8), const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFF8C8A87))]), onTap: _showLanguageDialog); }
-  Widget _buildSwitchTile({required String title, required IconData icon, required bool value, required ValueChanged<bool> onChanged, required Color textColor}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: Icon(icon, color: const Color(0xFFCC6633), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: Switch(value: value, onChanged: onChanged, activeThumbColor: Colors.white, activeTrackColor: const Color(0xFFCC6633), inactiveTrackColor: const Color(0xFF8C8A87).withOpacity(0.3))); }
+  Widget _buildSwitchTile({required String title, required IconData icon, required bool value, required ValueChanged<bool> onChanged, required Color textColor}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: Icon(icon, color: const Color(0xFFCC6633), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: Switch(value: value, onChanged: onChanged, activeThumbColor: Colors.white, activeTrackColor: const Color(0xFFCC6633), inactiveTrackColor: const Color(0xFF8C8A87).withValues(alpha: 0.3))); }
   Widget _buildLinkTile({required String title, required IconData icon, String? trailingText, required Color textColor, VoidCallback? onTap}) { return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), leading: Icon(icon, color: const Color(0xFF8C8A87), size: 24), title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: textColor)), trailing: trailingText != null ? Text(trailingText, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8C8A87))) : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFF8C8A87)), onTap: trailingText == null ? onTap : null); }
 }

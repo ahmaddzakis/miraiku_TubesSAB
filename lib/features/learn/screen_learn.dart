@@ -347,7 +347,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 2',
-              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -377,7 +377,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 3',
-              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -407,7 +407,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 4',
-              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -457,7 +457,7 @@ class _LearnScreenState extends State<LearnScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

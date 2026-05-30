@@ -1,9 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/game_manager.dart';
-import '../../core/notification_service.dart';
 import 'screen_activity_history.dart';
 import 'screen_notifications.dart';
 import 'screen_settings.dart';
@@ -33,7 +31,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _avatarUrl = '';
 
   // Local Statistics
-  int _lastClaimedStreak = 0;
   bool _isDailyClaimedToday = false;
   bool _hasNewActivity = false;
 
@@ -110,7 +107,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final hasNewActivity = prefs.getBool('has_new_activity') ?? false;
 
     setState(() {
-      _lastClaimedStreak = prefs.getInt('last_claimed_streak') ?? 0;
       _isDailyClaimedToday = (lastClaim == today);
       _hasNewActivity = hasNewActivity;
     });
@@ -218,7 +214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
+                color: accentColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -257,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF58CC02).withOpacity(0.1),
+                  color: const Color(0xFF58CC02).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -507,7 +503,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 8),
                     Text(_userDesc, style: TextStyle(fontSize: 14, color: subTextColor, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 4),
-                    Text(_userEmail, style: TextStyle(fontSize: 14, color: subTextColor.withOpacity(0.6))),
+                    Text(_userEmail, style: TextStyle(fontSize: 14, color: subTextColor.withValues(alpha: 0.6))),
 
                     const SizedBox(height: 32),
 
@@ -528,7 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             boxShadow: _isDailyClaimedToday ? [] : [
                               BoxShadow(
-                                color: const Color(0xFFCC6633).withOpacity(0.2),
+                                color: const Color(0xFFCC6633).withValues(alpha: 0.2),
                                 blurRadius: 15,
                                 offset: const Offset(0, 8),
                               )
@@ -539,7 +535,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: (_isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633)).withOpacity(0.1),
+                                  color: (_isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633)).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Icon(
@@ -593,7 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFCC6633).withOpacity(0.2),
+                                  color: const Color(0xFFCC6633).withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
@@ -848,7 +844,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required _AchievementBadge badge,
     required Color bgColor,
     required Color accentColor,
-    Color badgeTextColor = Colors.black87,
     required String title,
     required String description,
     required double progress,
@@ -899,7 +894,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: cardColor,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-                color: isCompleted && !isClaimed ? const Color(0xFF58CC02).withOpacity(0.5) : borderColor,
+                color: isCompleted && !isClaimed ? const Color(0xFF58CC02).withValues(alpha: 0.5) : borderColor,
                 width: isCompleted && !isClaimed ? 2 : 1
             ),
           ),
@@ -963,7 +958,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMenuTile({required BuildContext context, required IconData icon, required String title, required String subtitle, required Color color, required Color textColor, required Color subTextColor, required VoidCallback onTap, bool isLogout = false, required bool isDark}) {
-    return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isLogout ? (isDark ? Colors.red.withOpacity(0.2) : const Color(0xFFFFF1F1)) : color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: color, size: 22)), title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)), subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)), onTap: onTap);
+    return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isLogout ? (isDark ? Colors.red.withValues(alpha: 0.2) : const Color(0xFFFFF1F1)) : color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: color, size: 22)), title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)), subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)), onTap: onTap);
   }
 
   void _showLogoutConfirmation(BuildContext context, bool isDark) {

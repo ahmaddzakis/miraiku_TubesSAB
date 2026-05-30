@@ -184,9 +184,9 @@ class PathNode extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text("Replay?", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withOpacity(0.8))),
+                        Text("Replay?", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withValues(alpha: 0.8))),
                         const SizedBox(width: 4),
-                        Icon(Icons.replay_rounded, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withOpacity(0.8), size: 18),
+                        Icon(Icons.replay_rounded, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withValues(alpha: 0.8), size: 18),
                       ],
                     ),
                   ),

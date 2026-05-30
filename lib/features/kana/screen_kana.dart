@@ -258,7 +258,7 @@ class _KanaScreenState extends State<KanaScreen> {
           onTap: () => _onKanaTapped(item, dataList),
           child: Container(
             decoration: BoxDecoration(
-              color: isLearned ? (isDark ? const Color(0xFFCC6633).withOpacity(0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
+              color: isLearned ? (isDark ? const Color(0xFFCC6633).withValues(alpha: 0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: isLearned ? const Color(0xFFC6653B) : borderColor, width: isLearned ? 2 : 1),
             ),
@@ -403,7 +403,7 @@ class _KanaScreenState extends State<KanaScreen> {
                           Text(romaji, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFFC6653B))),
                           if (meaning != null) ...[
                             const SizedBox(height: 4),
-                            Text(meaning, style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.6), fontWeight: FontWeight.w600)),
+                            Text(meaning, style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
                           ]
                         ],
                       ),
