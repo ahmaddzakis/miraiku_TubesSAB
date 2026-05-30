@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5
@@ -31,9 +31,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  supabase_flutter: ^2.8.0
+  shared_preferences: ^2.5.5
+  signature: ^6.3.0
   cupertino_icons: ^1.0.8
+  package_info_plus: ^8.0.0
+  url_launcher: ^6.3.0
+  image_picker: ^1.1.2
+  image_cropper: ^7.1.0
+  audioplayers: ^6.0.0
+  google_sign_in: ^6.2.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  flutter_timezone: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +55,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -56,6 +67,17 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/gifs/
+    - assets/images/
+    - assets/audio/
+
+  fonts:
+    - family: Nunito
+      fonts:
+            - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+            - asset: assets/fonts/Nunito-Italic-VariableFont_wght.ttf
+            - style: italic
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -72,7 +94,7 @@ flutter:
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
-  # example:
+  # penacode:
   # fonts:
   #   - family: Schyler
   #     fonts:

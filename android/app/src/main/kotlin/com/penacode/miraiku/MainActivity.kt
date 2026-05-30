@@ -1,4 +1,4 @@
-package com.example.miraiku
+package com.penacode.miraiku
 
 import io.flutter.embedding.android.FlutterActivity
 
