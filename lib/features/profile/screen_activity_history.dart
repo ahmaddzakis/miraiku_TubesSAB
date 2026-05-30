@@ -169,7 +169,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: borderColor),
                       boxShadow: isDark ? [] : [
-                        BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))
                       ],
                     ),
                     child: Row(
@@ -178,7 +178,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFCC6633).withOpacity(0.1),
+                            color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.history_rounded, color: Color(0xFFCC6633), size: 24),

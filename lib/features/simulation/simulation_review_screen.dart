@@ -65,7 +65,7 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                         child: LinearProgressIndicator(
                           value: (_currentIndex + 1) / _questions.length,
                           minHeight: 8,
-                          backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                          backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                           valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                         ),
                       ),
@@ -108,7 +108,7 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: accentColor.withOpacity(0.1),
+                                    color: accentColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -123,7 +123,7 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: (isCorrect ? Colors.green : Colors.red).withOpacity(0.1),
+                                    color: (isCorrect ? Colors.green : Colors.red).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -168,7 +168,7 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: textColor(isDark).withOpacity(0.8),
+                                  color: textColor(isDark).withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -189,12 +189,12 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
 
                         if (isCorrectOption) {
                           optionBorderColor = Colors.green;
-                          optionBgColor = Colors.green.withOpacity(isDark ? 0.1 : 0.05);
+                          optionBgColor = Colors.green.withValues(alpha: isDark ? 0.1 : 0.05);
                           icon = Icons.check_circle_rounded;
                           iconColor = Colors.green;
                         } else if (isUserSelected && !isCorrectOption) {
                           optionBorderColor = Colors.red;
-                          optionBgColor = Colors.red.withOpacity(isDark ? 0.1 : 0.05);
+                          optionBgColor = Colors.red.withValues(alpha: isDark ? 0.1 : 0.05);
                           icon = Icons.cancel_rounded;
                           iconColor = Colors.red;
                         }
@@ -213,7 +213,7 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Center(
@@ -261,16 +261,16 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.05),
+                            color: accentColor.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: accentColor.withOpacity(0.1)),
+                            border: Border.all(color: accentColor.withValues(alpha: 0.1)),
                           ),
                           child: Text(
                             question.explanation!,
                             style: TextStyle(
                               fontSize: 14,
                               height: 1.6,
-                              color: textColor(isDark).withOpacity(0.9),
+                              color: textColor(isDark).withValues(alpha: 0.9),
                             ),
                           ),
                         ),
@@ -286,7 +286,7 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                 padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05))),
+                  border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05))),
                 ),
                 child: Row(
                   children: [

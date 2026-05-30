@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 // Pastikan file globals ini sesuai dengan path aslimu
-import '../../main.dart'; // atau file tempat globalLanguage dan globalDarkMode berada
+ // atau file tempat globalLanguage dan globalDarkMode berada
 import '../../core/game_manager.dart';
 import '../../core/notification_service.dart';
 
@@ -68,7 +68,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
@@ -130,7 +130,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.green),
@@ -192,7 +192,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCC6633).withOpacity(0.1),
+                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.person_search_rounded, size: 48, color: Color(0xFFCC6633)),
@@ -273,7 +273,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCC6633).withOpacity(0.1),
+                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.person_add_outlined, size: 48, color: Color(0xFFCC6633)),
@@ -553,7 +553,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFCC6633).withOpacity(0.1),
+                      color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.lock_reset_rounded, size: 48, color: Color(0xFFCC6633)),
@@ -677,8 +677,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   body: Stack(
                     children: [
                       // Decorative Orbs
-                      Positioned(top: -50, right: -50, child: CircleAvatar(radius: 100, backgroundColor: const Color(0xFFCC6633).withOpacity(0.1))),
-                      Positioned(bottom: -80, left: -40, child: CircleAvatar(radius: 120, backgroundColor: const Color(0xFFE08B4B).withOpacity(0.1))),
+                      Positioned(top: -50, right: -50, child: CircleAvatar(radius: 100, backgroundColor: const Color(0xFFCC6633).withValues(alpha: 0.1))),
+                      Positioned(bottom: -80, left: -40, child: CircleAvatar(radius: 120, backgroundColor: const Color(0xFFE08B4B).withValues(alpha: 0.1))),
 
                       Center(
                         child: SingleChildScrollView(
@@ -692,10 +692,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                   margin: const EdgeInsets.only(bottom: 24), // Jarak ke logo
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(30),
                                     border: Border.all(
-                                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
                                     ),
                                   ),
                                   child: Row(
@@ -718,7 +718,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFCC6633).withOpacity(0.15),
+                                            color: const Color(0xFFCC6633).withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(20),
                                           ),
                                           child: Text(
@@ -768,7 +768,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     border: Border.all(color: Colors.redAccent, width: 3),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.15),
+                                        color: Colors.black.withValues(alpha: 0.15),
                                         blurRadius: 20,
                                         offset: const Offset(0, 10),
                                       ),
@@ -811,7 +811,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   padding: const EdgeInsets.all(28),
                                   decoration: BoxDecoration(
                                       color: cardColor, borderRadius: BorderRadius.circular(32),
-                                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.06), blurRadius: 30, offset: const Offset(0, 15))],
+                                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06), blurRadius: 30, offset: const Offset(0, 15))],
                                       border: Border.all(color: isDark ? const Color(0xFF333333) : Colors.transparent)
                                   ),
                                   child: Form(
@@ -906,7 +906,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                               },
                                               style: ElevatedButton.styleFrom(
                                                   backgroundColor: const Color(0xFFCC6633),
-                                                  disabledBackgroundColor: const Color(0xFFCC6633).withOpacity(0.6),
+                                                  disabledBackgroundColor: const Color(0xFFCC6633).withValues(alpha: 0.6),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                                                   elevation: 0
                                               ),
