@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:ui';
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -200,7 +200,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                                   decoration: BoxDecoration(
                                     color: cardColor,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                                    border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
                                   ),
                                   child: Icon(Icons.close_rounded, color: isDark ? Colors.white70 : Colors.black45, size: 24),
                                 ),
@@ -217,7 +217,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: accentColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -245,7 +245,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                                 height: 8,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
@@ -259,7 +259,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: accentColor.withOpacity(0.3),
+                                      color: accentColor.withValues(alpha: 0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -301,7 +301,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: accentColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -318,10 +318,10 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                                 decoration: BoxDecoration(
                                   color: cardColor,
                                   borderRadius: BorderRadius.circular(32),
-                                  border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE8E3DA), width: 2),
+                                  border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA), width: 2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFCC6633).withOpacity(0.08),
+                                      color: const Color(0xFFCC6633).withValues(alpha: 0.08),
                                       blurRadius: 24,
                                       offset: const Offset(0, 12),
                                     ),
@@ -354,7 +354,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                                     if (question.subQuestion != null) ...[
                                       Padding(
                                         padding: const EdgeInsets.symmetric(vertical: 20),
-                                        child: Divider(color: accentColor.withOpacity(0.1), thickness: 2),
+                                        child: Divider(color: accentColor.withValues(alpha: 0.1), thickness: 2),
                                       ),
                                       Text(
                                         question.subQuestion!,
@@ -398,13 +398,13 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
   Widget _buildOptionTile(int index, String text, bool isDark) {
     final bool isSelected = _selectedOption == index;
     final Color accentColor = const Color(0xFFCC6633);
-    final int correctAnswer = _questions[_currentQuestionIndex].correctAnswerIndex;
+    
     
     // Skema warna yang diperbaiki untuk visibilitas maksimal
     Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
     Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
-    Color letterBoxColor = isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFF5F5F5);
+    Color letterBoxColor = isDark ? Colors.white.withValues(alpha: 0.07) : const Color(0xFFF5F5F5);
     Color letterTextColor = isDark ? Colors.white70 : const Color(0xFF8C8A87);
     
     if (_isAnswered) {
@@ -440,7 +440,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
           ),
           boxShadow: isSelected && !_isAnswered ? [
             BoxShadow(
-              color: accentColor.withOpacity(0.1),
+              color: accentColor.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -487,13 +487,13 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
     final bool canConfirm = _selectedOption != null || _isAnswered;
     final Color accentColor = const Color(0xFFCC6633);
     
-    Color btnColor = canConfirm ? accentColor : (isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE0E0E0));
+    Color btnColor = canConfirm ? accentColor : (isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE0E0E0));
 
     return Container(
       padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF121212) : const Color(0xFFF5F2EE),
-        border: Border(top: BorderSide(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05))),
+        border: Border(top: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05))),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -502,7 +502,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: btnColor,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE0E0E0),
+            disabledBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE0E0E0),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
           ),

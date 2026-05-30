@@ -1,10 +1,10 @@
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/game_manager.dart';
 import 'screen_simulation_test.dart';
-import 'simulation_result_screen.dart';
+
 import 'screen_simulation_history.dart';
 
 class SimulationScreen extends StatefulWidget {
@@ -57,7 +57,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 32),
               decoration: BoxDecoration(
-                color: const Color(0xFFCC6633).withOpacity(0.1),
+                color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: Center(
@@ -68,7 +68,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFCC6633).withOpacity(0.3),
+                        color: const Color(0xFFCC6633).withValues(alpha: 0.3),
                         blurRadius: 15,
                         offset: const Offset(0, 5),
                       )
@@ -166,7 +166,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 32),
               decoration: BoxDecoration(
-                color: const Color(0xFFCC6633).withOpacity(0.1),
+                color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: Center(
@@ -177,7 +177,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFCC6633).withOpacity(0.3),
+                        color: const Color(0xFFCC6633).withValues(alpha: 0.3),
                         blurRadius: 15,
                         offset: const Offset(0, 5),
                       )
@@ -209,7 +209,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFCC6633).withOpacity(0.1),
+                        color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -316,7 +316,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 48, color: iconColor),
@@ -409,7 +409,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFCC6633).withOpacity(0.15),
+                              color: const Color(0xFFCC6633).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(100),
                             ),
                             child: const Text(
@@ -427,9 +427,9 @@ class _SimulationScreenState extends State<SimulationScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFCC6633).withOpacity(0.1),
+                                    color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: const Color(0xFFCC6633).withOpacity(0.2)),
+                                    border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
                                   ),
                                   child: const Icon(Icons.history_rounded, color: Color(0xFFCC6633), size: 16),
                                 ),
@@ -487,7 +487,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
         border: Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -501,7 +501,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCC6633).withOpacity(0.1),
+                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.assignment_rounded, color: Color(0xFFCC6633), size: 24),
@@ -561,7 +561,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,7 +607,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: isDark ? [] : [
           BoxShadow(
-            color: const Color(0xFF2D2622).withOpacity(0.1),
+            color: const Color(0xFF2D2622).withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -638,7 +638,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -671,14 +671,14 @@ class _SimulationScreenState extends State<SimulationScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFCC6633).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFCC6633).withOpacity(0.1),
+              color: const Color(0xFFCC6633).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.gavel_rounded, color: Color(0xFFCC6633), size: 24),

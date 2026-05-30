@@ -1,6 +1,6 @@
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/game_manager.dart';
 import '../../data/simulation_data.dart';
 import 'simulation_result_screen.dart';
@@ -13,8 +13,8 @@ class SimulationHistoryScreen extends StatefulWidget {
 }
 
 class _SimulationHistoryScreenState extends State<SimulationHistoryScreen> {
-  List<dynamic> _history = [];
-  bool _isLoading = true;
+  
+  
 
   @override
   void initState() {
@@ -30,8 +30,8 @@ class _SimulationHistoryScreenState extends State<SimulationHistoryScreen> {
     history.sort((a, b) => DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
 
     setState(() {
-      _history = history;
-      _isLoading = false;
+      
+      
     });
   }
 

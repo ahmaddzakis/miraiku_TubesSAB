@@ -4,7 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:miraiku/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:miraiku/core/game_manager.dart';
+
 
 class MockSupabase extends Mock implements Supabase {}
 class MockSupabaseClient extends Mock implements SupabaseClient {}

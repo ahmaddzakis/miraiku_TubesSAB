@@ -94,7 +94,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     child: SwitchListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      activeColor: Colors.white,
+                      activeThumbColor: Colors.white,
                       activeTrackColor: const Color(0xFF4CAF50),
                       inactiveThumbColor: isDark ? Colors.white54 : Colors.grey.shade400,
                       inactiveTrackColor: isDark ? const Color(0xFF333333) : Colors.grey.shade300,
@@ -114,7 +114,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       secondary: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFCC6633).withOpacity(0.1),
+                          color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.notifications_active_rounded, color: Color(0xFFCC6633)),

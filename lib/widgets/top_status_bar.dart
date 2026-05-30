@@ -202,7 +202,7 @@ class TopStatusBar extends StatelessWidget {
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                                 child: const Text("🎁 Login setiap hari untuk klaim 50 XP & bonus Mingguan di Profil!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
@@ -224,7 +224,7 @@ class TopStatusBar extends StatelessWidget {
                                       return Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                         decoration: BoxDecoration(
-                                            color: const Color(0xFFE53935).withOpacity(0.1),
+                                            color: const Color(0xFFE53935).withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(12)
                                         ),
                                         child: Text(
@@ -275,7 +275,7 @@ class TopStatusBar extends StatelessWidget {
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                                 child: const Text("🎯 Kumpulkan 1500 XP untuk membuka mode Simulasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
