@@ -294,8 +294,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ==================== UBAH PASSWORD (SUPABASE AUTH) ====================
   void _showChangePasswordModal() {
-    final TextEditingController pwController = TextEditingController();
-    final TextEditingController confirmPwController = TextEditingController();
+    final _formKey = GlobalKey<FormState>();
+    final TextEditingController _oldPasswordController = TextEditingController();
+    final TextEditingController _newPasswordController = TextEditingController();
+    final TextEditingController _confirmPasswordController = TextEditingController();
     bool isSaving = false;
     bool obscureText = true;
 
@@ -312,77 +314,184 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(color: _darkMode ? const Color(0xFF1E1E1E) : const Color(0xFFFAF7F2), borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32))),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withOpacity(0.3), borderRadius: BorderRadius.circular(10))),
-                      const SizedBox(height: 24),
-                      Text(_t("Change Password", "Ubah Kata Sandi"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: pwController, obscureText: obscureText,
-                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                        decoration: InputDecoration(
-                          labelText: _t("New Password", "Sandi Baru"),
-                          hintText: _t("Min. 6 characters", "Minimal 6 karakter"),
-                          hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-                          filled: true, fillColor: fieldBg,
-                          prefixIcon: const Icon(Icons.lock_rounded, color: Color(0xFFB5B0A8)),
-                          suffixIcon: IconButton(
-                            icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFB5B0A8)),
-                            onPressed: () => setModalState(() => obscureText = !obscureText),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withOpacity(0.3), borderRadius: BorderRadius.circular(10))),
+                        const SizedBox(height: 24),
+                        Text(_t("Change Password", "Ubah Kata Sandi"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _oldPasswordController, obscureText: obscureText,
+                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                          decoration: InputDecoration(
+                            labelText: _t("Old Password", "Sandi Lama"),
+                            filled: true, fillColor: fieldBg,
+                            prefixIcon: const Icon(Icons.lock_open_rounded, color: Color(0xFFB5B0A8)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
+                            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
+                            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
                           ),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: confirmPwController, obscureText: obscureText,
-                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                        decoration: InputDecoration(
-                          labelText: _t("Confirm Password", "Konfirmasi Sandi"),
-                          filled: true, fillColor: fieldBg,
-                          prefixIcon: const Icon(Icons.lock_clock_rounded, color: Color(0xFFB5B0A8)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity, height: 54,
-                        child: ElevatedButton(
-                          onPressed: isSaving ? null : () async {
-                            if (pwController.text.length < 6) {
-                              _showAlertDialog(_t("Invalid Password", "Sandi Tidak Valid"), _t("Password must be at least 6 characters!", "Kata sandi minimal 6 karakter!"));
-                              return;
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return _t("Old password is required", "Sandi lama wajib diisi");
                             }
-                            if (pwController.text != confirmPwController.text) {
-                              _showAlertDialog(_t("Password Mismatch", "Sandi Tidak Cocok"), _t("Confirm password does not match!", "Konfirmasi sandi tidak sesuai!"));
-                              return;
-                            }
-
-                            setModalState(() => isSaving = true);
-                            try {
-                              await _supabase.auth.updateUser(UserAttributes(password: pwController.text));
-                              if (mounted) {
-                                Navigator.pop(context);
-                                _showAlertDialog(_t("Success", "Berhasil"), _t("Password updated successfully!", "Kata sandi berhasil diubah!"));
-                              }
-                            } on AuthException catch (e) {
-                              if (mounted) _showAlertDialog(_t("Update Failed", "Gagal Memperbarui"), e.message);
-                            } finally {
-                              if (mounted) setModalState(() => isSaving = false);
-                            }
+                            return null;
                           },
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                          child: isSaving
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text(_t("Update Password", "Perbarui Sandi"), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _newPasswordController, obscureText: obscureText,
+                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                          decoration: InputDecoration(
+                            labelText: _t("New Password", "Sandi Baru"),
+                            hintText: _t("Min. 6 characters & 1 number", "Min. 6 karakter & 1 angka"),
+                            hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                            filled: true, fillColor: fieldBg,
+                            prefixIcon: const Icon(Icons.lock_rounded, color: Color(0xFFB5B0A8)),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFB5B0A8)),
+                              onPressed: () => setModalState(() => obscureText = !obscureText),
+                            ),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
+                            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
+                            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.length < 6) {
+                              return _t("Min. 6 characters", "Minimal 6 karakter");
+                            }
+                            if (!value.contains(RegExp(r'[0-9]'))) {
+                              return _t("Must contain at least 1 number", "Sandi harus mengandung minimal 1 angka");
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _confirmPasswordController, obscureText: obscureText,
+                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                          decoration: InputDecoration(
+                            labelText: _t("Confirm Password", "Konfirmasi Sandi"),
+                            filled: true, fillColor: fieldBg,
+                            prefixIcon: const Icon(Icons.lock_clock_rounded, color: Color(0xFFB5B0A8)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withOpacity(_darkMode ? 0.1 : 1))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
+                            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
+                            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+                          ),
+                          validator: (value) {
+                            if (value != _newPasswordController.text) {
+                              return _t("Password mismatch", "Konfirmasi sandi tidak sesuai");
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity, height: 54,
+                          child: ElevatedButton(
+                            onPressed: isSaving ? null : () async {
+                              if (_formKey.currentState!.validate()) {
+                                // 1. Validasi Anti-Sama
+                                if (_oldPasswordController.text.trim() == _newPasswordController.text.trim()) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(_t("New password cannot be the same as old password!", "Sandi baru tidak boleh sama dengan sandi lama!")))
+                                  );
+                                  return;
+                                }
+
+                                setModalState(() => isSaving = true);
+                                try {
+                                  final String currentUserEmail = _supabase.auth.currentUser?.email ?? "";
+
+                                  // 2. Verifikasi Sandi Lama (Re-Autentikasi)
+                                  await _supabase.auth.signInWithPassword(
+                                    email: currentUserEmail,
+                                    password: _oldPasswordController.text.trim(),
+                                  );
+
+                                  // Jika Re-Auth berhasil, hentikan loading untuk menampilkan dialog
+                                  setModalState(() => isSaving = false);
+
+                                  if (mounted) {
+                                    // 3. Pop-up Konfirmasi
+                                    showDialog(
+                                      context: context,
+                                      builder: (dialogContext) => AlertDialog(
+                                        backgroundColor: _darkMode ? const Color(0xFF2D2D2D) : const Color(0xFFFAF7F2),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                        title: Text(_t("Confirmation", "Konfirmasi"), style: TextStyle(fontWeight: FontWeight.w900, color: _darkMode ? Colors.white : const Color(0xFF2D2622))),
+                                        content: Text(_t("Are you sure you want to update your password?", "Apakah Anda yakin ingin memperbarui kata sandi?"), style: TextStyle(color: _darkMode ? Colors.white70 : Colors.black87)),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(dialogContext),
+                                            child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                                          ),
+                                          TextButton(
+                                            onPressed: () async {
+                                              // 4. Eksekusi Update
+                                              try {
+                                                await _supabase.auth.updateUser(UserAttributes(
+                                                  password: _newPasswordController.text.trim(),
+                                                ));
+
+                                                if (mounted) {
+                                                  Navigator.pop(dialogContext); // Tutup dialog konfirmasi
+                                                  Navigator.pop(context); // Tutup bottom sheet
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(content: Text(_t("Password updated successfully!", "Sandi berhasil diperbarui!")))
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                if (mounted) Navigator.pop(dialogContext);
+                                                _showAlertDialog(_t("Error", "Kesalahan"), e.toString());
+                                              }
+                                            },
+                                            child: Text(_t("Sure", "Yakin"), style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.bold)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                } on AuthException catch (_) {
+                                  setModalState(() => isSaving = false);
+                                  if (mounted) {
+                                    // Gagal Re-Auth: Munculkan Peringatan
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        backgroundColor: _darkMode ? const Color(0xFF2D2D2D) : const Color(0xFFFAF7F2),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                        title: Text(_t("Failed", "Gagal"), style: TextStyle(fontWeight: FontWeight.w900, color: _darkMode ? Colors.white : const Color(0xFF2D2622))),
+                                        content: Text(_t("The old password you entered is incorrect!", "Sandi lama yang Anda masukkan salah!"), style: TextStyle(color: _darkMode ? Colors.white70 : Colors.black87)),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: Text(_t("Close", "Tutup"), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFCC6633))),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) setModalState(() => isSaving = false);
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                            child: isSaving
+                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : Text(_t("Update Password", "Perbarui Sandi"), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -391,6 +500,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       },
     );
   }
+
 
   ImageProvider _getAvatarImage() {
     if (_avatarUrl.isNotEmpty && _avatarUrl.startsWith('http')) {

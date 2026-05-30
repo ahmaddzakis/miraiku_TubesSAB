@@ -114,13 +114,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isDailyClaimedToday = (lastClaim == today);
       _hasNewActivity = hasNewActivity;
     });
-
-    // Award bonus if first time setting up
-    if (prefs.getBool('gm_first_profile_bonus') == null) {
-      // Set flag dulu secara lokal agar tidak dipicu ulang saat proses asinkron berjalan
-      await prefs.setBool('gm_first_profile_bonus', true);
-      await GameManager.addXP(200);
-    }
   }
 
   Future<void> _claimDailyReward() async {
@@ -136,11 +129,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final String today = DateTime.now().toIso8601String().substring(0, 10);
 
-    await GameManager.addXP(50);
+    // Manual update XP and prefs ke lokal
+    globalXP.value += 50;
+    await prefs.setInt('gm_xp', globalXP.value);
     await prefs.setString('gm_last_daily_claim', today);
 
+    // Kirim satu request saja untuk cegah rate limit
     try {
       await _supabase.auth.updateUser(UserAttributes(data: {
+        'gm_xp': globalXP.value,
         'gm_last_daily_claim': today,
       }));
     } catch (e) {
@@ -161,11 +158,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (meta != null && meta[key] == true) return;
 
     try {
-      await _supabase.auth.updateUser(UserAttributes(data: {
+      // 1. Eksekusi penambah XP dan simpan ke lokal untuk mencegah rate limit supabase
+      globalXP.value += 200;
+      await prefs.setInt('gm_xp', globalXP.value);
+
+      // 2. Update status achievement & XP sekaligus di backend
+      final response = await _supabase.auth.updateUser(UserAttributes(data: {
+        'gm_xp': globalXP.value,
         key: true,
       }));
-      await GameManager.addXP(200);
-      _loadSupabaseUserData();
+
+      // 3. Update state UI
+      if (response.user != null) {
+        final newMeta = response.user!.userMetadata;
+        if (newMeta != null) {
+          setState(() {
+            _claimedHiragana = newMeta['ach_hira'] ?? false;
+            _claimedKatakana = newMeta['ach_kata'] ?? false;
+            _claimedKanji = newMeta['ach_kanji'] ?? false;
+            _claimedAlphabetMaster = newMeta['ach_alphabet'] ?? false;
+            _claimedSim = newMeta['ach_sim'] ?? false;
+            _claimed3Days = newMeta['ach_3d'] ?? false;
+            _claimed7Days = newMeta['ach_7d'] ?? false;
+            _claimed14Days = newMeta['ach_14d'] ?? false;
+            _claimed30Days = newMeta['ach_30d'] ?? false;
+            _claimedMirai = newMeta['ach_mirai'] ?? false;
+          });
+        }
+      }
+
       if (mounted) {
         _showSuccessDialog(_t("Achievement Claimed! +200 XP", "Pencapaian Diklaim! +200 XP"));
       }
@@ -416,41 +437,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 child: Column(
                   children: [
-                    // 1. Ikon Lonceng sekarang di dalam Scroll View (Ikut terscroll)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 16.0, right: 16.0),
-                        child: IconButton(
-                          icon: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Icon(Icons.notifications_rounded, size: 28, color: textColor),
-                              if (_hasNewActivity)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: Colors.redAccent,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: bgColor, width: 2),
+                    // 1. Header (Lonceng Notifikasi)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0, right: 16.0, left: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Notification Bell
+                          IconButton(
+                            icon: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Icon(Icons.notifications_rounded, size: 28, color: textColor),
+                                if (_hasNewActivity)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: bgColor, width: 2),
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
+                            onPressed: () async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('has_new_activity', false);
+                              setState(() => _hasNewActivity = false);
+                              if (context.mounted) {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityHistoryScreen()));
+                              }
+                            },
                           ),
-                          onPressed: () async {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setBool('has_new_activity', false);
-                            setState(() => _hasNewActivity = false);
-                            if (context.mounted) {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityHistoryScreen()));
-                            }
-                          },
-                        ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -653,7 +677,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
                                 ),
                                 _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("SIM"),
+                                  badge: _AchievementBadge.label("JLPT"),
                                   bgColor: const Color(0xFFFFF3E0),
                                   accentColor: const Color(0xFFFF9800),
                                   title: _t("Simulator Pro", "Pro Simulator"),

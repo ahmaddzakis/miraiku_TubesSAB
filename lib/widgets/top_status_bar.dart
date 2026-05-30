@@ -276,7 +276,7 @@ class TopStatusBar extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎯 Kumpulkan 500 XP untuk membuka mode Simulasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                child: const Text("🎯 Kumpulkan 1500 XP untuk membuka mode Simulasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
                           ],

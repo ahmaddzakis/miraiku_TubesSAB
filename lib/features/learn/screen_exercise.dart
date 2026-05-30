@@ -46,7 +46,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   // ==========================================
   bool get isTestMode => widget.difficulty == 'test';
   Timer? _countdownTimer;
-  int _timeLeft = 1200;
+  int _timeLeft = 900; // 15 Menit
 
   // STATE WORD BANK
   final List<String> _selectedWords = [];
@@ -61,15 +61,29 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   @override
   void initState() {
     super.initState();
-    _questions = List<Map<String, dynamic>>.from(
+
+    // 🛑 CEK NYAWA DI AWAL: Jika 0, langsung kunci layar dengan Game Over
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (globalHearts.value <= 0) {
+        _showGameOverDialog(reason: "Nyawa Habis!");
+      }
+    });
+
+    var allQuestions = List<Map<String, dynamic>>.from(
         QuizRepository.getQuestions(widget.unit, widget.difficulty, widget.currentStars)
     )..shuffle();
+
+    if (isTestMode) {
+      _questions = allQuestions.take(20).toList();
+    } else {
+      _questions = allQuestions;
+    }
 
     _originalQuestionCount = _questions.length;
     _setupWordBank();
 
-    // 🔥 JIKA MODE TEST DAN BUKAN REPLAY, JALANKAN TIMER!
-    if (isTestMode && !widget.isReplay) {
+    // 🔥 JIKA MODE TEST, JALANKAN TIMER (TERMASUK REPLAY)!
+    if (isTestMode) {
       _startTimer();
     }
   }
@@ -89,7 +103,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         });
       } else {
         _countdownTimer?.cancel();
-        _showTimeUpDialog(); // Waktu Habis!
+        _showGameOverDialog(reason: "Waktu Habis!"); // Waktu Habis!
       }
     });
   }
@@ -129,7 +143,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     });
   }
 
-  void _checkAnswer(bool isMultipleChoice) {
+  Future<void> _checkAnswer(bool isMultipleChoice) async {
     if (_isAnswered) return;
 
     setState(() {
@@ -158,19 +172,28 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         }
       } else {
         SoundManager.playSound('salah.mp3');
-
-        // JIKA MODE TEST, JANGAN KURANGI NYAWA UTAMA. HUKUMANNYA HANYA BUANG-BUANG WAKTU TIMER!
-        if (!isTestMode) {
-          GameManager.decreaseHeart();
-          if (widget.onHeartDecreased != null) {
-            widget.onHeartDecreased!(globalHearts.value);
-          }
-        }
-
-        // Lempar soal salah ke belakang
-        _questions.add(Map<String, dynamic>.from(_questions[_currentQuestionIndex]));
       }
     });
+
+    if (!_isCurrentAnswerCorrect) {
+      // 🔥 WAJIB AWAIT agar nyawa berkurang di memory sebelum dicek
+      await GameManager.decreaseHeart();
+
+      if (widget.onHeartDecreased != null) {
+        widget.onHeartDecreased!(globalHearts.value);
+      }
+
+      if (globalHearts.value <= 0) {
+        _countdownTimer?.cancel();
+        _showGameOverDialog(reason: "Nyawa Habis!");
+        return;
+      }
+
+      setState(() {
+        // Lempar soal salah ke belakang
+        _questions.add(Map<String, dynamic>.from(_questions[_currentQuestionIndex]));
+      });
+    }
   }
 
   void _nextQuestion() {
@@ -202,23 +225,24 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   // ==========================================
   void _showExitConfirmationDialog() {
     SoundManager.playSound('klik.mp3');
+    final bool isDark = globalDarkMode.value;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        title: const Column(
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Column(
           children: [
-            Icon(Icons.warning_rounded, color: Color(0xFFE53935), size: 48),
-            SizedBox(height: 12),
-            Text('ちょっと待って!', style: TextStyle(color: Color(0xFFE53935), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
-            Text('Tunggu Dulu!', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF333333), fontSize: 22), textAlign: TextAlign.center),
+            const Icon(Icons.warning_rounded, color: Color(0xFFE53935), size: 48),
+            const SizedBox(height: 12),
+            const Text('ちょっと待って!', style: TextStyle(color: Color(0xFFE53935), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
+            Text('Tunggu Dulu!', style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333), fontSize: 22), textAlign: TextAlign.center),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Yakin ingin keluar? Progres dan jawaban benarmu di sesi ini akan hangus loh!',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF666666), height: 1.5, fontSize: 15),
+          style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5, fontSize: 15),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
@@ -258,138 +282,104 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     );
   }
 
-  // DIALOG WAKTU HABIS (KHUSUS UNIT TEST)
-  void _showTimeUpDialog() {
-    SoundManager.playSound('defeat.mp3');
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
-        title: const Text('⏰ Waktu Habis!', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFE53935)), textAlign: TextAlign.center),
-        content: const Text(
-            'Kamu gagal menyelesaikan Unit Test dalam batas waktu yang ditentukan. Jangan menyerah, coba lagi!',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF4B4B4B), height: 1.5)
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text('KEMBALI KE MENU', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  void _showGameOverDialog() {
+  void _showGameOverDialog({String? reason}) {
     SoundManager.playSound('defeat.mp3');
     final bool isDark = globalDarkMode.value;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        title: Column(
-          children: [
-            const Icon(Icons.heart_broken_rounded, color: Color(0xFFE53935), size: 64),
-            const SizedBox(height: 16),
-            Text(
-              'Gagal Itu Wajar!',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : const Color(0xFFE53935),
-                fontSize: 22,
+      builder: (context) => PopScope(
+        canPop: false, // 🔒 Kunci tombol back fisik agar tidak bisa di-bypass
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          title: Column(
+            children: [
+              const Icon(Icons.heart_broken_rounded, color: Color(0xFFE53935), size: 64),
+              const SizedBox(height: 16),
+              Text(
+                reason != null ? "❌ $reason" : 'Gagal Itu Wajar!',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFFE53935),
+                  fontSize: 22,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Jangan menyerah! Setiap kesalahan adalah langkah menuju kesuksesan. Yuk, pulihkan nyawa dan coba lagi!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF4B4B4B), height: 1.5, fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                reason == "Waktu Habis!"
+                    ? 'Waktu ujianmu telah habis! Ayo pulihkan nyawamu lalu coba selesaikan lebih cepat.'
+                    : 'Jangan menyerah! Setiap kesalahan adalah langkah menuju kesuksesan. Yuk, pulihkan nyawa dan coba lagi!',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF4B4B4B), height: 1.5, fontSize: 16),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.flash_on, color: Colors.orange, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Butuh 150 XP untuk 1 Nyawa",
+                    style: TextStyle(
+                      color: isDark ? Colors.orangeAccent : Colors.orange.shade800,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          actions: [
+            Column(
               children: [
-                const Icon(Icons.flash_on, color: Colors.orange, size: 20),
-                const SizedBox(width: 4),
-                Text(
-                  "Butuh 150 XP untuk 1 Nyawa",
-                  style: TextStyle(
-                    color: isDark ? Colors.orangeAccent : Colors.orange.shade800,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCC6633),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: () async {
+                      bool success = await GameManager.buyHeartWithXP();
+                      if (!mounted) return;
+                      if (success) {
+                        Navigator.pop(context); // Tutup dialog Game Over
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("XP tidak cukup!")),
+                        );
+                      }
+                    },
+                    child: const Text('BELI NYAWA (150 XP)',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'KEMBALI KE MENU',
+                    style: TextStyle(color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
-            ),
+            )
           ],
         ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        actions: [
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC6633),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  onPressed: () async {
-                    bool success = await GameManager.buyHeartWithXP();
-                    if (!mounted) return;
-                    if (success) {
-                      if (!mounted) return;
-                      Navigator.pop(context); // Tutup dialog Game Over
-                    } else {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("XP tidak cukup!")),
-                      );
-                    }
-                  },
-                  child: const Text('BELI NYAWA (150 XP)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  'KEMBALI KE MENU',
-                  style: TextStyle(color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          )
-        ],
       ),
     );
   }
@@ -512,16 +502,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       builder: (context, isDark, _) {
         final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
         final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
+        final Color textColor = isDark ? Colors.white : const Color(0xFF4A453F);
         final Color subTextColor = isDark ? Colors.white70 : const Color(0xFF8C8A87);
         final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-        return Scaffold(
-          backgroundColor: bgColor,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // HEADER & PROGRESS BAR
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _showExitConfirmationDialog();
+          },
+          child: Scaffold(
+            backgroundColor: bgColor,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // HEADER & PROGRESS BAR
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                   child: Column(
@@ -555,28 +551,57 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           // 🔁 LOGIKA UI KANAN ATAS (TIMER VS NYAWA)
                           // ==========================================
                           if (isTestMode)
-                          // UI TIMER KHUSUS UNIT TEST
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _timeLeft <= 30 ? Colors.red.withOpacity(0.15) : const Color(0xFFCC6633).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: _timeLeft <= 30 ? Colors.red : Colors.transparent),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.timer_rounded, color: _timeLeft <= 30 ? Colors.red : const Color(0xFFCC6633), size: 20),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                      _formattedTime,
-                                      style: TextStyle(
-                                          color: _timeLeft <= 30 ? Colors.red : const Color(0xFFCC6633),
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16
-                                      )
+                          // UI TIMER & LIVES KHUSUS UNIT TEST
+                            Row(
+                              children: [
+                                // TIMER
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _timeLeft <= 60 ? Colors.red.withOpacity(0.15) : const Color(0xFFCC6633).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: _timeLeft <= 60 ? Colors.red : Colors.transparent),
                                   ),
-                                ],
-                              ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.timer_rounded, color: _timeLeft <= 60 ? Colors.red : const Color(0xFFCC6633), size: 16),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                          _formattedTime,
+                                          style: TextStyle(
+                                              color: _timeLeft <= 60 ? Colors.red : const Color(0xFFCC6633),
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 14
+                                          )
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // LIVES (NYAWA)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE53935).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.favorite_rounded, color: Color(0xFFE53935), size: 16),
+                                      const SizedBox(width: 4),
+                                      ValueListenableBuilder<int>(
+                                        valueListenable: globalHearts,
+                                        builder: (context, hearts, child) {
+                                          return Text(
+                                            "$hearts",
+                                            style: const TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w900, fontSize: 14)
+                                          );
+                                        }
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             )
                           else
                           // UI NYAWA UNTUK MODE NORMAL
@@ -680,13 +705,21 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                 ],
                               ),
                               child: Center(
-                                child: Text(
-                                  currentQuestion['japanese'],
-                                  style: TextStyle(
-                                    fontSize: 64, 
-                                    fontWeight: FontWeight.w900, 
-                                    color: isDark ? Colors.white : const Color(0xFF333333),
-                                    letterSpacing: 2
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      currentQuestion['japanese'],
+                                      maxLines: 2,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 64,
+                                        fontWeight: FontWeight.w900,
+                                        color: isDark ? Colors.white : const Color(0xFF333333),
+                                        letterSpacing: 2
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -707,12 +740,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               ],
             ),
           ),
-
           bottomNavigationBar: _buildBottomActionBar(isButtonEnabled, isMultipleChoice, currentQuestion),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
 
   // WIDGET WORD BANK
@@ -941,24 +974,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFFCC6633), size: 18),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    widget.hint!,
-                    style: const TextStyle(color: Color(0xFFCC6633), fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
         Text(

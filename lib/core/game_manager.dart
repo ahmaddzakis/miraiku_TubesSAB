@@ -102,14 +102,6 @@ class GameManager {
     } else {
       prefs.remove('gm_last_daily_claim');
     }
-    if (meta['gm_first_profile_bonus'] == true) {
-      prefs.setBool('gm_first_profile_bonus', true);
-    }
-    // Perbaikan: Jangan pernah hapus gm_first_profile_bonus secara otomatis 
-    // jika meta tidak ada, agar tidak terjadi pemberian XP berulang kali.
-    // Perbaikan: Jangan hapus gm_first_profile_bonus jika meta tidak ada, 
-    // agar tidak terjadi pemberian XP berulang kali.
-    // Jika di Cloud false tapi di Lokal true, jangan di-reset! Biarkan tetap true.
 
     // --- RESTORE UNIT PROGRESS (u1_, u2_, u3_, u4_) ---
     meta.forEach((key, value) {
@@ -223,7 +215,6 @@ class GameManager {
           'gm_last_login': prefs.getString('gm_last_login'),
           'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
           'gm_last_daily_claim': prefs.getString('gm_last_daily_claim'),
-          'gm_first_profile_bonus': prefs.getBool('gm_first_profile_bonus'),
         };
 
         // --- SYNC ALL UNIT PROGRESS ---

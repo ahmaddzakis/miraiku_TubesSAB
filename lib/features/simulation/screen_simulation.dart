@@ -740,7 +740,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
               const Icon(Icons.flash_on_rounded, color: Color(0xFFCC6633), size: 14),
               const SizedBox(width: 4),
               Text(
-                _t("Cost: 1500 XP (Free for Premium)", "Biaya: 1500 XP (Gratis untuk Premium)"),
+                _t("Cost: 1500 XP", "Biaya: 1500 XP"),
                 style: TextStyle(color: subTextColor, fontSize: 12, fontWeight: FontWeight.w500)
               ),
             ],

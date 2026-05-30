@@ -82,6 +82,9 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
         final double langPoints = (widget.languageScore / (widget.languageTotal == 0 ? 1 : widget.languageTotal)) * 60;
         final double readingPoints = (widget.readingScore / (widget.readingTotal == 0 ? 1 : widget.readingTotal)) * 120;
         final String grade = _getGrade(widget.totalPoints);
+        final int totalQuestions = widget.languageTotal + widget.readingTotal;
+        final int totalCorrect = widget.languageScore + widget.readingScore;
+        final int accuracy = totalQuestions > 0 ? ((totalCorrect / totalQuestions) * 100).round() : 0;
 
         return Scaffold(
           backgroundColor: bgColor,
@@ -288,20 +291,24 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                                   children: [
                                     _buildDetailedScore(
                                         _t("Language", "Bahasa"),
+                                        _t("(Vocabulary & Grammar)", "(Kosakata & Tata Bahasa)"),
                                         "${langPoints.toInt()}",
                                         "/60",
                                         Icons.translate_rounded,
                                         const Color(0xFF58CC02),
-                                        isDark
+                                        isDark,
+                                        _t("JLPT standard: Language max score is 60 points.", "Standar JLPT: Skor maksimal Bahasa adalah 60 poin.")
                                     ),
                                     Container(width: 1, height: 40, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
                                     _buildDetailedScore(
                                         _t("Reading", "Membaca"),
+                                        _t("(Reading & Comprehension)", "(Membaca & Pemahaman)"),
                                         "${readingPoints.toInt()}",
                                         "/120",
                                         Icons.menu_book_rounded,
                                         const Color(0xFF1CB0F6),
-                                        isDark
+                                        isDark,
+                                        _t("JLPT standard: Reading max score is 120 points.", "Standar JLPT: Skor maksimal Membaca adalah 120 poin.")
                                     ),
                                   ],
                                 ),
@@ -327,7 +334,7 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                             Expanded(
                               child: _buildSmallStatCard(
                                   _t("Accuracy", "Akurasi"),
-                                  "${((widget.languageScore + widget.readingScore) / (widget.languageTotal + widget.readingTotal) * 100).toInt()}%",
+                                  "$accuracy%",
                                   Icons.ads_click_rounded,
                                   isDark, cardColor
                               ),
@@ -396,16 +403,25 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
   Color textColor(bool isDark) => isDark ? Colors.white : const Color(0xFF2D2622);
   Color subTextColor(bool isDark) => isDark ? Colors.white70 : const Color(0xFF8C8A87);
 
-  Widget _buildDetailedScore(String label, String value, String total, IconData icon, Color color, bool isDark) {
+  Widget _buildDetailedScore(String label, String subtitle, String value, String total, IconData icon, Color color, bool isDark, String tooltipMsg) {
     return Column(
       children: [
-        Row(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: subTextColor(isDark))),
-          ],
+        Tooltip(
+          message: tooltipMsg,
+          triggerMode: TooltipTriggerMode.tap,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: subTextColor(isDark))),
+              const SizedBox(width: 4),
+              Icon(Icons.info_outline_rounded, color: subTextColor(isDark).withValues(alpha: 0.5), size: 14),
+            ],
+          ),
         ),
+        const SizedBox(height: 2),
+        Text(subtitle, style: TextStyle(fontSize: 10, color: subTextColor(isDark).withValues(alpha: 0.7))),
         const SizedBox(height: 8),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,

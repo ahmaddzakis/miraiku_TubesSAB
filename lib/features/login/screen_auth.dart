@@ -442,16 +442,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (_isLoginMode) {
+        // --- LOGIN ---
         await supabase.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
-        // Sync current Auth Screen settings to the newly logged in account
+        // Sync current Auth Screen settings (lang & theme) to the existing account
         await supabase.auth.updateUser(UserAttributes(data: {
           'setting_lang': selectedLanguage,
           'setting_dark': selectedDarkMode,
         }));
+        
         globalLanguage.value = selectedLanguage;
         globalDarkMode.value = selectedDarkMode;
 
@@ -462,30 +464,34 @@ class _AuthScreenState extends State<AuthScreen> {
           await prefs.remove('remembered_email');
         }
       } else {
+        // --- CLEAN STATE FOR NEW USERS ---
+        // Explicitly setting these values ensures a clean start and prevents legacy XP bugs.
+        final newUserMetadata = {
+          'display_name': _nameController.text.trim().isEmpty ? "Pelajar Baru" : _nameController.text.trim(),
+          'bio': _descController.text.trim().isEmpty ? "Siap belajar bahasa Jepang!" : _descController.text.trim(),
+          'setting_lang': selectedLanguage,
+          'setting_dark': selectedDarkMode,
+          'gm_xp': 0,
+          'gm_hearts': 5,
+          'gm_streak': 0,
+          'is_premium': false,
+        };
+
         if (_googleIdToken != null) {
+          // Google Sign Up Final Step
           await supabase.auth.signInWithIdToken(
             provider: OAuthProvider.google,
             idToken: _googleIdToken!,
             accessToken: _googleAccessToken,
           );
-          await supabase.auth.updateUser(
-              UserAttributes(data: {
-                'display_name': _nameController.text.trim(),
-                'bio': _descController.text.trim().isEmpty ? "Siap belajar bahasa Jepang!" : _descController.text.trim(),
-                'setting_lang': globalLanguage.value,
-                'setting_dark': globalDarkMode.value,
-              })
-          );
+          
+          await supabase.auth.updateUser(UserAttributes(data: newUserMetadata));
         } else {
+          // Email Sign Up
           final response = await supabase.auth.signUp(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
-              data: {
-                'display_name': _nameController.text.trim().isEmpty ? "Pelajar Baru" : _nameController.text.trim(),
-                'bio': _descController.text.trim().isEmpty ? "Siap belajar bahasa Jepang!" : _descController.text.trim(),
-                'setting_lang': globalLanguage.value,
-                'setting_dark': globalDarkMode.value,
-              }
+              data: newUserMetadata,
           );
 
           if (mounted) {
@@ -842,7 +848,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                               isPassword: true, obscure: _obscurePassword,
                                               hints: [AutofillHints.password],
                                               onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
-                                              validator: (v) => (v == null || v.length < 6) ? _t("Min. 6 chars", "Min. 6 karakter") : null,
+                                              validator: (v) {
+                                                if (v == null || v.length < 6) return _t("Min. 6 chars", "Min. 6 karakter");
+                                                if (!v.contains(RegExp(r'[0-9]'))) return _t("Must include a number", "Wajib mengandung angka");
+                                                return null;
+                                              },
                                             ),
                                             if (!_isLoginMode && !_isSignUpStep2) ...[
                                               const SizedBox(height: 18),

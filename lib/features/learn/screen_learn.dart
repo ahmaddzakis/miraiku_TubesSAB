@@ -120,31 +120,31 @@ class _LearnScreenState extends State<LearnScreen> {
                 setState(() { if (_u1Hira1Stars < 3) { _u1Hira1Stars++; _saveStarProgress('u1_hira1_stars', _u1Hira1Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Hiragana Basics 2", "Hiragana Dasar 2"), _u1Hira2Stars, _u1Hira2Stars >= 3 ? NodeStatus.completed : (_u1Hira1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_2', () {
+              _buildClickableNode(context, _t("Hiragana Basics 2", "Hiragana Dasar 2"), _u1Hira2Stars, _u1Hira2Stars >= 3 ? NodeStatus.completed : (_u1Hira1Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_2', () {
                 setState(() { if (_u1Hira2Stars < 3) { _u1Hira2Stars++; _saveStarProgress('u1_hira2_stars', _u1Hira2Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Hiragana Basics 3", "Hiragana Dasar 3"), _u1Hira3Stars, _u1Hira3Stars >= 3 ? NodeStatus.completed : (_u1Hira2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_3', () {
+              _buildClickableNode(context, _t("Hiragana Basics 3", "Hiragana Dasar 3"), _u1Hira3Stars, _u1Hira3Stars >= 3 ? NodeStatus.completed : (_u1Hira2Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_3', () {
                 setState(() { if (_u1Hira3Stars < 3) { _u1Hira3Stars++; _saveStarProgress('u1_hira3_stars', _u1Hira3Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Hiragana Basics 4", "Hiragana Dasar 4"), _u1Hira4Stars, _u1Hira4Stars >= 3 ? NodeStatus.completed : (_u1Hira3Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_4', () {
+              _buildClickableNode(context, _t("Hiragana Basics 4", "Hiragana Dasar 4"), _u1Hira4Stars, _u1Hira4Stars >= 3 ? NodeStatus.completed : (_u1Hira3Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_4', () {
                 setState(() { if (_u1Hira4Stars < 3) { _u1Hira4Stars++; _saveStarProgress('u1_hira4_stars', _u1Hira4Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Daily Greetings", "Salam Sehari-hari"), _u1GreetStars, _u1GreetStars >= 3 ? NodeStatus.completed : (_u1Hira4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'greetings', () {
+              _buildClickableNode(context, _t("Daily Greetings", "Salam Sehari-hari"), _u1GreetStars, _u1GreetStars >= 3 ? NodeStatus.completed : (_u1Hira4Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'greetings', () {
                 setState(() { if (_u1GreetStars < 3) { _u1GreetStars++; _saveStarProgress('u1_greet_stars', _u1GreetStars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Numbers & Time", "Angka & Waktu"), _u1NumStars, _u1NumStars >= 3 ? NodeStatus.completed : (_u1GreetStars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'numbers', () {
+              _buildClickableNode(context, _t("Numbers & Time", "Angka & Waktu"), _u1NumStars, _u1NumStars >= 3 ? NodeStatus.completed : (_u1GreetStars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'numbers', () {
                 setState(() { if (_u1NumStars < 3) { _u1NumStars++; _saveStarProgress('u1_num_stars', _u1NumStars); } });
               }),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 1 (Tanpa Bintang, Langsung Tamat 1x Main)
               _buildClickableNode(
-                context, _t("Unit Test\n20 min", "Ujian Unit\n20 mnt"), 0,
-                _u1TestCompleted >= 1 ? NodeStatus.completed : (_u1NumStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                context, _t("Unit Test\n20 min", "Ujian Unit\n15 mnt"), 0,
+                _u1TestCompleted >= 1 ? NodeStatus.completed : (_u1NumStars == 3 ? NodeStatus.current : NodeStatus.locked),
                 1, 'test', () {
                 setState(() {
                   if (_u1TestCompleted == 0) {
@@ -191,7 +191,7 @@ class _LearnScreenState extends State<LearnScreen> {
 
               // UNIT TEST 2
               _buildClickableNode(
-                context, _t("Unit 2 Test\n20 min", "Ujian Unit 2\n20 mnt"), 0,
+                context, _t("Unit 2 Test\n20 min", "Ujian Unit 2\n15 mnt"), 0,
                 _u2TestCompleted >= 1 ? NodeStatus.completed : (_u2Words2Stars >= 3 ? NodeStatus.current : NodeStatus.locked),
                 2, 'test', () {
                 setState(() {
@@ -226,7 +226,7 @@ class _LearnScreenState extends State<LearnScreen> {
 
               // UNIT TEST 3
               _buildClickableNode(
-                context, _t("Unit 3 Test\n20 min", "Ujian Unit 3\n20 mnt"), 0,
+                context, _t("Unit 3 Test\n20 min", "Ujian Unit 3\n15 mnt"), 0,
                 _u3TestCompleted >= 1 ? NodeStatus.completed : (_u3PeopleStars >= 3 ? NodeStatus.current : NodeStatus.locked),
                 3, 'test', () {
                 setState(() {
@@ -246,23 +246,23 @@ class _LearnScreenState extends State<LearnScreen> {
                 setState(() { if (_u4ParticlesStars < 3) { _u4ParticlesStars++; _saveStarProgress('u4_particles_stars', _u4ParticlesStars); } });
               }, hintEn: "Master essential particles: wa, wo, mo, ni, he, de, to, no, ga...", hintId: "Kuasai partikel penting: wa, wo, mo, ni, he, de, to, no, ga..."),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Verb Basics 1", "Kata Kerja 1"), _u4Verbs1Stars, _u4Verbs1Stars >= 3 ? NodeStatus.completed : (_u4ParticlesStars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_1', () {
+              _buildClickableNode(context, _t("Verb Basics 1", "Kata Kerja 1"), _u4Verbs1Stars, _u4Verbs1Stars >= 3 ? NodeStatus.completed : (_u4ParticlesStars == 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_1', () {
                 setState(() { if (_u4Verbs1Stars < 3) { _u4Verbs1Stars++; _saveStarProgress('u4_verbs1_stars', _u4Verbs1Stars); } });
               }, hintEn: "Common verbs: taberu, nomu, iku, kuru, suru, kau, wakaru...", hintId: "Kata kerja umum: taberu, nomu, iku, kuru, suru, kau, wakaru..."),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Verb Basics 2", "Kata Kerja 2"), _u4Verbs2Stars, _u4Verbs2Stars >= 3 ? NodeStatus.completed : (_u4Verbs1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_2', () {
+              _buildClickableNode(context, _t("Verb Basics 2", "Kata Kerja 2"), _u4Verbs2Stars, _u4Verbs2Stars >= 3 ? NodeStatus.completed : (_u4Verbs1Stars == 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_2', () {
                 setState(() { if (_u4Verbs2Stars < 3) { _u4Verbs2Stars++; _saveStarProgress('u4_verbs2_stars', _u4Verbs2Stars); } });
               }, hintEn: "More verbs: miru, kiku, kaku, yomu, oyogu, matsu, kaeru...", hintId: "Lebih banyak kata kerja: miru, kiku, kaku, yomu, oyogu, matsu, kaeru..."),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Adjectives", "Kata Sifat"), _u4AdjectivesStars, _u4AdjectivesStars >= 3 ? NodeStatus.completed : (_u4Verbs2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_adjectives', () {
+              _buildClickableNode(context, _t("Adjectives", "Kata Sifat"), _u4AdjectivesStars, _u4AdjectivesStars >= 3 ? NodeStatus.completed : (_u4Verbs2Stars == 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_adjectives', () {
                 setState(() { if (_u4AdjectivesStars < 3) { _u4AdjectivesStars++; _saveStarProgress('u4_adjectives_stars', _u4AdjectivesStars); } });
               }, hintEn: "Common adjectives: oishii, takai, yasui, ookii, chiisai, ii, warui...", hintId: "Kata sifat umum: oishii, takai, yasui, ookii, chiisai, ii, warui..."),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 4
               _buildClickableNode(
-                context, _t("Unit 4 Test\n20 min", "Ujian Unit 4\n20 mnt"), 0,
-                _u4TestCompleted >= 1 ? NodeStatus.completed : (_u4AdjectivesStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                context, _t("Unit 4 Test\n20 min", "Ujian Unit 4\n15 mnt"), 0,
+                _u4TestCompleted >= 1 ? NodeStatus.completed : (_u4AdjectivesStars == 3 ? NodeStatus.current : NodeStatus.locked),
                 4, 'test', () {
                 setState(() {
                   if (_u4TestCompleted == 0) {

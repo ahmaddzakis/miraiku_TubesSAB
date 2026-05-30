@@ -9,10 +9,13 @@ class UnitHeaderCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF58CC02), // Hijau Duolingo
+        color: const Color(0xFFCC6633), // Oranye kemerahan khas Miraiku
         borderRadius: BorderRadius.circular(16),
         border: const Border(
-          bottom: BorderSide(color: Color(0xFF46A302), width: 5), // Efek 3D Bawah
+          bottom: BorderSide(
+              color: Color(0xFFA64D22), // Warna efek 3D (lebih gelap)
+              width: 5
+          ),
         ),
       ),
       child: const Column(
