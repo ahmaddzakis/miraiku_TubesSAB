@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../main.dart';
 import '../core/game_manager.dart';
-import '../core/sound_manager.dart'; // Jangan lupa panggil ini untuk suara error/sukses
 
 class TopStatusBar extends StatelessWidget {
   const TopStatusBar({super.key});
@@ -204,8 +202,8 @@ class TopStatusBar extends StatelessWidget {
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎁 Login 7 hari berturut-turut untuk mendapatkan bonus 500 XP!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                child: const Text("🎁 Login setiap hari untuk klaim 50 XP & bonus Mingguan di Profil!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
 
@@ -226,7 +224,7 @@ class TopStatusBar extends StatelessWidget {
                                       return Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                         decoration: BoxDecoration(
-                                            color: const Color(0xFFE53935).withValues(alpha: 0.1),
+                                            color: const Color(0xFFE53935).withOpacity(0.1),
                                             borderRadius: BorderRadius.circular(12)
                                         ),
                                         child: Text(
@@ -270,15 +268,15 @@ class TopStatusBar extends StatelessWidget {
                             // KONTEN XP
                             if (type == 'xp') ...[
                               Text(
-                                "Total XP kamu saat ini: $currentXP\nKamu akan mendapatkan 75 XP setiap kali berhasil menjawab soal dengan benar.",
+                                "Total XP kamu saat ini: $currentXP\nKamu akan mendapatkan 25 XP setiap kali berhasil menjawab soal latihan dengan benar.",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5),
                               ),
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎯 Kumpulkan 1500 XP untuk membuka mode Evaluasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                child: const Text("🎯 Kumpulkan 1500 XP untuk membuka mode Simulasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                               )
                             ],
                           ],

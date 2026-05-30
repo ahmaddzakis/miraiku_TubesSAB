@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../core/game_manager.dart';
 
 enum NodeStatus { locked, current, completed }
 
@@ -97,7 +97,6 @@ class PathNode extends StatelessWidget {
               children: [
                 Row(children: List.generate(3, (index) => Icon(index < starDisplay ? Icons.star_rounded : Icons.star_border_rounded, color: const Color(0xFFFFC107), size: 20))),
                 const SizedBox(width: 12),
-                Text('Bintang $starDisplay', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF4B4B4B), fontWeight: FontWeight.w900, fontSize: 16)),
               ],
             )
         )
@@ -185,9 +184,9 @@ class PathNode extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text("Replay?", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withValues(alpha: 0.8))),
+                        Text("Replay?", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withOpacity(0.8))),
                         const SizedBox(width: 4),
-                        Icon(Icons.replay_rounded, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withValues(alpha: 0.8), size: 18),
+                        Icon(Icons.replay_rounded, color: isDark ? const Color(0xFFCC6633) : const Color(0xFFCC6633).withOpacity(0.8), size: 18),
                       ],
                     ),
                   ),

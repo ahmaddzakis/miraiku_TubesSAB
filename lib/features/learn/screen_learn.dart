@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart';
+import '../../core/game_manager.dart';
 import '../../widgets/path_node.dart';
 import 'widget_learn.dart';
 import 'screen_exercise.dart';
@@ -28,7 +28,11 @@ class _LearnScreenState extends State<LearnScreen> {
   int _u2Kata1Stars = 0, _u2Kata2Stars = 0, _u2Kata3Stars = 0, _u2Kata4Stars = 0;
   int _u2Words1Stars = 0, _u2Words2Stars = 0, _u2TestCompleted = 0;
 
-  int _userHearts = 5;
+  // --- STATE UNIT 3 (BASIC KANJI) ---
+  int _u3NumStars = 0, _u3NatureStars = 0, _u3PeopleStars = 0, _u3TestCompleted = 0;
+
+  // --- STATE UNIT 4 (BASIC GRAMMAR) ---
+  int _u4ParticlesStars = 0, _u4Verbs1Stars = 0, _u4Verbs2Stars = 0, _u4AdjectivesStars = 0, _u4TestCompleted = 0;
 
   @override
   void initState() {
@@ -39,7 +43,7 @@ class _LearnScreenState extends State<LearnScreen> {
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _u1Hira1Stars = prefs.getInt('u1_hira1_stars') ?? 0;
+      _u1Hira1Stars = prefs.getInt('u1_hira1_stars') ?? 0; // Default 0 untuk user baru agar tidak "Replay"
       _u1Hira2Stars = prefs.getInt('u1_hira2_stars') ?? 0;
       _u1Hira3Stars = prefs.getInt('u1_hira3_stars') ?? 0;
       _u1Hira4Stars = prefs.getInt('u1_hira4_stars') ?? 0;
@@ -56,18 +60,26 @@ class _LearnScreenState extends State<LearnScreen> {
       _u2Words2Stars = prefs.getInt('u2_words2_stars') ?? 0;
       _u2TestCompleted = prefs.getInt('u2_test_stars') ?? 0;
 
-      _userHearts = prefs.getInt('user_hearts') ?? 5;
+      // Unit 3 States
+      _u3NumStars = prefs.getInt('u3_num_stars') ?? 0;
+      _u3NatureStars = prefs.getInt('u3_nature_stars') ?? 0;
+      _u3PeopleStars = prefs.getInt('u3_people_stars') ?? 0;
+      _u3TestCompleted = prefs.getInt('u3_test_stars') ?? 0;
+
+      // Unit 4 States
+      _u4ParticlesStars = prefs.getInt('u4_particles_stars') ?? 0;
+      _u4Verbs1Stars = prefs.getInt('u4_verbs1_stars') ?? 0;
+      _u4Verbs2Stars = prefs.getInt('u4_verbs2_stars') ?? 0;
+      _u4AdjectivesStars = prefs.getInt('u4_adjectives_stars') ?? 0;
+      _u4TestCompleted = prefs.getInt('u4_test_stars') ?? 0;
     });
   }
 
   Future<void> _saveStarProgress(String key, int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
-  }
-
-  Future<void> _saveHearts(int value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('user_hearts', value);
+    // Langsung cadangkan ke Cloud agar tidak hilang saat login ulang
+    await GameManager.syncToCloud();
   }
 
   String _t(String en, String id) {
@@ -76,17 +88,24 @@ class _LearnScreenState extends State<LearnScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = globalDarkMode.value;
-    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-    final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+    return ValueListenableBuilder(
+      valueListenable: globalDarkMode,
+      builder: (context, isDark, _) {
+        return ValueListenableBuilder(
+          valueListenable: globalLanguage,
+          builder: (context, lang, _) {
+            final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
+            final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
 
-    // Kunci Pembuka Unit 2
-    bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
+            // Kunci Pembuka Unit 2 & 3 & 4
+            bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
+            bool isUnit3Unlocked = _u2TestCompleted >= 1;
+            bool isUnit4Unlocked = _u3TestCompleted >= 1;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+            return Scaffold(
+              backgroundColor: bgColor,
+              body: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
@@ -101,31 +120,31 @@ class _LearnScreenState extends State<LearnScreen> {
                 setState(() { if (_u1Hira1Stars < 3) { _u1Hira1Stars++; _saveStarProgress('u1_hira1_stars', _u1Hira1Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Hiragana Basics 2", "Hiragana Dasar 2"), _u1Hira2Stars, _u1Hira2Stars >= 3 ? NodeStatus.completed : (_u1Hira1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_2', () {
+              _buildClickableNode(context, _t("Hiragana Basics 2", "Hiragana Dasar 2"), _u1Hira2Stars, _u1Hira2Stars >= 3 ? NodeStatus.completed : (_u1Hira1Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_2', () {
                 setState(() { if (_u1Hira2Stars < 3) { _u1Hira2Stars++; _saveStarProgress('u1_hira2_stars', _u1Hira2Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Hiragana Basics 3", "Hiragana Dasar 3"), _u1Hira3Stars, _u1Hira3Stars >= 3 ? NodeStatus.completed : (_u1Hira2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_3', () {
+              _buildClickableNode(context, _t("Hiragana Basics 3", "Hiragana Dasar 3"), _u1Hira3Stars, _u1Hira3Stars >= 3 ? NodeStatus.completed : (_u1Hira2Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_3', () {
                 setState(() { if (_u1Hira3Stars < 3) { _u1Hira3Stars++; _saveStarProgress('u1_hira3_stars', _u1Hira3Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Hiragana Basics 4", "Hiragana Dasar 4"), _u1Hira4Stars, _u1Hira4Stars >= 3 ? NodeStatus.completed : (_u1Hira3Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_4', () {
+              _buildClickableNode(context, _t("Hiragana Basics 4", "Hiragana Dasar 4"), _u1Hira4Stars, _u1Hira4Stars >= 3 ? NodeStatus.completed : (_u1Hira3Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'hiragana_4', () {
                 setState(() { if (_u1Hira4Stars < 3) { _u1Hira4Stars++; _saveStarProgress('u1_hira4_stars', _u1Hira4Stars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Daily Greetings", "Salam Sehari-hari"), _u1GreetStars, _u1GreetStars >= 3 ? NodeStatus.completed : (_u1Hira4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'greetings', () {
+              _buildClickableNode(context, _t("Daily Greetings", "Salam Sehari-hari"), _u1GreetStars, _u1GreetStars >= 3 ? NodeStatus.completed : (_u1Hira4Stars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'greetings', () {
                 setState(() { if (_u1GreetStars < 3) { _u1GreetStars++; _saveStarProgress('u1_greet_stars', _u1GreetStars); } });
               }),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Numbers & Time", "Angka & Waktu"), _u1NumStars, _u1NumStars >= 3 ? NodeStatus.completed : (_u1GreetStars >= 3 ? NodeStatus.current : NodeStatus.locked), 1, 'numbers', () {
+              _buildClickableNode(context, _t("Numbers & Time", "Angka & Waktu"), _u1NumStars, _u1NumStars >= 3 ? NodeStatus.completed : (_u1GreetStars == 3 ? NodeStatus.current : NodeStatus.locked), 1, 'numbers', () {
                 setState(() { if (_u1NumStars < 3) { _u1NumStars++; _saveStarProgress('u1_num_stars', _u1NumStars); } });
               }),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 1 (Tanpa Bintang, Langsung Tamat 1x Main)
               _buildClickableNode(
-                context, _t("Unit Test\n20 min", "Ujian Unit\n20 mnt"), 0,
-                _u1TestCompleted >= 1 ? NodeStatus.completed : (_u1NumStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                context, _t("Unit Test\n20 min", "Ujian Unit\n15 mnt"), 0,
+                _u1TestCompleted >= 1 ? NodeStatus.completed : (_u1NumStars == 3 ? NodeStatus.current : NodeStatus.locked),
                 1, 'test', () {
                 setState(() {
                   if (_u1TestCompleted == 0) {
@@ -147,32 +166,32 @@ class _LearnScreenState extends State<LearnScreen> {
 
               _buildClickableNode(context, _t("Katakana Basics 1", "Katakana Dasar 1"), _u2Kata1Stars, _u2Kata1Stars >= 3 ? NodeStatus.completed : (isUnit2Unlocked ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_1', () {
                 setState(() { if (_u2Kata1Stars < 3) { _u2Kata1Stars++; _saveStarProgress('u2_kata1_stars', _u2Kata1Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: A, I, U, E, O, KA, KI, KU, KE, KO, SA, SHI", hintId: "Pelajari Katakana: A, I, U, E, O, KA, KI, KU, KE, KO, SA, SHI"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Basics 2", "Katakana Dasar 2"), _u2Kata2Stars, _u2Kata2Stars >= 3 ? NodeStatus.completed : (_u2Kata1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_2', () {
                 setState(() { if (_u2Kata2Stars < 3) { _u2Kata2Stars++; _saveStarProgress('u2_kata2_stars', _u2Kata2Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: SU, SE, SO, TA, CHI, TSU, TE, TO, NA, NI, NU, NE", hintId: "Pelajari Katakana: SU, SE, SO, TA, CHI, TSU, TE, TO, NA, NI, NU, NE"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Basics 3", "Katakana Dasar 3"), _u2Kata3Stars, _u2Kata3Stars >= 3 ? NodeStatus.completed : (_u2Kata2Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_3', () {
                 setState(() { if (_u2Kata3Stars < 3) { _u2Kata3Stars++; _saveStarProgress('u2_kata3_stars', _u2Kata3Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: NO, HA, HI, FU, HE, HO, MA, MI, MU, ME, MO, YA", hintId: "Pelajari Katakana: NO, HA, HI, FU, HE, HO, MA, MI, MU, ME, MO, YA"),
               _buildLeftConnector(borderColor),
               _buildClickableNode(context, _t("Katakana Basics 4", "Katakana Dasar 4"), _u2Kata4Stars, _u2Kata4Stars >= 3 ? NodeStatus.completed : (_u2Kata3Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_4', () {
                 setState(() { if (_u2Kata4Stars < 3) { _u2Kata4Stars++; _saveStarProgress('u2_kata4_stars', _u2Kata4Stars); } });
-              }),
+              }, hintEn: "Learn Katakana: YU, YO, RA, RI, RU, RE, RO, WA, WO, N, GA, PA", hintId: "Pelajari Katakana: YU, YO, RA, RI, RU, RE, RO, WA, WO, N, GA, PA"),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Katakana Words 1", "Kosakata Katakana 1"), _u2Words1Stars, _u2Words1Stars >= 3 ? NodeStatus.completed : (_u2Kata4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words_1', () {
+              _buildClickableNode(context, _t("Katakana Words 1", "Kosakata Katakana 1"), _u2Words1Stars, _u2Words1Stars >= 3 ? NodeStatus.completed : (_u2Kata4Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words', () {
                 setState(() { if (_u2Words1Stars < 3) { _u2Words1Stars++; _saveStarProgress('u2_words1_stars', _u2Words1Stars); } });
-              }),
+              }, hintEn: "Common Katakana words: Camera, TV, Hotel, Bus, Toilet...", hintId: "Kata Katakana umum: Kamera, TV, Hotel, Bus, Toilet..."),
               _buildLeftConnector(borderColor),
-              _buildClickableNode(context, _t("Katakana Words 2", "Kosakata Katakana 2"), _u2Words2Stars, _u2Words2Stars >= 3 ? NodeStatus.completed : (_u2Words1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_words_2', () {
+              _buildClickableNode(context, _t("Katakana Words 2", "Kosakata Katakana 2"), _u2Words2Stars, _u2Words2Stars >= 3 ? NodeStatus.completed : (_u2Words1Stars >= 3 ? NodeStatus.current : NodeStatus.locked), 2, 'loanwords', () {
                 setState(() { if (_u2Words2Stars < 3) { _u2Words2Stars++; _saveStarProgress('u2_words2_stars', _u2Words2Stars); } });
-              }),
+              }, hintEn: "More loanwords: Restaurant, Supermarket, Department Store, Pizza...", hintId: "Lebih banyak kata serapan: Restoran, Supermarket, Toserba, Pizza..."),
               _buildLeftConnector(borderColor),
 
               // UNIT TEST 2
               _buildClickableNode(
-                context, _t("Unit 2 Test\n20 min", "Ujian Unit 2\n20 mnt"), 0,
+                context, _t("Unit 2 Test\n20 min", "Ujian Unit 2\n15 mnt"), 0,
                 _u2TestCompleted >= 1 ? NodeStatus.completed : (_u2Words2Stars >= 3 ? NodeStatus.current : NodeStatus.locked),
                 2, 'test', () {
                 setState(() {
@@ -184,26 +203,132 @@ class _LearnScreenState extends State<LearnScreen> {
               },
               ),
 
+              const SizedBox(height: 40),
+              Divider(thickness: 2, color: borderColor),
+              const SizedBox(height: 20),
+
+              // ==================== UNIT 3 (KANJI) ====================
+              _buildUnit3HeaderCard(isDark, isUnit3Unlocked),
+              const SizedBox(height: 40),
+
+              _buildClickableNode(context, _t("Kanji Numbers", "Kanji Angka"), _u3NumStars, _u3NumStars >= 3 ? NodeStatus.completed : (isUnit3Unlocked ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_numbers', () {
+                setState(() { if (_u3NumStars < 3) { _u3NumStars++; _saveStarProgress('u3_num_stars', _u3NumStars); } });
+              }, hintEn: "Learn Kanji for numbers 1-10, 100, and 1000", hintId: "Pelajari Kanji untuk angka 1-10, 100, dan 1000"),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Nature & Elements", "Alam & Elemen"), _u3NatureStars, _u3NatureStars >= 3 ? NodeStatus.completed : (_u3NumStars >= 3 ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_nature', () {
+                setState(() { if (_u3NatureStars < 3) { _u3NatureStars++; _saveStarProgress('u3_nature_stars', _u3NatureStars); } });
+              }, hintEn: "Kanji for Sun, Moon, Fire, Water, Wood, Gold, Earth, Mountain, River...", hintId: "Kanji untuk Matahari, Bulan, Api, Air, Kayu, Logam, Tanah, Gunung, Sungai..."),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("People & Directions", "Orang & Arah"), _u3PeopleStars, _u3PeopleStars >= 3 ? NodeStatus.completed : (_u3NatureStars >= 3 ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_people', () {
+                setState(() { if (_u3PeopleStars < 3) { _u3PeopleStars++; _saveStarProgress('u3_people_stars', _u3PeopleStars); } });
+              }, hintEn: "Kanji for Person, Child, Woman, Man, Eye, Mouth, Ear, Hand, Foot...", hintId: "Kanji untuk Orang, Anak, Wanita, Pria, Mata, Mulut, Telinga, Tangan, Kaki..."),
+              _buildLeftConnector(borderColor),
+
+              // UNIT TEST 3
+              _buildClickableNode(
+                context, _t("Unit 3 Test\n20 min", "Ujian Unit 3\n15 mnt"), 0,
+                _u3TestCompleted >= 1 ? NodeStatus.completed : (_u3PeopleStars >= 3 ? NodeStatus.current : NodeStatus.locked),
+                3, 'test', () {
+                setState(() {
+                  if (_u3TestCompleted == 0) {
+                    _u3TestCompleted = 1;
+                    _saveStarProgress('u3_test_stars', 1);
+                  }
+                });
+              },
+              ),
+
+              // ==================== UNIT 4 (GRAMMAR) ====================
+              _buildUnit4HeaderCard(isDark, isUnit4Unlocked),
+              const SizedBox(height: 40),
+
+              _buildClickableNode(context, _t("Basic Particles", "Partikel Dasar"), _u4ParticlesStars, _u4ParticlesStars >= 3 ? NodeStatus.completed : (isUnit4Unlocked ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_particles', () {
+                setState(() { if (_u4ParticlesStars < 3) { _u4ParticlesStars++; _saveStarProgress('u4_particles_stars', _u4ParticlesStars); } });
+              }, hintEn: "Master essential particles: wa, wo, mo, ni, he, de, to, no, ga...", hintId: "Kuasai partikel penting: wa, wo, mo, ni, he, de, to, no, ga..."),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Verb Basics 1", "Kata Kerja 1"), _u4Verbs1Stars, _u4Verbs1Stars >= 3 ? NodeStatus.completed : (_u4ParticlesStars == 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_1', () {
+                setState(() { if (_u4Verbs1Stars < 3) { _u4Verbs1Stars++; _saveStarProgress('u4_verbs1_stars', _u4Verbs1Stars); } });
+              }, hintEn: "Common verbs: taberu, nomu, iku, kuru, suru, kau, wakaru...", hintId: "Kata kerja umum: taberu, nomu, iku, kuru, suru, kau, wakaru..."),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Verb Basics 2", "Kata Kerja 2"), _u4Verbs2Stars, _u4Verbs2Stars >= 3 ? NodeStatus.completed : (_u4Verbs1Stars == 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_verbs_2', () {
+                setState(() { if (_u4Verbs2Stars < 3) { _u4Verbs2Stars++; _saveStarProgress('u4_verbs2_stars', _u4Verbs2Stars); } });
+              }, hintEn: "More verbs: miru, kiku, kaku, yomu, oyogu, matsu, kaeru...", hintId: "Lebih banyak kata kerja: miru, kiku, kaku, yomu, oyogu, matsu, kaeru..."),
+              _buildLeftConnector(borderColor),
+              _buildClickableNode(context, _t("Adjectives", "Kata Sifat"), _u4AdjectivesStars, _u4AdjectivesStars >= 3 ? NodeStatus.completed : (_u4Verbs2Stars == 3 ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_adjectives', () {
+                setState(() { if (_u4AdjectivesStars < 3) { _u4AdjectivesStars++; _saveStarProgress('u4_adjectives_stars', _u4AdjectivesStars); } });
+              }, hintEn: "Common adjectives: oishii, takai, yasui, ookii, chiisai, ii, warui...", hintId: "Kata sifat umum: oishii, takai, yasui, ookii, chiisai, ii, warui..."),
+              _buildLeftConnector(borderColor),
+
+              // UNIT TEST 4
+              _buildClickableNode(
+                context, _t("Unit 4 Test\n20 min", "Ujian Unit 4\n15 mnt"), 0,
+                _u4TestCompleted >= 1 ? NodeStatus.completed : (_u4AdjectivesStars == 3 ? NodeStatus.current : NodeStatus.locked),
+                4, 'test', () {
+                setState(() {
+                  if (_u4TestCompleted == 0) {
+                    _u4TestCompleted = 1;
+                    _saveStarProgress('u4_test_stars', 1);
+                  }
+                });
+              },
+              ),
+
               const SizedBox(height: 100),
             ],
           ),
         ),
       ),
     );
+          },
+        );
+      },
+    );
   }
 
   // --- HELPER BUILDER ---
   Widget _buildLeftConnector(Color color) => Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 28), child: Container(width: 6, height: 35, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))));
 
-  Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess) {
-    return GestureDetector(
-      onTap: status == NodeStatus.locked ? null : () {
-        if (_userHearts <= 0) { _showNoHeartsDialog(); return; }
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: stars, currentHearts: _userHearts, onQuizPassed: onSuccess, onHeartDecreased: (h) { setState(() { _userHearts = h; _saveHearts(_userHearts); }); })));
-      },
-      child: PathNode(title: title, status: status, stars: stars, alignment: Alignment.centerLeft, onReplaySelected: (selectedStarIndex) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(unit: unit, difficulty: diff, currentStars: selectedStarIndex)));
-      }),
+  Widget _buildClickableNode(BuildContext context, String title, int stars, NodeStatus status, int unit, String diff, VoidCallback onSuccess, {String? hintEn, String? hintId}) {
+    final bool isTestNode = title.toLowerCase().contains('test') || title.toLowerCase().contains('ujian');
+
+    return ValueListenableBuilder<int>(
+      valueListenable: globalHearts,
+      builder: (context, currentHearts, _) {
+        return GestureDetector(
+          onTap: (status == NodeStatus.locked || (status == NodeStatus.completed && (stars >= 3 || isTestNode)))
+              ? null
+              : () {
+            if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
+              unit: unit, 
+              difficulty: diff, 
+              currentStars: stars, 
+              currentHearts: currentHearts, 
+              onQuizPassed: onSuccess,
+              isReplay: status == NodeStatus.completed,
+              hint: globalLanguage.value == 'id' ? hintId : hintEn,
+            )));
+          },
+          child: PathNode(
+            title: title, 
+            status: status, 
+            stars: stars, 
+            alignment: Alignment.centerLeft, 
+            onReplaySelected: (selectedStarIndex) {
+              if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
+                unit: unit, 
+                difficulty: diff, 
+                currentStars: selectedStarIndex,
+                currentHearts: currentHearts,
+                onQuizPassed: onSuccess,
+                isReplay: true,
+                hint: globalLanguage.value == 'id' ? hintId : hintEn,
+              )));
+            },
+          ),
+        );
+      }
     );
   }
 
@@ -222,7 +347,7 @@ class _LearnScreenState extends State<LearnScreen> {
         children: [
           Text(
               'UNIT 2',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.9) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
           ),
           const SizedBox(height: 8),
           Text(
@@ -239,16 +364,161 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
+  Widget _buildUnit3HeaderCard(bool isDark, bool unlocked) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        color: unlocked ? const Color(0xFF1CB0F6) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'UNIT 3',
+              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+          ),
+          const SizedBox(height: 8),
+          Text(
+              _t('BASIC KANJI', 'KANJI DASAR'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
+          ),
+          const SizedBox(height: 12),
+          Text(
+              unlocked ? _t('Master the essential ideograms for N5 level', 'Kuasai ideogram penting untuk level N5') : _t('Complete Unit 2 Test to unlock', 'Selesaikan Ujian Unit 2 untuk membuka akses'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnit4HeaderCard(bool isDark, bool unlocked) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        color: unlocked ? const Color(0xFFFF4B4B) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'UNIT 4',
+              style: TextStyle(color: unlocked ? Colors.white.withOpacity(0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+          ),
+          const SizedBox(height: 8),
+          Text(
+              _t('BASIC GRAMMAR', 'TATA BAHASA DASAR'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
+          ),
+          const SizedBox(height: 12),
+          Text(
+              unlocked ? _t('Construct sentences with particles and verbs', 'Susun kalimat dengan partikel dan kata kerja') : _t('Complete Unit 3 Test to unlock', 'Selesaikan Ujian Unit 3 untuk membuka akses'),
+              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNoHeartsDialog() {
     final bool isDark = globalDarkMode.value;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F6F0),
-        title: Text(_t('💔 Out of Hearts!', '💔 Nyawa Anda Habis!'), style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF2D2622)), textAlign: TextAlign.center),
-        content: Text(_t('You cannot start a new lesson. Please wait or restore your hearts.', 'Anda tidak dapat memulai latihan baru. Silakan tunggu beberapa saat atau pulihkan nyawa.'), textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(_t('UNDERSTOOD', 'MENGERTI'), style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.bold)))],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Column(
+          children: [
+            const Icon(Icons.favorite_border_rounded, color: Color(0xFFE53935), size: 60),
+            const SizedBox(height: 16),
+            Text(
+              _t('Nyawa Habis!', 'Nyawa Habis!'),
+              style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333), fontSize: 22),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _t(
+                'Don\'t give up! Mistakes are the best teachers. Restore your hearts and keep going!',
+                'Jangan menyerah! Kesalahan adalah guru terbaik. Pulihkan nyawa dan teruslah belajar!'
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF4B4B4B), height: 1.5, fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.flash_on, color: Colors.orange, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    "150 XP per Nyawa",
+                    style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        actions: [
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFCC6633),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  onPressed: () async {
+                    bool success = await GameManager.buyHeartWithXP();
+                    if (!context.mounted) return;
+                    if (success) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_t('Heart restored! Go for it!', 'Nyawa berhasil dipulihkan! Semangat!')),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_t('Not enough XP!', 'XP tidak cukup!'))),
+                      );
+                    }
+                  },
+                  child: Text(_t('RESTORE WITH XP', 'BELI DENGAN XP'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  _t('LATER', 'NANTI SAJA'),
+                  style: TextStyle(color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }

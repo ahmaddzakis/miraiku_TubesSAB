@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'sound_manager.dart';
+import 'notification_service.dart';
 
 // ==========================================
 // 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
@@ -11,23 +14,227 @@ final ValueNotifier<int> globalXP = ValueNotifier<int>(0);
 final ValueNotifier<int> globalStreak = ValueNotifier<int>(0);
 final ValueNotifier<String> globalTimerText = ValueNotifier<String>("Penuh");
 
+final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
+final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
+final ValueNotifier<bool> globalIsPremium = ValueNotifier<bool>(false);
+final ValueNotifier<List<String>> globalLearnedHiragana = ValueNotifier<List<String>>([]);
+final ValueNotifier<List<String>> globalLearnedKatakana = ValueNotifier<List<String>>([]);
+final ValueNotifier<List<String>> globalLearnedKanji = ValueNotifier<List<String>>([]);
+final ValueNotifier<List<dynamic>> globalSimulationHistory = ValueNotifier<List<dynamic>>([]);
+
 class GameManager {
   static const int maxHearts = 5;
   static const int cooldownMinutes = 20; // 20 Menit per 1 Nyawa
   static Timer? _uiTimer;
 
+  static StreamSubscription<AuthState>? _authSubscription;
+
   // 1. FUNGSI INISIALISASI (Dipanggil saat aplikasi baru dibuka)
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
 
-    // Tarik data dari memori HP
-    globalHearts.value = prefs.getInt('gm_hearts') ?? 5;
-    globalXP.value = prefs.getInt('gm_xp') ?? 0;
-    globalStreak.value = prefs.getInt('gm_streak') ?? 0;
+    // Ambil data dari Supabase jika user sedang login
+    final meta = user?.userMetadata ?? {};
+
+    // Prioritaskan data Cloud, jika tidak ada baru ambil Lokal
+    _updateLocalStateFromMeta(meta, prefs);
 
     await _checkDailyStreak(prefs);
     await _calculateOfflineRegen(prefs);
     _startTicker();
+    _startAuthListener();
+  }
+
+  // Helper untuk update state global dari metadata
+  static void _updateLocalStateFromMeta(Map<String, dynamic> meta, SharedPreferences prefs) {
+    // Ambil dari metadata Cloud, kalau tidak ada pakai data Lokal (dari SharedPreferences), kalau tidak ada pakai Default
+    globalHearts.value = (meta['gm_hearts'] as num?)?.toInt() ?? prefs.getInt('gm_hearts') ?? 5;
+    globalXP.value = (meta['gm_xp'] as num?)?.toInt() ?? prefs.getInt('gm_xp') ?? 0;
+    globalStreak.value = (meta['gm_streak'] as num?)?.toInt() ?? prefs.getInt('gm_streak') ?? 0;
+
+    globalDarkMode.value = meta['setting_dark'] ?? prefs.getBool('is_dark_mode') ?? prefs.getBool('setting_dark') ?? false;
+    globalLanguage.value = meta['setting_lang'] ?? prefs.getString('app_language') ?? prefs.getString('setting_lang') ?? 'en';
+    
+    // Restore notification preference and reschedule if needed
+    final bool isReminderOn = meta['is_daily_reminder_on'] ?? prefs.getBool('is_daily_reminder_on') ?? false;
+    prefs.setBool('is_daily_reminder_on', isReminderOn);
+    if (isReminderOn) {
+      NotificationService().scheduleDailyStudyReminder();
+    }
+    globalIsPremium.value = meta['is_premium'] ?? prefs.getBool('is_premium') ?? false;
+
+    if (meta['learned_hiragana'] != null) {
+      globalLearnedHiragana.value = List<String>.from(meta['learned_hiragana']);
+    } else {
+      globalLearnedHiragana.value = prefs.getStringList('learned_hiragana_list') ?? [];
+    }
+
+    if (meta['learned_katakana'] != null) {
+      globalLearnedKatakana.value = List<String>.from(meta['learned_katakana']);
+    } else {
+      globalLearnedKatakana.value = prefs.getStringList('learned_katakana_list') ?? [];
+    }
+
+    if (meta['learned_kanji'] != null) {
+      globalLearnedKanji.value = List<String>.from(meta['learned_kanji']);
+    } else {
+      globalLearnedKanji.value = prefs.getStringList('learned_kanji_list') ?? [];
+    }
+
+    if (meta['simulation_history'] != null) {
+      globalSimulationHistory.value = List<dynamic>.from(meta['simulation_history']);
+    } else {
+      final historyJson = prefs.getString('simulation_history') ?? '[]';
+      globalSimulationHistory.value = jsonDecode(historyJson);
+    }
+
+    // Restore timestamps untuk streak & heart recovery agar sinkron antar perangkat
+    if (meta['gm_last_login'] != null) {
+      prefs.setString('gm_last_login', meta['gm_last_login']);
+    }
+    if (meta['gm_last_heart_loss'] != null) {
+      prefs.setString('gm_last_heart_loss', meta['gm_last_heart_loss']);
+    }
+    if (meta['gm_last_daily_claim'] != null) {
+      prefs.setString('gm_last_daily_claim', meta['gm_last_daily_claim']);
+    } else {
+      prefs.remove('gm_last_daily_claim');
+    }
+
+    // --- RESTORE UNIT PROGRESS (u1_, u2_, u3_, u4_) ---
+    meta.forEach((key, value) {
+      if (key.startsWith('u1_') || key.startsWith('u2_') || key.startsWith('u3_') || key.startsWith('u4_')) {
+        if (value is int) {
+          prefs.setInt(key, value);
+        }
+      }
+    });
+
+    _saveProgressToLocal(prefs);
+  }
+
+  // Fungsi pembantu untuk menyimpan state saat ini ke SharedPreferences
+  static void _saveProgressToLocal(SharedPreferences prefs) {
+    prefs.setInt('gm_hearts', globalHearts.value);
+    prefs.setInt('gm_xp', globalXP.value);
+    prefs.setInt('gm_streak', globalStreak.value);
+    prefs.setBool('setting_dark', globalDarkMode.value);
+    prefs.setString('setting_lang', globalLanguage.value);
+    prefs.setBool('is_dark_mode', globalDarkMode.value);
+    prefs.setString('app_language', globalLanguage.value);
+    prefs.setBool('is_premium', globalIsPremium.value);
+    prefs.setStringList('learned_hiragana_list', globalLearnedHiragana.value);
+    prefs.setStringList('learned_katakana_list', globalLearnedKatakana.value);
+    prefs.setStringList('learned_kanji_list', globalLearnedKanji.value);
+    prefs.setString('simulation_history', jsonEncode(globalSimulationHistory.value));
+    
+    // Simpan juga timestamp ke local agar sinkron
+    if (prefs.getString('gm_last_login') == null) {
+       // default jika belum ada
+    }
+  }
+
+  // Reset semua progress ke default (digunakan saat logout)
+  static Future<void> resetProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    globalHearts.value = 5;
+    globalXP.value = 0;
+    globalStreak.value = 0;
+    globalIsPremium.value = false;
+    globalLearnedHiragana.value = [];
+    globalLearnedKatakana.value = [];
+    globalLearnedKanji.value = [];
+    globalSimulationHistory.value = [];
+    
+    await prefs.setBool('is_daily_reminder_on', false);
+    await NotificationService().cancelAll();
+    
+    // Hapus semua data terkait game di SharedPreferences agar tidak bocor ke user lain
+    final keys = prefs.getKeys();
+    for (String key in keys) {
+      if (key.startsWith('u1_') || 
+          key.startsWith('u2_') || 
+          key.startsWith('u3_') || 
+          key.startsWith('u4_') ||
+          key.startsWith('gm_') ||
+          key.startsWith('learned_') ||
+          key.startsWith('setting_') ||
+          key == 'is_premium' ||
+          key == 'simulation_completed_count' ||
+          key == 'simulation_history' ||
+          key == 'last_claimed_streak') {
+        await prefs.remove(key);
+      }
+    }
+  }
+
+  static void _startAuthListener() {
+    _authSubscription?.cancel();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final AuthChangeEvent event = data.event;
+      final session = data.session; // Local variable extraction for type promotion
+
+      if (event == AuthChangeEvent.signedIn || event == AuthChangeEvent.userUpdated) {
+        if (session != null) {
+          final user = session.user;
+          final prefs = await SharedPreferences.getInstance();
+          // 1. Update progress dari metadata cloud (atau fallback ke lokal/default)
+          _updateLocalStateFromMeta(user.userMetadata ?? {}, prefs);
+          
+          // 2. Jalankan ulang logika waktu agar sinkron dengan user baru
+          await _checkDailyStreak(prefs);
+          await _calculateOfflineRegen(prefs);
+        }
+      } else if (event == AuthChangeEvent.signedOut) {
+        // Reset state di memori dan lokal saat logout
+        await resetProgress();
+      }
+    });
+  }
+
+  static Future<void> syncToCloud({String? displayName, String? bio, String? avatarUrl}) async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final Map<String, dynamic> updateData = {
+          'gm_xp': globalXP.value,
+          'gm_hearts': globalHearts.value,
+          'gm_streak': globalStreak.value,
+          'setting_dark': globalDarkMode.value,
+          'setting_lang': globalLanguage.value,
+          'is_daily_reminder_on': prefs.getBool('is_daily_reminder_on') ?? false,
+          'is_premium': globalIsPremium.value,
+          'learned_hiragana': globalLearnedHiragana.value,
+          'learned_katakana': globalLearnedKatakana.value,
+          'learned_kanji': globalLearnedKanji.value,
+          'simulation_history': globalSimulationHistory.value,
+          'gm_last_login': prefs.getString('gm_last_login'),
+          'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
+          'gm_last_daily_claim': prefs.getString('gm_last_daily_claim'),
+        };
+
+        // --- SYNC ALL UNIT PROGRESS ---
+        final keys = prefs.getKeys();
+        for (String key in keys) {
+          if (key.startsWith('u1_') || key.startsWith('u2_') || key.startsWith('u3_') || key.startsWith('u4_')) {
+            updateData[key] = prefs.getInt(key);
+          }
+        }
+
+        // Tambahkan data profil jika disediakan
+        if (displayName != null) updateData['display_name'] = displayName;
+        if (bio != null) updateData['bio'] = bio;
+        if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+
+        await supabase.auth.updateUser(UserAttributes(data: updateData));
+      } catch (e) {
+        debugPrint("Gagal sinkronisasi progress ke Cloud: $e");
+      }
+    }
   }
 
   // 2. LOGIKA STREAK HARIAN
@@ -97,6 +304,12 @@ class GameManager {
   static void _startTicker() {
     _uiTimer?.cancel();
     _uiTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      if (globalIsPremium.value) {
+        globalHearts.value = maxHearts;
+        globalTimerText.value = "∞";
+        return;
+      }
+
       if (globalHearts.value >= maxHearts) {
         globalTimerText.value = "Penuh";
         return;
@@ -134,10 +347,13 @@ class GameManager {
     final prefs = await SharedPreferences.getInstance();
     globalXP.value += amount;
     prefs.setInt('gm_xp', globalXP.value);
+    await syncToCloud();
   }
 
   // Fungsi Kurangi Nyawa (Saat salah jawab)
   static Future<void> decreaseHeart() async {
+    if (globalIsPremium.value) return; // Infinite Hearts for Premium users
+
     if (globalHearts.value > 0) {
       final prefs = await SharedPreferences.getInstance();
 
@@ -148,6 +364,7 @@ class GameManager {
 
       globalHearts.value -= 1;
       prefs.setInt('gm_hearts', globalHearts.value);
+      await syncToCloud();
     }
   }
 
@@ -161,6 +378,7 @@ class GameManager {
       prefs.remove('gm_last_heart_loss');
       globalTimerText.value = "Penuh";
     }
+    await syncToCloud();
   }
 
   // Beli Nyawa Pakai XP

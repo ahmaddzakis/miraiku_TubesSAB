@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // IMPORT WAJIB UNTUK SUPABASE
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/top_status_bar.dart';
@@ -11,17 +11,20 @@ import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
 import 'features/login/screen_auth.dart';
 import 'core/game_manager.dart';
+import 'core/notification_service.dart';
 
 // ==========================================
-// 🌍 VARIABEL GLOBAL (STATE MANAGEMENT)
+// 🌍 GLOBAL NAVIGATOR KEY
 // ==========================================
-final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
-final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
-ValueNotifier<int> globalLearnedHiragana = ValueNotifier<int>(0);
-ValueNotifier<int> globalLearnedKatakana = ValueNotifier<int>(0);
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 📦 LOAD PERSISTENT SETTINGS
+  final prefs = await SharedPreferences.getInstance();
+  globalDarkMode.value = prefs.getBool('is_dark_mode') ?? false;
+  globalLanguage.value = prefs.getString('app_language') ?? 'en';
 
   // 🔗 INISIALISASI SUPABASE
   await Supabase.initialize(
@@ -29,10 +32,18 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2dHhrYW10bWtxc2Jnb2lqcm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDQyNjYsImV4cCI6MjA5NDgyMDI2Nn0.7aABG8Tk0JBjxzmtZtaq8kwITHTtQ9dpx0CZVwCwlnY', // PASTIKAN INI DIGANTI DENGAN KEY ASLI DARI DASHBOARD YA
   );
 
-  final prefs = await SharedPreferences.getInstance();
-  globalDarkMode.value = prefs.getBool('setting_dark') ?? false;
-  globalLanguage.value = prefs.getString('setting_lang') ?? 'en';
   await GameManager.init();
+  
+  final notificationService = NotificationService();
+  await notificationService.init();
+  // Don't request permissions or schedule here on every boot, 
+  // do it only when the user enables it in Settings/Notifications
+  // to avoid annoying the user on first launch unless it's a returning user with preference ON.
+  final isReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
+  if (isReminderOn) {
+    await notificationService.requestPermissions();
+    await notificationService.scheduleDailyStudyReminder();
+  }
 
   runApp(const MiraikuApp());
 }
@@ -44,43 +55,43 @@ class MiraikuApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
-      builder: (context, isDark, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Miraiku',
-          // ========================================================
-          // --- PERUBAHAN FONT GLOBAL KE NUNITO DI SINI ---
-          // ========================================================
-          theme: ThemeData(
-            fontFamily: 'Nunito', // <-- DIUBAH MENJADI NUNITO
-            scaffoldBackgroundColor: const Color(0xFFF9F6F0),
-            brightness: Brightness.light,
-          ),
-          darkTheme: ThemeData(
-            fontFamily: 'Nunito', // <-- DIUBAH MENJADI NUNITO
-            scaffoldBackgroundColor: const Color(0xFF121212),
-            brightness: Brightness.dark,
-          ),
-          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+      builder: (context, isDark, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: globalLanguage,
+          builder: (context, language, _) {
+            return MaterialApp(
+              navigatorKey: navigatorKey,
+              debugShowCheckedModeBanner: false,
+              title: 'Miraiku',
+              theme: ThemeData(
+                fontFamily: 'Nunito',
+                scaffoldBackgroundColor: const Color(0xFFF9F6F0),
+                brightness: Brightness.light,
+              ),
+              darkTheme: ThemeData(
+                fontFamily: 'Nunito',
+                scaffoldBackgroundColor: const Color(0xFF121212),
+                brightness: Brightness.dark,
+              ),
+              themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
 
-          // 🚪 GERBANG UTAMA: Mendeteksi Session Login secara Real-Time
-          home: StreamBuilder<AuthState>(
-            stream: Supabase.instance.client.auth.onAuthStateChange,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCC6633))));
-              }
+              home: StreamBuilder<AuthState>(
+                stream: Supabase.instance.client.auth.onAuthStateChange,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCC6633))));
+                  }
 
-              final session = snapshot.data?.session;
-              if (session != null) {
-                // Jika sudah login, arahkan ke menu utama
-                return const MainNavigationScreen();
-              } else {
-                // Jika belum login, kurung di halaman Auth
-                return const AuthScreen();
-              }
-            },
-          ),
+                  final session = snapshot.data?.session;
+                  if (session != null) {
+                    return const MainNavigationScreen();
+                  } else {
+                    return const AuthScreen();
+                  }
+                },
+              ),
+            );
+          },
         );
       },
     );
@@ -129,9 +140,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             const TopStatusBar(),
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
+                duration: const Duration(milliseconds: 400),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
                 transitionBuilder: (Widget child, Animation<double> animation) {
                   return FadeTransition(
                     opacity: animation,

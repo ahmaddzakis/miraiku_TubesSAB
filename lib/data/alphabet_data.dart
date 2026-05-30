@@ -92,4 +92,104 @@ class AlphabetData {
     {'jp': 'ビャ', 'ro': 'BYA'}, {'jp': 'ビュ', 'ro': 'BYU'}, {'jp': 'ビョ', 'ro': 'BYO'},
     {'jp': 'ピャ', 'ro': 'PYA'}, {'jp': 'ピュ', 'ro': 'PYU'}, {'jp': 'ピョ', 'ro': 'PYO'},
   ];
+
+  // ==========================================
+  // 📚 3. KANJI (BASIC N5)
+  // ==========================================
+
+  // Numbers 1-10
+  static const List<Map<String, String>> kanjiNumbers = [
+    {'jp': '一', 'ro': 'ICHI', 'en': 'One', 'id': 'Satu'},
+    {'jp': '二', 'ro': 'NI', 'en': 'Two', 'id': 'Dua'},
+    {'jp': '三', 'ro': 'SAN', 'en': 'Three', 'id': 'Tiga'},
+    {'jp': '四', 'ro': 'YON', 'en': 'Four', 'id': 'Empat'},
+    {'jp': '五', 'ro': 'GO', 'en': 'Five', 'id': 'Lima'},
+    {'jp': '六', 'ro': 'ROKU', 'en': 'Six', 'id': 'Enam'},
+    {'jp': '七', 'ro': 'NANA', 'en': 'Seven', 'id': 'Tujuh'},
+    {'jp': '八', 'ro': 'HACHI', 'en': 'Eight', 'id': 'Delapan'},
+    {'jp': '九', 'ro': 'KYUU', 'en': 'Nine', 'id': 'Sembilan'},
+    {'jp': '十', 'ro': 'JUU', 'en': 'Ten', 'id': 'Sepuluh'},
+  ];
+
+  // Nature & Elements
+  static const List<Map<String, String>> kanjiNature = [
+    {'jp': '日', 'ro': 'HI', 'en': 'Sun/Day', 'id': 'Matahari/Hari'},
+    {'jp': '月', 'ro': 'TSUKI', 'en': 'Moon/Month', 'id': 'Bulan'},
+    {'jp': '火', 'ro': 'HI', 'en': 'Fire', 'id': 'Api'},
+    {'jp': '水', 'ro': 'MIZU', 'en': 'Water', 'id': 'Air'},
+    {'jp': '木', 'ro': 'KI', 'en': 'Tree', 'id': 'Pohon'},
+    {'jp': '金', 'ro': 'KANE', 'en': 'Gold/Money', 'id': 'Emas/Uang'},
+    {'jp': '土', 'ro': 'TSUCHI', 'en': 'Soil/Earth', 'id': 'Tanah'},
+    {'jp': '山', 'ro': 'YAMA', 'en': 'Mountain', 'id': 'Gunung'},
+    {'jp': '川', 'ro': 'KAWA', 'en': 'River', 'id': 'Sungai'},
+    {'jp': '田', 'ro': 'TA', 'en': 'Rice Field', 'id': 'Sawah'},
+  ];
+
+  // People & Directions
+  static const List<Map<String, String>> kanjiPeople = [
+    {'jp': '人', 'ro': 'HITO', 'en': 'Person', 'id': 'Orang'},
+    {'jp': '子', 'ro': 'KO', 'en': 'Child', 'id': 'Anak'},
+    {'jp': '女', 'ro': 'ONNA', 'en': 'Woman', 'id': 'Wanita'},
+    {'jp': '男', 'ro': 'OTOKO', 'en': 'Man', 'id': 'Pria'},
+    {'jp': '上', 'ro': 'UE', 'en': 'Up', 'id': 'Atas'},
+    {'jp': '下', 'ro': 'SHITA', 'en': 'Down', 'id': 'Bawah'},
+    {'jp': '左', 'ro': 'HIDARI', 'en': 'Left', 'id': 'Kiri'},
+    {'jp': '右', 'ro': 'MIGI', 'en': 'Right', 'id': 'Kanan'},
+  ];
+
+  // Time & Dates
+  static const List<Map<String, String>> kanjiTime = [
+    {'jp': '年', 'ro': 'TOSHI', 'en': 'Year', 'id': 'Tahun'},
+    {'jp': '今', 'ro': 'IMA', 'en': 'Now', 'id': 'Sekarang'},
+    {'jp': '時', 'ro': 'TOKI', 'en': 'Time/Hour', 'id': 'Waktu/Jam'},
+    {'jp': '分', 'ro': 'FUN', 'en': 'Minute', 'id': 'Menit'},
+    {'jp': '午', 'ro': 'GO', 'en': 'Noon', 'id': 'Siang'},
+    {'jp': '前', 'ro': 'MAE', 'en': 'Before/Front', 'id': 'Depan/Sebelum'},
+    {'jp': '後', 'ro': 'ATO', 'en': 'After/Back', 'id': 'Belakang/Sesudah'},
+    {'jp': '先', 'ro': 'SAKI', 'en': 'Previous/Ahead', 'id': 'Dulu/Depan'},
+    {'jp': '来', 'ro': 'KURU', 'en': 'To Come', 'id': 'Datang'},
+    {'jp': '行', 'ro': 'IKU', 'en': 'To Go', 'id': 'Pergi'},
+  ];
+
+  // Body Parts & Size
+  static const List<Map<String, String>> kanjiBody = [
+    {'jp': '目', 'ro': 'ME', 'en': 'Eye', 'id': 'Mata'},
+    {'jp': '耳', 'ro': 'MIMI', 'en': 'Ear', 'id': 'Telinga'},
+    {'jp': '口', 'ro': 'KUCHI', 'en': 'Mouth', 'id': 'Mulut'},
+    {'jp': '手', 'ro': 'TE', 'en': 'Hand', 'id': 'Tangan'},
+    {'jp': '足', 'ro': 'ASHI', 'en': 'Leg/Foot', 'id': 'Kaki'},
+    {'jp': '大', 'ro': 'OO', 'en': 'Big', 'id': 'Besar'},
+    {'jp': '小', 'ro': 'CHII', 'en': 'Small', 'id': 'Kecil'},
+    {'jp': '中', 'ro': 'NAKA', 'en': 'Middle/Inside', 'id': 'Tengah/Dalam'},
+    {'jp': '外', 'ro': 'SOTO', 'en': 'Outside', 'id': 'Luar'},
+    {'jp': '高', 'ro': 'TAKA', 'en': 'High/Expensive', 'id': 'Tinggi/Mahal'},
+  ];
+
+  // Verbs & Actions
+  static const List<Map<String, String>> kanjiVerbs = [
+    {'jp': '見', 'ro': 'MI', 'en': 'To See', 'id': 'Melihat'},
+    {'jp': '聞', 'ro': 'KI', 'en': 'To Hear', 'id': 'Mendengar'},
+    {'jp': '言', 'ro': 'I', 'en': 'To Say', 'id': 'Berkata'},
+    {'jp': '読', 'ro': 'YO', 'en': 'To Read', 'id': 'Membaca'},
+    {'jp': '書', 'ro': 'KA', 'en': 'To Write', 'id': 'Menulis'},
+    {'jp': '食', 'ro': 'TA', 'en': 'To Eat', 'id': 'Makan'},
+    {'jp': '飲', 'ro': 'NO', 'en': 'To Drink', 'id': 'Minum'},
+    {'jp': '買', 'ro': 'KA', 'en': 'To Buy', 'id': 'Membeli'},
+    {'jp': '立', 'ro': 'TA', 'en': 'To Stand', 'id': 'Berdiri'},
+    {'jp': '休', 'ro': 'YASU', 'en': 'To Rest', 'id': 'Istirahat'},
+  ];
+
+  // Places & Education
+  static const List<Map<String, String>> kanjiPlaces = [
+    {'jp': '学', 'ro': 'GAKU', 'en': 'Study/Learning', 'id': 'Belajar'},
+    {'jp': '校', 'ro': 'KOU', 'en': 'School', 'id': 'Sekolah'},
+    {'jp': '生', 'ro': 'SEI', 'en': 'Life/Student', 'id': 'Hidup/Siswa'},
+    {'jp': '本', 'ro': 'HON', 'en': 'Book/Origin', 'id': 'Buku/Asal'},
+    {'jp': '名', 'ro': 'NA', 'en': 'Name', 'id': 'Nama'},
+    {'jp': '語', 'ro': 'GO', 'en': 'Language', 'id': 'Bahasa'},
+    {'jp': '国', 'ro': 'KUNI', 'en': 'Country', 'id': 'Negara'},
+    {'jp': '社', 'ro': 'SHA', 'en': 'Company', 'id': 'Perusahaan'},
+    {'jp': '店', 'ro': 'MISE', 'en': 'Shop', 'id': 'Toko'},
+    {'jp': '駅', 'ro': 'EKI', 'en': 'Station', 'id': 'Stasiun'},
+  ];
 }
