@@ -473,7 +473,7 @@ class _AuthScreenState extends State<AuthScreen> {
           'setting_dark': selectedDarkMode,
           'gm_xp': 0,
           'gm_hearts': 5,
-          'gm_streak': 0,
+          'gm_streak': 1, // First day login
           'is_premium': false,
         };
 
@@ -486,6 +486,9 @@ class _AuthScreenState extends State<AuthScreen> {
           );
           
           await supabase.auth.updateUser(UserAttributes(data: newUserMetadata));
+          
+          // Force initialize game state for new user
+          await GameManager.initializeNewAccount();
         } else {
           // Email Sign Up
           final response = await supabase.auth.signUp(
@@ -501,7 +504,10 @@ class _AuthScreenState extends State<AuthScreen> {
               return;
             }
 
-            if (response.session == null) {
+            if (response.session != null) {
+              // User is automatically signed in (email confirmation disabled)
+              await GameManager.initializeNewAccount();
+            } else {
               _showSuccessDialog(
                 title: _t("Verify Your Email", "Verifikasi Email Anda"),
                 message: _t(
@@ -708,7 +714,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                           // Update notification language if reminder is enabled
                                           SharedPreferences.getInstance().then((prefs) {
                                             if (prefs.getBool('is_daily_reminder_on') ?? false) {
-                                              NotificationService().scheduleDailyStudyReminder();
+                                              NotificationService().scheduleDailyStudyReminder(newLang);
                                             }
                                           });
                                           final prefs = await SharedPreferences.getInstance();

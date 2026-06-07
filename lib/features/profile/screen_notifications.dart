@@ -38,7 +38,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (value) {
       await NotificationService().requestPermissions();
-      await NotificationService().scheduleDailyStudyReminder();
+      await NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(_t("Daily reminder activated for 19:00 WIB!", "Pengingat harian berhasil diaktifkan untuk jam 19:00 WIB!"))),

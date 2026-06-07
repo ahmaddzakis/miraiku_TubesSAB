@@ -1,10 +1,22 @@
+# .aiexclude - Configuration for AI Coding Agents
+# This file defines patterns that AI agents should ignore when analyzing the codebase.
+# Excluding these helps focus the agent on relevant source code and reduces noise.
+
+# Assets and media (large binary files, not readable as text)
 assets/*
+
+# Build outputs and dependency management files
 build/*
 .dart_tool/*
+
+# Platform-specific project files (Android, iOS, Web, Desktop)
+# Usually contains boilerplate and native code not relevant for general Flutter logic.
 android/*
 ios/*
 web/*
 windows/*
 macos/*
 linux/*
+
+# IDE-specific settings (IntelliJ/Android Studio)
 .idea/*

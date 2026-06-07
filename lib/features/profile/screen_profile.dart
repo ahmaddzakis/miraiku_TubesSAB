@@ -603,174 +603,197 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            child: Row(
-                              children: [
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.text("あ"),
-                                  bgColor: const Color(0xFFE8F5E9),
-                                  accentColor: const Color(0xFF4CAF50),
-                                  title: _t("Hiragana Master", "Ahli Hiragana"),
-                                  description: _t(
-                                      "Learn all 46 basic Hiragana characters by completing Hiragana lessons in Unit 1.",
-                                      "Pelajari semua 46 karakter Hiragana dasar dengan menyelesaikan pelajaran Hiragana di Unit 1."
-                                  ),
-                                  progress: (globalLearnedHiragana.value.length / 46).clamp(0.0, 1.0),
-                                  progressLabel: "${globalLearnedHiragana.value.length}/46",
-                                  isCompleted: globalLearnedHiragana.value.length >= 46,
-                                  isClaimed: _claimedHiragana,
-                                  onClaim: () => _claimAchievement('ach_hira'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.text("ア"),
-                                  bgColor: const Color(0xFFE3F2FD),
-                                  accentColor: const Color(0xFF2196F3),
-                                  title: _t("Katakana Master", "Ahli Katakana"),
-                                  description: _t(
-                                      "Learn all 46 basic Katakana characters by completing Katakana lessons in Unit 2.",
-                                      "Pelajari semua 46 karakter Katakana dasar dengan menyelesaikan pelajaran Katakana di Unit 2."
-                                  ),
-                                  progress: (globalLearnedKatakana.value.length / 46).clamp(0.0, 1.0),
-                                  progressLabel: "${globalLearnedKatakana.value.length}/46",
-                                  isCompleted: globalLearnedKatakana.value.length >= 46,
-                                  isClaimed: _claimedKatakana,
-                                  onClaim: () => _claimAchievement('ach_kata'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.text("漢"),
-                                  bgColor: const Color(0xFFF3E5F5),
-                                  accentColor: const Color(0xFF9C27B0),
-                                  title: _t("Kanji Learner", "Pembelajar Kanji"),
-                                  description: _t(
-                                      "Learn all 68 essential N5 Kanji characters across all categories.",
-                                      "Pelajari seluruh 68 karakter Kanji N5 penting di semua kategori."
-                                  ),
-                                  progress: (globalLearnedKanji.value.length / 68).clamp(0.0, 1.0),
-                                  progressLabel: "${globalLearnedKanji.value.length}/68",
-                                  isCompleted: globalLearnedKanji.value.length >= 68,
-                                  isClaimed: _claimedKanji,
-                                  onClaim: () => _claimAchievement('ach_kanji'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("ABC"),
-                                  bgColor: const Color(0xFFEFEBE9),
-                                  accentColor: const Color(0xFF795548),
-                                  title: _t("Alphabet Master", "Penguasa Alfabet"),
-                                  description: _t(
-                                      "Master all Japanese writing systems by claiming Hiragana, Katakana, and Kanji achievements.",
-                                      "Kuasai semua sistem penulisan Jepang dengan mengklaim pencapaian Hiragana, Katakana, dan Kanji."
-                                  ),
-                                  progress: (_claimedHiragana && _claimedKatakana && _claimedKanji) ? 1.0 : 0.0,
-                                  progressLabel: "HiraKataKanji",
-                                  isCompleted: _claimedHiragana && _claimedKatakana && _claimedKanji,
-                                  isClaimed: _claimedAlphabetMaster,
-                                  onClaim: () => _claimAchievement('ach_alphabet'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("JLPT"),
-                                  bgColor: const Color(0xFFFFF3E0),
-                                  accentColor: const Color(0xFFFF9800),
-                                  title: _t("Simulator Pro", "Pro Simulator"),
-                                  description: _t(
-                                      "Put your skills to the test! Complete 10 writing and recognition simulations.",
-                                      "Uji kemampuanmu! Selesaikan 10 simulasi penulisan dan pengenalan."
-                                  ),
-                                  progress: (simulationCount / 10).clamp(0.0, 1.0),
-                                  progressLabel: "$simulationCount/10",
-                                  isCompleted: simulationCount >= 10,
-                                  isClaimed: _claimedSim,
-                                  onClaim: () => _claimAchievement('ach_sim'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("3"),
-                                  bgColor: const Color(0xFFFCE4EC),
-                                  accentColor: const Color(0xFFE91E63),
-                                  title: _t("3 Days Streak", "3 Hari Beruntun"),
-                                  description: _t(
-                                      "Keep your learning momentum! Maintain a login streak for 3 consecutive days.",
-                                      "Jaga momentum belajarmu! Pertahankan login selama 3 hari berturut-turut."
-                                  ),
-                                  progress: (globalStreak.value / 3).clamp(0.0, 1.0),
-                                  progressLabel: "${globalStreak.value}/3",
-                                  isCompleted: globalStreak.value >= 3,
-                                  isClaimed: _claimed3Days,
-                                  onClaim: () => _claimAchievement('ach_3d'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("7"),
-                                  bgColor: const Color(0xFFFCE4EC),
-                                  accentColor: const Color(0xFFE91E63),
-                                  title: _t("7 Days Streak", "7 Hari Beruntun"),
-                                  description: _t(
-                                      "Keep your learning momentum! Maintain a login streak for 7 consecutive days.",
-                                      "Jaga momentum belajarmu! Pertahankan login selama 7 hari berturut-turut."
-                                  ),
-                                  progress: (globalStreak.value / 7).clamp(0.0, 1.0),
-                                  progressLabel: "${globalStreak.value}/7",
-                                  isCompleted: globalStreak.value >= 7,
-                                  isClaimed: _claimed7Days,
-                                  onClaim: () => _claimAchievement('ach_7d'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("14"),
-                                  bgColor: const Color(0xFFFCE4EC),
-                                  accentColor: const Color(0xFFE91E63),
-                                  title: _t("14 Days Streak", "14 Hari Beruntun"),
-                                  description: _t(
-                                      "Keep your learning momentum! Maintain a login streak for 14 consecutive days.",
-                                      "Jaga momentum belajarmu! Pertahankan login selama 14 hari berturut-turut."
-                                  ),
-                                  progress: (globalStreak.value / 14).clamp(0.0, 1.0),
-                                  progressLabel: "${globalStreak.value}/14",
-                                  isCompleted: globalStreak.value >= 14,
-                                  isClaimed: _claimed14Days,
-                                  onClaim: () => _claimAchievement('ach_14d'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("30"),
-                                  bgColor: const Color(0xFFFCE4EC),
-                                  accentColor: const Color(0xFFE91E63),
-                                  title: _t("30 Days Streak", "30 Hari Beruntun"),
-                                  description: _t(
-                                      "Keep your learning momentum! Maintain a login streak for 30 consecutive days.",
-                                      "Jaga momentum belajarmu! Pertahankan login selama 30 hari berturut-turut."
-                                  ),
-                                  progress: (globalStreak.value / 30).clamp(0.0, 1.0),
-                                  progressLabel: "${globalStreak.value}/30",
-                                  isCompleted: globalStreak.value >= 30,
-                                  isClaimed: _claimed30Days,
-                                  onClaim: () => _claimAchievement('ach_30d'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-                                _buildAchievementCardH(
-                                  badge: _AchievementBadge.label("未来"),
-                                  bgColor: const Color(0xFFFCE4EC),
-                                  accentColor: const Color(0xFFE91E63),
-                                  title: _t("Mirai", "Mirai"),
-                                  description: _t(
-                                      "The ultimate goal! Complete all level tests from Unit 1 to Unit 4.",
-                                      "Tujuan akhir! Selesaikan semua ujian level dari Unit 1 hingga Unit 4."
-                                  ),
-                                  progress: isAllUnitsFinished ? 1.0 : 0.0,
-                                  progressLabel: isAllUnitsFinished ? "COMPLETED" : "Unit 1-4",
-                                  isCompleted: isAllUnitsFinished,
-                                  isClaimed: _claimedMirai,
-                                  onClaim: () => _claimAchievement('ach_mirai'),
-                                  cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                ),
-
-                              ],
-                            ),
+                          ValueListenableBuilder<List<String>>(
+                            valueListenable: globalLearnedHiragana,
+                            builder: (context, learnedHira, _) {
+                              return ValueListenableBuilder<List<String>>(
+                                valueListenable: globalLearnedKatakana,
+                                builder: (context, learnedKata, _) {
+                                  return ValueListenableBuilder<List<String>>(
+                                    valueListenable: globalLearnedKanji,
+                                    builder: (context, learnedKanji, _) {
+                                      return SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        physics: const BouncingScrollPhysics(),
+                                        child: Row(
+                                          children: [
+                                            _buildAchievementCardH(
+                                              badge: _AchievementBadge.text("あ"),
+                                              bgColor: const Color(0xFFE8F5E9),
+                                              accentColor: const Color(0xFF4CAF50),
+                                              title: _t("Hiragana Master", "Ahli Hiragana"),
+                                              description: _t(
+                                                  "Learn all 104 basic Hiragana characters by completing Hiragana lessons.",
+                                                  "Pelajari semua 104 karakter Hiragana dasar dengan menyelesaikan pelajaran Hiragana."
+                                              ),
+                                              progress: (learnedHira.length / 104).clamp(0.0, 1.0),
+                                              progressLabel: "${learnedHira.length}/104",
+                                              isCompleted: learnedHira.length >= 104,
+                                              isClaimed: _claimedHiragana,
+                                              onClaim: () => _claimAchievement('ach_hira'),
+                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                            ),
+                                            _buildAchievementCardH(
+                                              badge: _AchievementBadge.text("ア"),
+                                              bgColor: const Color(0xFFE3F2FD),
+                                              accentColor: const Color(0xFF2196F3),
+                                              title: _t("Katakana Master", "Ahli Katakana"),
+                                              description: _t(
+                                                  "Learn all 104 basic Katakana characters by completing Katakana lessons.",
+                                                  "Pelajari semua 104 karakter Katakana dasar dengan menyelesaikan pelajaran Katakana."
+                                              ),
+                                              progress: (learnedKata.length / 104).clamp(0.0, 1.0),
+                                              progressLabel: "${learnedKata.length}/104",
+                                              isCompleted: learnedKata.length >= 104,
+                                              isClaimed: _claimedKatakana,
+                                              onClaim: () => _claimAchievement('ach_kata'),
+                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                            ),
+                                            _buildAchievementCardH(
+                                              badge: _AchievementBadge.text("漢"),
+                                              bgColor: const Color(0xFFF3E5F5),
+                                              accentColor: const Color(0xFF9C27B0),
+                                              title: _t("Kanji Learner", "Pembelajar Kanji"),
+                                              description: _t(
+                                                  "Learn all 68 essential N5 Kanji characters across all categories.",
+                                                  "Pelajari seluruh 68 karakter Kanji N5 penting di semua kategori."
+                                              ),
+                                              progress: (learnedKanji.length / 68).clamp(0.0, 1.0),
+                                              progressLabel: "${learnedKanji.length}/68",
+                                              isCompleted: learnedKanji.length >= 68,
+                                              isClaimed: _claimedKanji,
+                                              onClaim: () => _claimAchievement('ach_kanji'),
+                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                            ),
+                                            _buildAchievementCardH(
+                                              badge: _AchievementBadge.label("ABC"),
+                                              bgColor: const Color(0xFFEFEBE9),
+                                              accentColor: const Color(0xFF795548),
+                                              title: _t("Alphabet Master", "Penguasa Alfabet"),
+                                              description: _t(
+                                                  "Master all Japanese writing systems by claiming Hiragana, Katakana, and Kanji achievements.",
+                                                  "Kuasai semua sistem penulisan Jepang dengan mengklaim pencapaian Hiragana, Katakana, dan Kanji."
+                                              ),
+                                              progress: (_claimedHiragana && _claimedKatakana && _claimedKanji) ? 1.0 : 0.0,
+                                              progressLabel: "HiraKataKanji",
+                                              isCompleted: _claimedHiragana && _claimedKatakana && _claimedKanji,
+                                              isClaimed: _claimedAlphabetMaster,
+                                              onClaim: () => _claimAchievement('ach_alphabet'),
+                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                            ),
+                                            _buildAchievementCardH(
+                                              badge: _AchievementBadge.label("JLPT"),
+                                              bgColor: const Color(0xFFFFF3E0),
+                                              accentColor: const Color(0xFFFF9800),
+                                              title: _t("Simulator Pro", "Pro Simulator"),
+                                              description: _t(
+                                                  "Put your skills to the test! Complete 10 writing and recognition simulations.",
+                                                  "Uji kemampuanmu! Selesaikan 10 simulasi penulisan dan pengenalan."
+                                              ),
+                                              progress: (simulationCount / 10).clamp(0.0, 1.0),
+                                              progressLabel: "$simulationCount/10",
+                                              isCompleted: simulationCount >= 10,
+                                              isClaimed: _claimedSim,
+                                              onClaim: () => _claimAchievement('ach_sim'),
+                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                            ),
+                                            ValueListenableBuilder<int>(
+                                              valueListenable: globalStreak,
+                                              builder: (context, streak, _) {
+                                                return Row(
+                                                  children: [
+                                                    _buildAchievementCardH(
+                                                      badge: _AchievementBadge.label("3"),
+                                                      bgColor: const Color(0xFFFCE4EC),
+                                                      accentColor: const Color(0xFFE91E63),
+                                                      title: _t("3 Days Streak", "3 Hari Beruntun"),
+                                                      description: _t(
+                                                          "Keep your learning momentum! Maintain a login streak for 3 consecutive days.",
+                                                          "Kasu momentum belajarmu! Pertahankan login selama 3 hari berturut-turut."
+                                                      ),
+                                                      progress: (streak / 3).clamp(0.0, 1.0),
+                                                      progressLabel: "$streak/3",
+                                                      isCompleted: streak >= 3,
+                                                      isClaimed: _claimed3Days,
+                                                      onClaim: () => _claimAchievement('ach_3d'),
+                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                    ),
+                                                    _buildAchievementCardH(
+                                                      badge: _AchievementBadge.label("7"),
+                                                      bgColor: const Color(0xFFFCE4EC),
+                                                      accentColor: const Color(0xFFE91E63),
+                                                      title: _t("7 Days Streak", "7 Hari Beruntun"),
+                                                      description: _t(
+                                                          "Keep your learning momentum! Maintain a login streak for 7 consecutive days.",
+                                                          "Kasu momentum belajarmu! Pertahankan login selama 7 hari berturut-turut."
+                                                      ),
+                                                      progress: (streak / 7).clamp(0.0, 1.0),
+                                                      progressLabel: "$streak/7",
+                                                      isCompleted: streak >= 7,
+                                                      isClaimed: _claimed7Days,
+                                                      onClaim: () => _claimAchievement('ach_7d'),
+                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                    ),
+                                                    _buildAchievementCardH(
+                                                      badge: _AchievementBadge.label("14"),
+                                                      bgColor: const Color(0xFFFCE4EC),
+                                                      accentColor: const Color(0xFFE91E63),
+                                                      title: _t("14 Days Streak", "14 Hari Beruntun"),
+                                                      description: _t(
+                                                          "Keep your learning momentum! Maintain a login streak for 14 consecutive days.",
+                                                          "Kasu momentum belajarmu! Pertahankan login selama 14 hari berturut-turut."
+                                                      ),
+                                                      progress: (streak / 14).clamp(0.0, 1.0),
+                                                      progressLabel: "$streak/14",
+                                                      isCompleted: streak >= 14,
+                                                      isClaimed: _claimed14Days,
+                                                      onClaim: () => _claimAchievement('ach_14d'),
+                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                    ),
+                                                    _buildAchievementCardH(
+                                                      badge: _AchievementBadge.label("30"),
+                                                      bgColor: const Color(0xFFFCE4EC),
+                                                      accentColor: const Color(0xFFE91E63),
+                                                      title: _t("30 Days Streak", "30 Hari Beruntun"),
+                                                      description: _t(
+                                                          "Keep your learning momentum! Maintain a login streak for 30 consecutive days.",
+                                                          "Kasu momentum belajarmu! Pertahankan login selama 30 hari berturut-turut."
+                                                      ),
+                                                      progress: (streak / 30).clamp(0.0, 1.0),
+                                                      progressLabel: "$streak/30",
+                                                      isCompleted: streak >= 30,
+                                                      isClaimed: _claimed30Days,
+                                                      onClaim: () => _claimAchievement('ach_30d'),
+                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                    ),
+                                                  ],
+                                                );
+                                              }
+                                            ),
+                                            _buildAchievementCardH(
+                                              badge: _AchievementBadge.label("未来"),
+                                              bgColor: const Color(0xFFFCE4EC),
+                                              accentColor: const Color(0xFFE91E63),
+                                              title: _t("Mirai", "Mirai"),
+                                              description: _t(
+                                                  "The ultimate goal! Complete all level tests from Unit 1 to Unit 4.",
+                                                  "Tujuan akhir! Selesaikan semua ujian level dari Unit 1 hingga Unit 4."
+                                              ),
+                                              progress: isAllUnitsFinished ? 1.0 : 0.0,
+                                              progressLabel: isAllUnitsFinished ? "COMPLETED" : "Unit 1-4",
+                                              isCompleted: isAllUnitsFinished,
+                                              isClaimed: _claimedMirai,
+                                              onClaim: () => _claimAchievement('ach_mirai'),
+                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
                           ),
                         ],
                       ),
@@ -974,10 +997,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
-              await _supabase.auth.signOut();
-              if (context.mounted) {
-                Navigator.pop(context);
-                Navigator.of(context).pushNamedAndRemoveUntil('/auth', (route) => false);
+              try {
+                // 1. Reset local progress before sign out to prevent data leakage
+                await GameManager.resetProgress();
+                
+                // 2. Sign out from Supabase (this will trigger AuthStateChange listener in main.dart)
+                await _supabase.auth.signOut();
+                
+                // 3. Pop the dialog if still mounted
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                debugPrint("Error during logout: $e");
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  _showErrorDialog(_t("Logout Failed", "Gagal Keluar"), e.toString());
+                }
               }
             },
             child: Text(_t("LOGOUT", "KELUAR"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

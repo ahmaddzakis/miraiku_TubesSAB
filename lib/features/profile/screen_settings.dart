@@ -157,14 +157,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() => _language = 'en');
                 globalLanguage.value = 'en';
                 _updatePreference('setting_lang', 'en');
-                NotificationService().scheduleDailyStudyReminder(); // Update notification language
+                NotificationService().scheduleDailyStudyReminder('en'); // Update notification language
                 Navigator.pop(context);
               }),
               ListTile(title: Text("Bahasa Indonesia", style: TextStyle(color: _darkMode ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold)), trailing: _language == 'id' ? const Icon(Icons.check_circle_rounded, color: Color(0xFFCC6633)) : null, onTap: () {
                 setState(() => _language = 'id');
                 globalLanguage.value = 'id';
                 _updatePreference('setting_lang', 'id');
-                NotificationService().scheduleDailyStudyReminder(); // Update notification language
+                NotificationService().scheduleDailyStudyReminder('id'); // Update notification language
                 Navigator.pop(context);
               }),
             ],

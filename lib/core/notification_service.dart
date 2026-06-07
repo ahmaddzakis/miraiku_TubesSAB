@@ -3,7 +3,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'game_manager.dart'; // Import to access globalLanguage
 
 class NotificationService {
   // Singleton pattern
@@ -47,15 +46,15 @@ class NotificationService {
   }
 
   /// Menjadwalkan pengingat harian jam 19:00 (Bilingual)
-  Future<void> scheduleDailyStudyReminder() async {
+  Future<void> scheduleDailyStudyReminder(String languageCode) async {
     // Pastikan hanya berjalan di platform yang didukung
     if (!Platform.isAndroid && !Platform.isIOS) return;
 
-    final String title = globalLanguage.value == 'id' 
+    final String title = languageCode == 'id' 
         ? 'Miraiku: Belajar Yuk! 🇯🇵' 
         : 'Miraiku: Let\'s Study! 🇯🇵';
     
-    final String body = globalLanguage.value == 'id'
+    final String body = languageCode == 'id'
         ? 'Waktunya belajar Bahasa Jepang! Jangan sampai rekor streak-mu putus!'
         : 'Time to learn Japanese! Don\'t let your streak break!';
 

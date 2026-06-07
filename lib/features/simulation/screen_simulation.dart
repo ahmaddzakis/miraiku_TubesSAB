@@ -380,9 +380,20 @@ class _SimulationScreenState extends State<SimulationScreen> {
     return globalLanguage.value == 'id' ? id : en;
   }
 
+  double _getScale(BuildContext context) {
+    final double width = MediaQuery.of(context).size.width;
+    if (width > 600) return 1.2; // Tablet
+    if (width < 360) return 0.9; // Small phone
+    return 1.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)));
+
+    final media = MediaQuery.of(context);
+    final double scale = _getScale(context);
+    final bool isTablet = media.size.width > 600;
 
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
@@ -393,94 +404,117 @@ class _SimulationScreenState extends State<SimulationScreen> {
 
         return Scaffold(
           backgroundColor: bgColor,
-          body: Stack(
-            children: [
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 60),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFCC6633).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                            child: const Text(
-                              "OFFICIAL JLPT N5 STANDARD",
-                              style: TextStyle(color: Color(0xFFCC6633), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-                            ),
-                          ),
-                          if (_isUnlocked) ...[
-                            const SizedBox(width: 8),
-                            Material(
-                              color: Colors.transparent,
-                              child: InkWell(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: isTablet ? 48.0 : 24.0),
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFCC6633).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(100),
-                                onTap: _showHistory,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
-                                  ),
-                                  child: const Icon(Icons.history_rounded, color: Color(0xFFCC6633), size: 16),
-                                ),
+                              ),
+                              child: Text(
+                                "OFFICIAL JLPT N5 STANDARD",
+                                style: TextStyle(color: const Color(0xFFCC6633), fontSize: 10 * scale, fontWeight: FontWeight.bold, letterSpacing: 1),
                               ),
                             ),
+                            if (_isUnlocked) ...[
+                              const SizedBox(width: 8),
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(100),
+                                  onTap: _showHistory,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
+                                    ),
+                                    child: Icon(Icons.history_rounded, color: const Color(0xFFCC6633), size: 16 * scale),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _t("JLPT N5 Mock Exam", "Simulasi Ujian JLPT N5"),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _t(
-                          "Professional simulation covering Language Knowledge and Reading. Test your skills under official timing constraints.",
-                          "Simulasi profesional mencakup Pengetahuan Bahasa dan Membaca. Uji kemampuanmu dalam batasan waktu resmi."
                         ),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: subTextColor, fontSize: 14, height: 1.5),
-                      ),
-                      const SizedBox(height: 32),
+                        SizedBox(height: 16 * scale),
+                        Text(
+                          _t("JLPT N5 Mock Exam", "Simulasi Ujian JLPT N5"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 28 * scale, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
+                        ),
+                        SizedBox(height: 12 * scale),
+                        Text(
+                          _t(
+                            "Professional simulation covering Language Knowledge and Reading. Test your skills under official timing constraints.",
+                            "Simulasi profesional mencakup Pengetahuan Bahasa dan Membaca. Uji kemampuanmu dalam batasan waktu resmi."
+                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: subTextColor, fontSize: 14 * scale, height: 1.5),
+                        ),
+                        SizedBox(height: 32 * scale),
 
-                      _buildExamStructureCard(isDark, textColor, subTextColor),
-                      const SizedBox(height: 20),
-                      _buildGradingSystemCard(isDark, textColor, subTextColor),
-                      const SizedBox(height: 20),
-                      _buildOneAttemptCard(isDark, textColor, subTextColor),
-                      const SizedBox(height: 32),
-                      _buildUnlockButtonSection(subTextColor),
-                      const SizedBox(height: 48),
-                    ],
+                        if (isTablet)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildExamStructureCard(isDark, textColor, subTextColor, scale)),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _buildGradingSystemCard(isDark, textColor, subTextColor, scale),
+                                    const SizedBox(height: 20),
+                                    _buildOneAttemptCard(isDark, textColor, subTextColor, scale),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          _buildExamStructureCard(isDark, textColor, subTextColor, scale),
+                          const SizedBox(height: 20),
+                          _buildGradingSystemCard(isDark, textColor, subTextColor, scale),
+                          const SizedBox(height: 20),
+                          _buildOneAttemptCard(isDark, textColor, subTextColor, scale),
+                        ],
+                        
+                        SizedBox(height: 32 * scale),
+                        _buildUnlockButtonSection(subTextColor, scale),
+                        const SizedBox(height: 48),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildExamStructureCard(bool isDark, Color textColor, Color subTextColor) {
+  Widget _buildExamStructureCard(bool isDark, Color textColor, Color subTextColor, double scale) {
     final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final Color sectionColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF8F9FA);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24 * scale),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
@@ -504,16 +538,16 @@ class _SimulationScreenState extends State<SimulationScreen> {
                   color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.assignment_rounded, color: Color(0xFFCC6633), size: 24),
+                child: Icon(Icons.assignment_rounded, color: const Color(0xFFCC6633), size: 24 * scale),
               ),
               const SizedBox(width: 12),
               Text(
                 _t("Test Modules", "Modul Ujian"),
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+                style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.bold, color: textColor),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24 * scale),
           _buildSessionDetail(
             title: _t("Language Knowledge", "Pengetahuan Bahasa"),
             subtitle: "Moji, Goi, Bunpou",
@@ -526,8 +560,9 @@ class _SimulationScreenState extends State<SimulationScreen> {
             textColor: textColor,
             subTextColor: subTextColor,
             bgColor: sectionColor,
+            scale: scale,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * scale),
           _buildSessionDetail(
             title: _t("Reading", "Membaca"),
             subtitle: "Dokkai",
@@ -540,6 +575,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             textColor: textColor,
             subTextColor: subTextColor,
             bgColor: sectionColor,
+            scale: scale,
           ),
         ],
       ),
@@ -555,9 +591,10 @@ class _SimulationScreenState extends State<SimulationScreen> {
     required Color textColor,
     required Color subTextColor,
     required Color bgColor,
+    required double scale,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16 * scale),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
@@ -569,12 +606,14 @@ class _SimulationScreenState extends State<SimulationScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
-                  Text(subtitle, style: const TextStyle(color: Color(0xFFCC6633), fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16 * scale, color: textColor)),
+                    Text(subtitle, style: TextStyle(color: const Color(0xFFCC6633), fontSize: 12 * scale, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -584,24 +623,24 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.timer_outlined, color: Colors.white, size: 14),
+                    Icon(Icons.timer_outlined, color: Colors.white, size: 14 * scale),
                     const SizedBox(width: 4),
-                    Text("$duration mnt", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text("$duration mnt", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12 * scale)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(description, style: TextStyle(color: subTextColor, fontSize: 13, height: 1.4)),
+          SizedBox(height: 12 * scale),
+          Text(description, style: TextStyle(color: subTextColor, fontSize: 13 * scale, height: 1.4)),
         ],
       ),
     );
   }
 
-  Widget _buildGradingSystemCard(bool isDark, Color textColor, Color subTextColor) {
+  Widget _buildGradingSystemCard(bool isDark, Color textColor, Color subTextColor, double scale) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24 * scale),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFF2D2622),
         borderRadius: BorderRadius.circular(24),
@@ -618,23 +657,23 @@ class _SimulationScreenState extends State<SimulationScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.analytics_rounded, color: Color(0xFFCC6633), size: 24),
+              Icon(Icons.analytics_rounded, color: const Color(0xFFCC6633), size: 24 * scale),
               const SizedBox(width: 12),
               Text(
                 _t("Grading System", "Sistem Penilaian"),
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 18 * scale, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24 * scale),
           Row(
             children: [
-              _buildGradeStat(_t("MAX SCORE", "SKOR MAKS"), "180", Colors.white),
-              Container(width: 1, height: 40, color: Colors.white24, margin: const EdgeInsets.symmetric(horizontal: 24)),
-              _buildGradeStat(_t("PASSING GRADE", "BATAS LULUS"), "80", const Color(0xFFCC6633)),
+              _buildGradeStat(_t("MAX SCORE", "SKOR MAKS"), "180", Colors.white, scale),
+              Container(width: 1, height: 40 * scale, color: Colors.white24, margin: EdgeInsets.symmetric(horizontal: 24 * scale)),
+              _buildGradeStat(_t("PASSING GRADE", "BATAS LULUS"), "80", const Color(0xFFCC6633), scale),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20 * scale),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -646,7 +685,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 "Pass criteria: Total score ≥ 80 AND meet minimum sectional standard. Zero score in any section results in failure.",
                 "Kriteria lulus: Skor total ≥ 80 DAN memenuhi standar minimum tiap sesi. Skor nol pada sesi mana pun dianggap tidak lulus."
               ),
-              style: const TextStyle(color: Colors.white60, fontSize: 11, fontStyle: FontStyle.italic, height: 1.4),
+              style: TextStyle(color: Colors.white60, fontSize: 11 * scale, fontStyle: FontStyle.italic, height: 1.4),
             ),
           ),
         ],
@@ -654,20 +693,20 @@ class _SimulationScreenState extends State<SimulationScreen> {
     );
   }
 
-  Widget _buildGradeStat(String label, String value, Color valueColor) {
+  Widget _buildGradeStat(String label, String value, Color valueColor, double scale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        Text(label, style: TextStyle(color: Colors.white60, fontSize: 10 * scale, fontWeight: FontWeight.bold, letterSpacing: 1)),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: valueColor, fontSize: 28, fontWeight: FontWeight.w900)),
+        Text(value, style: TextStyle(color: valueColor, fontSize: 28 * scale, fontWeight: FontWeight.w900)),
       ],
     );
   }
 
-  Widget _buildOneAttemptCard(bool isDark, Color textColor, Color subTextColor) {
+  Widget _buildOneAttemptCard(bool isDark, Color textColor, Color subTextColor, double scale) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20 * scale),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -681,7 +720,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
               color: const Color(0xFFCC6633).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.gavel_rounded, color: Color(0xFFCC6633), size: 24),
+            child: Icon(Icons.gavel_rounded, color: const Color(0xFFCC6633), size: 24 * scale),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -690,12 +729,12 @@ class _SimulationScreenState extends State<SimulationScreen> {
               children: [
                 Text(
                   _t("Strict Exam Rules", "Aturan Ujian Ketat"),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16 * scale, color: textColor),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _t("Continuous timer. No pauses. Result is final.", "Waktu berjalan terus. Tanpa jeda. Hasil bersifat final."),
-                  style: TextStyle(fontSize: 12, color: subTextColor),
+                  style: TextStyle(fontSize: 12 * scale, color: subTextColor),
                 ),
               ],
             ),
@@ -705,12 +744,12 @@ class _SimulationScreenState extends State<SimulationScreen> {
     );
   }
 
-  Widget _buildUnlockButtonSection(Color subTextColor) {
+  Widget _buildUnlockButtonSection(Color subTextColor, double scale) {
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
-          height: 56,
+          height: 56 * scale,
           child: ElevatedButton(
             onPressed: _handleUnlock,
             style: ElevatedButton.styleFrom(
@@ -724,24 +763,24 @@ class _SimulationScreenState extends State<SimulationScreen> {
               children: [
                 Text(
                   _isUnlocked ? _t("START SIMULATION", "MULAI SIMULASI") : _t("UNLOCK ACCESS", "BUKA AKSES UJIAN"),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w900, letterSpacing: 1),
                 ),
                 const SizedBox(width: 12),
-                Icon(_isUnlocked ? Icons.play_arrow_rounded : Icons.lock_open_rounded, color: Colors.white, size: 20),
+                Icon(_isUnlocked ? Icons.play_arrow_rounded : Icons.lock_open_rounded, color: Colors.white, size: 20 * scale),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16 * scale),
         if (!_isUnlocked)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.flash_on_rounded, color: Color(0xFFCC6633), size: 14),
+              Icon(Icons.flash_on_rounded, color: const Color(0xFFCC6633), size: 14 * scale),
               const SizedBox(width: 4),
               Text(
                 _t("Cost: 1500 XP", "Biaya: 1500 XP"),
-                style: TextStyle(color: subTextColor, fontSize: 12, fontWeight: FontWeight.w500)
+                style: TextStyle(color: subTextColor, fontSize: 12 * scale, fontWeight: FontWeight.w500)
               ),
             ],
           ),

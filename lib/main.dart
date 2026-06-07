@@ -42,7 +42,7 @@ void main() async {
   final isReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
   if (isReminderOn) {
     await notificationService.requestPermissions();
-    await notificationService.scheduleDailyStudyReminder();
+    await notificationService.scheduleDailyStudyReminder(globalLanguage.value);
   }
 
   runApp(const MiraikuApp());
