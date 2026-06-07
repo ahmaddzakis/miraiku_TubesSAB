@@ -95,7 +95,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     child: SwitchListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       activeThumbColor: Colors.white,
-                      activeTrackColor: const Color(0xFF4CAF50),
+                      activeTrackColor: const Color(0xFFCC6633),
                       inactiveThumbColor: isDark ? Colors.white54 : Colors.grey.shade400,
                       inactiveTrackColor: isDark ? const Color(0xFF333333) : Colors.grey.shade300,
                       value: _isReminderOn,

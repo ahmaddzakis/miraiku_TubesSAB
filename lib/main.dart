@@ -9,7 +9,7 @@ import 'features/learn/screen_learn.dart';
 import 'features/simulation/screen_simulation.dart';
 import 'features/kana/screen_kana.dart';
 import 'features/profile/screen_profile.dart';
-import 'features/login/screen_auth.dart';
+import 'features/login/screen_welcome.dart';
 import 'core/game_manager.dart';
 import 'core/notification_service.dart';
 
@@ -86,7 +86,7 @@ class MiraikuApp extends StatelessWidget {
                   if (session != null) {
                     return const MainNavigationScreen();
                   } else {
-                    return const AuthScreen();
+                    return const WelcomeScreen();
                   }
                 },
               ),

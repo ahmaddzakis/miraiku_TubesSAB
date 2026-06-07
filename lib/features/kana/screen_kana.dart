@@ -129,7 +129,7 @@ class _KanaScreenState extends State<KanaScreen> {
                           constraints: const BoxConstraints(maxWidth: 800),
                           width: double.infinity,
                           padding: EdgeInsets.all(24 * scale),
-                          decoration: BoxDecoration(color: const Color(0xFFD68A60), borderRadius: BorderRadius.circular(16)),
+                          decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(16)),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -145,7 +145,7 @@ class _KanaScreenState extends State<KanaScreen> {
                                     decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
                                     child: Text(
                                       "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
-                                      style: TextStyle(color: const Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 12 * scale),
+                                      style: TextStyle(color: const Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 12 * scale),
                                     ),
                                   )
                                 ],
@@ -286,14 +286,14 @@ class _KanaScreenState extends State<KanaScreen> {
                 decoration: BoxDecoration(
                   color: isLearned ? (isDark ? const Color(0xFFCC6633).withValues(alpha: 0.2) : const Color(0xFFF7E6D4)) : gridBgColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isLearned ? const Color(0xFFC6653B) : borderColor, width: isLearned ? 2 : 1),
+                  border: Border.all(color: isLearned ? const Color(0xFFCC6633) : borderColor, width: isLearned ? 2 : 1),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(item["jp"]!, style: TextStyle(fontSize: (isYoon ? 20 : 24) * scale, fontWeight: FontWeight.bold, color: isLearned ? const Color(0xFFC6653B) : textColor)),
+                    Text(item["jp"]!, style: TextStyle(fontSize: (isYoon ? 20 : 24) * scale, fontWeight: FontWeight.bold, color: isLearned ? const Color(0xFFCC6633) : textColor)),
                     SizedBox(height: 4 * scale),
-                    Text(item["ro"]!, style: TextStyle(fontSize: 10 * scale, color: isLearned ? const Color(0xFFC6653B) : const Color(0xFF8C8A87), fontWeight: FontWeight.w600)),
+                    Text(item["ro"]!, style: TextStyle(fontSize: 10 * scale, color: isLearned ? const Color(0xFFCC6633) : const Color(0xFF8C8A87), fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -312,7 +312,7 @@ class _KanaScreenState extends State<KanaScreen> {
         alignment: Alignment.center,
         padding: EdgeInsets.symmetric(vertical: 10 * scale),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFC6653B) : Colors.transparent,
+          color: isActive ? const Color(0xFFCC6633) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: isActive ? null : Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA), width: 1.5),
         ),
@@ -433,7 +433,7 @@ class _KanaScreenState extends State<KanaScreen> {
                               else
                                 Text(kana, style: TextStyle(fontSize: 60 * scale, color: textColor, fontWeight: FontWeight.bold)),
                               SizedBox(height: 8 * scale),
-                              Text(romaji, style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w900, color: const Color(0xFFC6653B))),
+                              Text(romaji, style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w900, color: const Color(0xFFCC6633))),
                               if (meaning != null) ...[
                                 SizedBox(height: 4 * scale),
                                 Text(meaning, style: TextStyle(fontSize: 14 * scale, color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
@@ -451,9 +451,9 @@ class _KanaScreenState extends State<KanaScreen> {
                               onTap: () { controller.clear(); setStatePopup(() {}); },
                               child: Row(
                                 children: [
-                                  const Icon(Icons.cleaning_services_rounded, size: 14, color: Color(0xFFC6653B)),
+                                  const Icon(Icons.cleaning_services_rounded, size: 14, color: Color(0xFFCC6633)),
                                   const SizedBox(width: 4),
-                                  Text(_t("ERASE", "HAPUS"), style: TextStyle(color: const Color(0xFFC6653B), fontWeight: FontWeight.w900, fontSize: 11 * scale)),
+                                  Text(_t("ERASE", "HAPUS"), style: TextStyle(color: const Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 11 * scale)),
                                 ],
                               ),
                             ),
@@ -491,7 +491,7 @@ class _KanaScreenState extends State<KanaScreen> {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: goToNext,
-                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC6653B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                                   label: Text(_t("Next", "Maju"), style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
                                   icon: Icon(Icons.arrow_forward_rounded, size: 18 * scale, color: Colors.white),
                                 ),

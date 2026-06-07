@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/services.dart';
 
 // Pastikan file globals ini sesuai dengan path aslimu
  // atau file tempat globalLanguage dan globalDarkMode berada
@@ -412,6 +413,7 @@ class _AuthScreenState extends State<AuthScreen> {
           }));
           globalLanguage.value = selectedLanguage;
           globalDarkMode.value = selectedDarkMode;
+          if (mounted) Navigator.pop(context);
         }
       }
     } catch (error) {
@@ -457,6 +459,8 @@ class _AuthScreenState extends State<AuthScreen> {
         globalLanguage.value = selectedLanguage;
         globalDarkMode.value = selectedDarkMode;
 
+        if (mounted) Navigator.pop(context);
+
         final prefs = await SharedPreferences.getInstance();
         if (_rememberMe) {
           await prefs.setString('remembered_email', _emailController.text.trim());
@@ -489,6 +493,8 @@ class _AuthScreenState extends State<AuthScreen> {
           
           // Force initialize game state for new user
           await GameManager.initializeNewAccount();
+
+          if (mounted) Navigator.pop(context);
         } else {
           // Email Sign Up
           final response = await supabase.auth.signUp(
@@ -507,6 +513,7 @@ class _AuthScreenState extends State<AuthScreen> {
             if (response.session != null) {
               // User is automatically signed in (email confirmation disabled)
               await GameManager.initializeNewAccount();
+              if (mounted) Navigator.pop(context);
             } else {
               _showSuccessDialog(
                 title: _t("Verify Your Email", "Verifikasi Email Anda"),
@@ -782,7 +789,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   child: ClipOval(
                                     child: Image.asset(
-                                      'assets/images/cuteAsset.png',
+                                      'assets/images/iconUtama.png',
                                       width: 80,
                                       height: 80,
                                       fit: BoxFit.cover,
@@ -874,13 +881,20 @@ class _AuthScreenState extends State<AuthScreen> {
                                               controller: _nameController, label: _t("Display Name", "Nama Tampilan"),
                                               icon: Icons.person_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
                                               hints: [AutofillHints.name],
-                                              validator: (v) => (v == null || v.trim().isEmpty) ? _t("Name required", "Nama wajib diisi") : null,
+                                              maxLength: 25,
+                                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]'))],
+                                              validator: (v) {
+                                                if (v == null || v.trim().isEmpty) return _t("Name required", "Nama wajib diisi");
+                                                if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(v)) return _t("Letters and spaces only", "Hanya huruf dan spasi");
+                                                return null;
+                                              },
                                             ),
                                             const SizedBox(height: 18),
                                             _buildTextField(
                                               controller: _descController, label: "Bio",
                                               icon: Icons.info_outline_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
                                               hints: [AutofillHints.jobTitle],
+                                              maxLength: 50,
                                               validator: (v) => (v == null || v.trim().isEmpty) ? _t("Bio required", "Bio wajib diisi") : null,
                                             ),
                                           ],
@@ -1011,7 +1025,8 @@ class _AuthScreenState extends State<AuthScreen> {
     required TextEditingController controller, required String label, required IconData icon,
     required bool isDark, required Color fieldBg, required Color textColor,
     bool isPassword = false, bool obscure = false, VoidCallback? onToggle,
-    TextInputType type = TextInputType.text, List<String>? hints, String? Function(String?)? validator
+    TextInputType type = TextInputType.text, List<String>? hints, String? Function(String?)? validator,
+    int? maxLength, List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
@@ -1019,9 +1034,13 @@ class _AuthScreenState extends State<AuthScreen> {
       keyboardType: type,
       autofillHints: hints,
       validator: validator,
+      maxLength: maxLength,
+      inputFormatters: inputFormatters,
       style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
       decoration: InputDecoration(
-        labelText: label, labelStyle: const TextStyle(color: Color(0xFFB5B0A8), fontSize: 14, fontWeight: FontWeight.w600),
+        hintText: label,
+        hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFFB5B0A8), fontSize: 14, fontWeight: FontWeight.w500),
+        counterText: "",
         filled: true, fillColor: fieldBg,
         prefixIcon: Icon(icon, color: const Color(0xFFB5B0A8), size: 20),
         suffixIcon: isPassword ? IconButton(icon: Icon(obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: const Color(0xFFB5B0A8), size: 20), onPressed: onToggle) : null,

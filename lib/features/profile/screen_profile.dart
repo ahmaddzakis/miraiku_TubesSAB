@@ -253,17 +253,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF58CC02).withValues(alpha: 0.1),
+                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: Color(0xFF58CC02), size: 20),
+                    const Icon(Icons.check_circle_rounded, color: Color(0xFFCC6633), size: 20),
                     const SizedBox(width: 8),
                     Text(
                       _t("CLAIMED", "SUDAH DIKLAIM"),
-                      style: const TextStyle(color: Color(0xFF58CC02), fontWeight: FontWeight.w900),
+                      style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
@@ -274,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF58CC02),
+                    backgroundColor: const Color(0xFFCC6633),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
@@ -359,8 +359,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(color: Color(0xFFE8F5E9), shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF4CAF50), size: 40),
+              decoration: const BoxDecoration(color: Color(0xFFFFF1EB), shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFFCC6633), size: 40),
             ),
             const SizedBox(height: 20),
             Text(_t("Success", "Berhasil"), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF333333))),
@@ -371,7 +371,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
                 onPressed: () => Navigator.pop(context),
                 child: Text(_t("OK", "MANTAP!"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
               ),
@@ -620,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             _buildAchievementCardH(
                                               badge: _AchievementBadge.text("あ"),
                                               bgColor: const Color(0xFFE8F5E9),
-                                              accentColor: const Color(0xFF4CAF50),
+                                              accentColor: const Color(0xFFCC6633),
                                               title: _t("Hiragana Master", "Ahli Hiragana"),
                                               description: _t(
                                                   "Learn all 104 basic Hiragana characters by completing Hiragana lessons.",
@@ -883,15 +883,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Widget bottomWidget;
     if (isClaimed) {
       bottomWidget = Row(children: [
-        const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF58CC02)),
+        const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFFCC6633)),
         const SizedBox(width: 4),
-        Text(_t("Already Claimed", "Sudah Diklaim"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF58CC02)))
+        Text(_t("Already Claimed", "Sudah Diklaim"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFCC6633)))
       ]);
     } else if (isCompleted) {
       bottomWidget = Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(color: const Color(0xFF58CC02), borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(8)),
         child: const Center(child: Text("KLAIM 200 XP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white))),
       );
     } else {
@@ -917,7 +917,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: cardColor,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-                color: isCompleted && !isClaimed ? const Color(0xFF58CC02).withValues(alpha: 0.5) : borderColor,
+                color: isCompleted && !isClaimed ? const Color(0xFFCC6633).withValues(alpha: 0.5) : borderColor,
                 width: isCompleted && !isClaimed ? 2 : 1
             ),
           ),
@@ -948,7 +948,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           right: 0,
                           child: Container(
                             padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(color: Color(0xFF58CC02), shape: BoxShape.circle),
+                            decoration: const BoxDecoration(color: Color(0xFFCC6633), shape: BoxShape.circle),
                             child: const Icon(Icons.check_rounded, size: 12, color: Colors.white),
                           ),
                         ),
@@ -969,7 +969,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         value: progress,
                         minHeight: 8,
                         backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-                        valueColor: AlwaysStoppedAnimation<Color>(isCompleted ? const Color(0xFF58CC02) : const Color(0xFFCC6633))
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFCC6633))
                     )
                 ),
                 const SizedBox(height: 12),
@@ -995,7 +995,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text(_t("CANCEL", "BATAL"), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
               try {
                 // 1. Reset local progress before sign out to prevent data leakage

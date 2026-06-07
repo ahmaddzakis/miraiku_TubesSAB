@@ -338,8 +338,7 @@ class _LearnScreenState extends State<LearnScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
-        // Menggunakan hijau khas Duolingo/Miraiku jika terbuka
-        color: unlocked ? const Color(0xFF58CC02) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        color: unlocked ? const Color(0xFFCC6633) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -369,7 +368,7 @@ class _LearnScreenState extends State<LearnScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
-        color: unlocked ? const Color(0xFF1CB0F6) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        color: unlocked ? const Color(0xFFCC6633) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -399,7 +398,7 @@ class _LearnScreenState extends State<LearnScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
-        color: unlocked ? const Color(0xFFFF4B4B) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
+        color: unlocked ? const Color(0xFFCC6633) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
