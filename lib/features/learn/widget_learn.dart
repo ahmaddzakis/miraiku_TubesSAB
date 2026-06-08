@@ -9,7 +9,7 @@ class UnitHeaderCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFCC6633), // Oranye kemerahan khas Miraiku
+        color: const Color(0xFFCC6633), // Oranye kemerahan khas MIRAIku
         borderRadius: BorderRadius.circular(16),
         border: const Border(
           bottom: BorderSide(

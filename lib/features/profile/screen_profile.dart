@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/game_manager.dart';
-import 'screen_activity_history.dart';
 import 'screen_notifications.dart';
 import 'screen_settings.dart';
 
@@ -25,13 +25,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _supabase = Supabase.instance.client;
 
   // Metadata User
-  String _userName = 'Miraiku User';
+  String _userName = 'MIRAIku User';
   String _userDesc = 'Semangat Belajar Bahasa Jepang!';
   String _userEmail = 'miraiku@example.com';
 
   // Local Statistics
   bool _isDailyClaimedToday = false;
-  bool _hasNewActivity = false;
 
   // Achievements Status
   bool _claimedHiragana = false;
@@ -47,11 +46,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   late SharedPreferences prefs;
   bool _isPrefsInitialized = false;
+  String _appVersion = "...";
 
   @override
   void initState() {
     super.initState();
     _initPrefs();
+    _initAppVersion();
+  }
+
+  Future<void> _initAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = info.version;
+      });
+    }
   }
 
   Future<void> _initPrefs() async {
@@ -69,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final meta = user.userMetadata;
       if (meta != null) {
         setState(() {
-          _userName = meta['display_name'] ?? 'Miraiku User';
+          _userName = meta['display_name'] ?? 'MIRAIku User';
           _userDesc = meta['bio'] ?? 'Semangat Belajar Bahasa Jepang!';
           globalAvatarUrl.value = meta['avatar_url'] ?? '';
           _userEmail = user.email ?? 'miraiku@example.com';
@@ -103,11 +113,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Gunakan format standar internasional YYYY-MM-DD
     final String today = DateTime.now().toIso8601String().substring(0, 10);
     final lastClaim = prefs.getString('gm_last_daily_claim');
-    final hasNewActivity = prefs.getBool('has_new_activity') ?? false;
 
     setState(() {
       _isDailyClaimedToday = (lastClaim == today);
-      _hasNewActivity = hasNewActivity;
     });
   }
 
@@ -393,6 +401,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return globalLanguage.value == 'id' ? id : en;
   }
 
+  void _showAboutApp(BuildContext context) {
+    final isDark = globalDarkMode.value;
+    showAboutDialog(
+      context: context,
+      applicationName: "MIRAIku",
+      applicationVersion: _appVersion,
+      applicationIcon: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Image.asset('assets/images/iconUtama.png', width: 48, height: 48),
+      ),
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          _t(
+            "MIRAIku is an interactive Japanese language learning platform designed to help users efficiently master Hiragana, Katakana, and essential vocabulary. Built with engaging gamification elements, MIRAIku makes the journey to Japanese fluency enjoyable, structured, and effective.",
+            "MIRAIku adalah platform pembelajaran bahasa Jepang interaktif yang dirancang untuk membantu pengguna menguasai Hiragana, Katakana, dan kosakata penting secara efisien. Dibangun dengan elemen gamifikasi yang menarik, MIRAIku membuat perjalanan menuju kemahiran bahasa Jepang menjadi menyenangkan, terstruktur, dan efektif."
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFCC6633).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                size: 18,
+                color: Color(0xFFCC6633),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _t("Developed by Ahmad Dzaki", "Dikembangkan oleh Ahmad Dzaki"),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFCC6633),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isPrefsInitialized) {
@@ -432,47 +497,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 child: Column(
                   children: [
-                    // 1. Header (Lonceng Notifikasi)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0, right: 16.0, left: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          // Notification Bell
-                          IconButton(
-                            icon: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Icon(Icons.notifications_rounded, size: 28, color: textColor),
-                                if (_hasNewActivity)
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: Container(
-                                      width: 12,
-                                      height: 12,
-                                      decoration: BoxDecoration(
-                                        color: Colors.redAccent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: bgColor, width: 2),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            onPressed: () async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('has_new_activity', false);
-                              setState(() => _hasNewActivity = false);
-                              if (context.mounted) {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityHistoryScreen()));
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 32),
 
                     // PROFILE HEADER
                     Center(
@@ -821,7 +846,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 icon: Icons.settings_rounded,
                                 title: _t("Settings", "Pengaturan"),
                                 subtitle: _t("Manage your account preferences", "Kelola preferensi akunmu"),
-                                color: Colors.orange,
                                 textColor: textColor,
                                 subTextColor: subTextColor,
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
@@ -833,7 +857,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 icon: Icons.notifications_rounded,
                                 title: _t("Notifications", "Notifikasi"),
                                 subtitle: _t("Daily reminders & info", "Pengingat harian & info"),
-                                color: Colors.orangeAccent,
                                 textColor: textColor,
                                 subTextColor: subTextColor,
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
@@ -842,21 +865,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Divider(height: 1, color: borderColor, indent: 70),
                             _buildMenuTile(
                                 context: context,
-                                icon: Icons.logout_rounded,
-                                title: _t("Logout", "Keluar"),
-                                subtitle: _t("Sign out from Miraiku account", "Keluar dari akun Miraiku"),
-                                color: Colors.redAccent,
+                                icon: Icons.info_outline_rounded,
+                                title: _t("About", "Tentang"),
+                                subtitle: _t("Learn more about MIRAIku", "Pelajari lebih lanjut tentang MIRAIku"),
                                 textColor: textColor,
                                 subTextColor: subTextColor,
-                                onTap: () => _showLogoutConfirmation(context, isDark),
-                                isLogout: true,
+                                onTap: () => _showAboutApp(context),
                                 isDark: isDark
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 120),
+                    const SizedBox(height: 24),
+                    // LOGOUT AS DISTINCT ACTION
+                    Center(
+                      child: TextButton(
+                        onPressed: () => _showLogoutConfirmation(context, isDark),
+                        child: Text(
+                          _t("LOGOUT", "KELUAR"),
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // VERSION FOOTER
+                    Center(
+                      child: Text(
+                        "MIRAIku Version $_appVersion",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: subTextColor.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -984,8 +1032,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuTile({required BuildContext context, required IconData icon, required String title, required String subtitle, required Color color, required Color textColor, required Color subTextColor, required VoidCallback onTap, bool isLogout = false, required bool isDark}) {
-    return ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isLogout ? (isDark ? Colors.red.withValues(alpha: 0.2) : const Color(0xFFFFF1F1)) : color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: color, size: 22)), title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)), subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)), onTap: onTap);
+  Widget _buildMenuTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color textColor,
+    required Color subTextColor,
+    required VoidCallback onTap,
+    String? trailingText,
+    required bool isDark,
+  }) {
+    final Color iconBg = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF5F5F5);
+    const Color primaryColor = Color(0xFFCC6633);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: iconBg,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(icon, color: primaryColor, size: 22),
+      ),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)),
+      subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)),
+      trailing: trailingText != null
+          ? Text(
+              trailingText,
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8C8A87)),
+            )
+          : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)),
+      onTap: trailingText != null ? null : onTap,
+    );
   }
 
   void _showLogoutConfirmation(BuildContext context, bool isDark) {

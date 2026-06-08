@@ -22,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEffects = true;
   bool _darkMode = false;
   String _language = 'en';
+  bool _isDailyReminderOn = false;
 
   String _userName = "";
   String _userDesc = "";
@@ -59,6 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _language = meta['setting_lang'] ?? prefs.getString('setting_lang') ?? 'en';
         _darkMode = meta['setting_dark'] ?? prefs.getBool('setting_dark') ?? false;
         _soundEffects = meta['setting_sound'] ?? prefs.getBool('setting_sound') ?? true;
+        _isDailyReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
       });
 
       // Sinkronkan ke UI utama
@@ -85,6 +87,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _t(String en, String id) {
     return globalLanguage.value == 'id' ? id : en;
+  }
+
+  void _showAboutApp(BuildContext context) {
+    final isDark = globalDarkMode.value;
+    showAboutDialog(
+      context: context,
+      applicationName: "MIRAIku",
+      applicationVersion: _appVersion,
+      applicationIcon: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Image.asset('assets/images/iconUtama.png', width: 48, height: 48),
+      ),
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          _t(
+            "MIRAIku is an interactive Japanese language learning platform designed to help users efficiently master Hiragana, Katakana, and essential vocabulary. Built with engaging gamification elements, MIRAIku makes the journey to Japanese fluency enjoyable, structured, and effective.",
+            "MIRAIku adalah platform pembelajaran bahasa Jepang interaktif yang dirancang untuk membantu pengguna menguasai Hiragana, Katakana, dan kosakata penting secara efisien. Dibangun dengan elemen gamifikasi yang menarik, MIRAIku membuat perjalanan menuju kemahiran bahasa Jepang menjadi menyenangkan, terstruktur, dan efektif."
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFCC6633).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                size: 18,
+                color: Color(0xFFCC6633),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _t("Developed by Ahmad Dzaki", "Dikembangkan oleh Ahmad Dzaki"),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFCC6633),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   // --- FUNGSI ALERT DIALOG UNTUK VALIDASI ---
@@ -166,6 +225,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ==================== POP-UP GANTI BAHASA ====================
+  void _showTimePicker() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: globalReminderTime.value,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFFCC6633),
+              onPrimary: Colors.white,
+              onSurface: _darkMode ? Colors.white : Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFFCC6633)),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      globalReminderTime.value = picked;
+      await _updatePreference('reminder_hour', picked.hour);
+      await _updatePreference('reminder_minute', picked.minute);
+      NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
+    }
+  }
+
   void _showLanguageDialog() {
     showDialog(
       context: context,
@@ -670,6 +758,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ]),
                     const SizedBox(height: 32),
 
+                    Text(_t("NOTIFICATIONS", "NOTIFIKASI"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer(cardColor: cardColor, borderColor: borderColor, children: [
+                      _buildSwitchTile(
+                        title: _t("Daily Reminder", "Pengingat Harian"),
+                        icon: Icons.notifications_active_rounded,
+                        textColor: textColor,
+                        value: _isDailyReminderOn,
+                        onChanged: (val) async {
+                          setState(() => _isDailyReminderOn = val);
+                          await _updatePreference('is_daily_reminder_on', val);
+                          if (val) {
+                            await NotificationService().requestPermissions();
+                          }
+                          NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
+                        },
+                      ),
+                      if (_isDailyReminderOn) ...[
+                        Divider(height: 1, color: borderColor),
+                        ValueListenableBuilder<TimeOfDay>(
+                          valueListenable: globalReminderTime,
+                          builder: (context, time, _) {
+                            return _buildLinkTile(
+                              title: _t("Reminder Time", "Waktu Pengingat"),
+                              icon: Icons.access_time_rounded,
+                              trailingText: time.format(context),
+                              textColor: textColor,
+                              onTap: _showTimePicker,
+                            );
+                          },
+                        ),
+                      ],
+                    ]),
+                    const SizedBox(height: 32),
+
                     Text(_t("ACCOUNT", "AKUN"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                     const SizedBox(height: 12),
                     _buildSettingsContainer(cardColor: cardColor, borderColor: borderColor, children: [
@@ -694,6 +817,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           icon: Icons.description_outlined,
                           textColor: textColor,
                           onTap: () => _launchURL('https://docs.google.com/document/d/1SSYXoZW_yu2ngBsUNEWN-SP5ELtPK9ZOi9bfW-Ww5u4/edit?usp=sharing')
+                      ),
+                      Divider(height: 1, color: borderColor),
+                      _buildLinkTile(
+                          title: _t("About", "Tentang"),
+                          icon: Icons.info_outline_rounded,
+                          textColor: textColor,
+                          onTap: () => _showAboutApp(context)
                       ),
                       Divider(height: 1, color: borderColor),
                       _buildLinkTile(title: _t("Version", "Versi"), icon: Icons.info_outline_rounded, trailingText: _appVersion, textColor: textColor)
