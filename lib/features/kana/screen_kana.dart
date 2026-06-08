@@ -106,57 +106,6 @@ class _KanaScreenState extends State<KanaScreen> {
               builder: (context, _, child) {
                 return Column(
                   children: [
-                    SizedBox(height: 24 * scale),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: isTablet ? 48.0 : 24.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(child: _buildTab(0, "Hiragana", isDark, scale)),
-                          SizedBox(width: 8 * scale),
-                          Expanded(child: _buildTab(1, "Katakana", isDark, scale)),
-                          SizedBox(width: 8 * scale),
-                          Expanded(child: _buildTab(2, "Kanji", isDark, scale)),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 24 * scale),
-
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: isTablet ? 48.0 : 24.0),
-                      child: Center(
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 800),
-                          width: double.infinity,
-                          padding: EdgeInsets.all(24 * scale),
-                          decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(16)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(headerTitle, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22 * scale, fontFamily: 'Serif')),
-                              SizedBox(height: 8 * scale),
-                              Text(headerDesc, style: TextStyle(color: const Color(0xFFF7E6D4), fontSize: 13 * scale, height: 1.4)),
-                              SizedBox(height: 20 * scale),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
-                                    decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
-                                    child: Text(
-                                      "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
-                                      style: TextStyle(color: const Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 12 * scale),
-                                    ),
-                                  )
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 24 * scale),
-
                     Expanded(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 400),
@@ -184,6 +133,50 @@ class _KanaScreenState extends State<KanaScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  SizedBox(height: 24 * scale),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(child: _buildTab(0, "Hiragana", isDark, scale)),
+                                      SizedBox(width: 8 * scale),
+                                      Expanded(child: _buildTab(1, "Katakana", isDark, scale)),
+                                      SizedBox(width: 8 * scale),
+                                      Expanded(child: _buildTab(2, "Kanji", isDark, scale)),
+                                    ],
+                                  ),
+                                  SizedBox(height: 24 * scale),
+
+                                  Center(
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.all(24 * scale),
+                                      decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(16)),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(headerTitle, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22 * scale, fontFamily: 'Serif')),
+                                          SizedBox(height: 8 * scale),
+                                          Text(headerDesc, style: TextStyle(color: const Color(0xFFF7E6D4), fontSize: 13 * scale, height: 1.4)),
+                                          SizedBox(height: 20 * scale),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              Container(
+                                                padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
+                                                decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
+                                                child: Text(
+                                                  "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
+                                                  style: TextStyle(color: const Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 12 * scale),
+                                                ),
+                                              )
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 24 * scale),
+
                                   if (_activeTab == 0) ...[
                                     _buildSectionTitle("GOJŪON (Basic 46)", scale),
                                     _buildGrid(AlphabetData.hiraBasic, isDark, scale: scale),

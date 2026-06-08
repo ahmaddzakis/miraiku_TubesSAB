@@ -57,7 +57,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -97,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFCC6633),
                     foregroundColor: Colors.white,
@@ -119,7 +119,7 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -159,7 +159,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFCC6633),
                     foregroundColor: Colors.white,
@@ -181,7 +181,7 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -225,7 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
                     ),
                   ),
@@ -233,7 +233,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(dialogContext);
                         setState(() {
                           _isLoginMode = true;
                           _isSignUpStep2 = false;
@@ -262,7 +262,7 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -306,7 +306,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
                     ),
                   ),
@@ -314,7 +314,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(dialogContext);
                         setState(() {
                           _isLoginMode = false;
                           _isSignUpStep2 = true;
@@ -347,10 +347,13 @@ class _AuthScreenState extends State<AuthScreen> {
     final selectedLanguage = globalLanguage.value;
     final selectedDarkMode = globalDarkMode.value;
     setState(() => _isLoading = true);
+
     try {
+      // TODO: Verify this matches the 'Web client ID' in Google Cloud Console
       const webClientId = '564994938710-anv76b8tkf8uoobjohct7fohm8f4ovhu.apps.googleusercontent.com';
       final GoogleSignIn googleSignIn = GoogleSignIn(serverClientId: webClientId);
 
+      // Reset sign-in state to ensure the account picker always appears
       try {
         await googleSignIn.signOut();
       } catch (_) {}
@@ -415,6 +418,18 @@ class _AuthScreenState extends State<AuthScreen> {
           globalDarkMode.value = selectedDarkMode;
           if (mounted) Navigator.pop(context);
         }
+      }
+    } on PlatformException catch (e) {
+      debugPrint("Google Sign-In PlatformException: ${e.code} - ${e.message}");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Google Sign-In Error [${e.code}]: ${e.message ?? 'Unknown error'}"),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (error) {
       debugPrint("Google Sign-In Error: $error");
@@ -552,9 +567,9 @@ class _AuthScreenState extends State<AuthScreen> {
     bool isSending = false;
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (statefulContext, setDialogState) {
             final isDark = globalDarkMode.value;
             return AlertDialog(
               backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -612,7 +627,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
                         ),
                       ),
@@ -625,7 +640,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                             try {
                               await Supabase.instance.client.auth.resetPasswordForEmail(resetEmailController.text.trim());
-                              if (context.mounted) Navigator.pop(context);
+                              if (statefulContext.mounted) Navigator.pop(dialogContext);
                               _showSuccessDialog(
                                 title: _t("Email Sent", "Email Terkirim"),
                                 message: _t(
@@ -674,12 +689,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
+    return ValueListenableBuilder<bool>(
         valueListenable: globalDarkMode,
-        builder: (context, isDark, _) {
-          return ValueListenableBuilder(
+        builder: (listenableContext, isDark, _) {
+          return ValueListenableBuilder<String>(
               valueListenable: globalLanguage,
-              builder: (context, lang, _) {
+              builder: (listenableContext2, lang, _) {
                 final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
                 final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
                 final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;

@@ -28,7 +28,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _userName = 'Miraiku User';
   String _userDesc = 'Semangat Belajar Bahasa Jepang!';
   String _userEmail = 'miraiku@example.com';
-  String _avatarUrl = '';
 
   // Local Statistics
   bool _isDailyClaimedToday = false;
@@ -72,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _userName = meta['display_name'] ?? 'Miraiku User';
           _userDesc = meta['bio'] ?? 'Semangat Belajar Bahasa Jepang!';
-          _avatarUrl = meta['avatar_url'] ?? '';
+          globalAvatarUrl.value = meta['avatar_url'] ?? '';
           _userEmail = user.email ?? 'miraiku@example.com';
 
           // Achievements from metadata
@@ -382,11 +381,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  ImageProvider _getAvatarImage() {
-    if (_avatarUrl.isNotEmpty && _avatarUrl.startsWith('http')) {
-      return NetworkImage(_avatarUrl);
+  ImageProvider _getAvatarImage(String url) {
+    if (url.isNotEmpty && url.startsWith('http')) {
+      return NetworkImage(url);
     } else {
-      return const AssetImage('assets/images/profileDefault.png');
+      return const AssetImage('assets/images/iconUtama.png');
     }
   }
 
@@ -477,25 +476,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     // PROFILE HEADER
                     Center(
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 130,
-                            height: 130,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFCC6633), width: 3),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: CircleAvatar(
-                                radius: 60,
-                                backgroundColor: cardColor,
-                                backgroundImage: _getAvatarImage(),
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: globalAvatarUrl,
+                        builder: (context, avatarUrl, _) {
+                          return Stack(
+                            children: [
+                              Container(
+                                width: 130,
+                                height: 130,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFCC6633), width: 3),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: CircleAvatar(
+                                    radius: 60,
+                                    backgroundColor: cardColor,
+                                    backgroundImage: _getAvatarImage(avatarUrl),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 24),

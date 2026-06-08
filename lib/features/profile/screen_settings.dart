@@ -25,7 +25,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _userName = "";
   String _userDesc = "";
-  String _avatarUrl = "";
 
   String _appVersion = "Memuat..."; // Variabel dinamis untuk versi aplikasi
 
@@ -54,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _userName = meta['display_name'] ?? user.email?.split('@')[0] ?? "User";
         _userDesc = meta['bio'] ?? "Bandung, West Java";
-        _avatarUrl = meta['avatar_url'] ?? "";
+        globalAvatarUrl.value = meta['avatar_url'] ?? "";
 
         // Ambil preferensi dari Cloud Supabase, kalau tidak ada, pakai lokal
         _language = meta['setting_lang'] ?? prefs.getString('setting_lang') ?? 'en';
@@ -130,8 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Update metadata user
       await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': publicUrl}));
 
+      globalAvatarUrl.value = publicUrl;
+
       if (context.mounted) {
-        setState(() { _avatarUrl = publicUrl; });
         setModalState(() {}); // Force rebuild modal
         _showAlertDialog(_t("Success", "Berhasil"), _t("Profile photo has been updated!", "Foto profil berhasil diperbarui!"));
       }
@@ -152,8 +152,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Update metadata user dengan string kosong
       await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': ''}));
 
+      globalAvatarUrl.value = "";
+
       if (context.mounted) {
-        setState(() { _avatarUrl = ""; });
         setModalState(() {}); // Force rebuild modal
         _showAlertDialog(_t("Success", "Berhasil"), _t("Profile photo has been removed!", "Foto profil berhasil dihapus!"));
       }
@@ -227,32 +228,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 24),
                       Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
                       const SizedBox(height: 24),
-                      Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          CircleAvatar(radius: 45, backgroundImage: _getAvatarImage(), backgroundColor: _darkMode ? const Color(0xFF333333) : const Color(0xFFE8E3DA)),
-                          if (isSaving)
-                            const CircleAvatar(radius: 45, backgroundColor: Colors.black26, child: CircularProgressIndicator(color: Colors.white)),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                      ValueListenableBuilder<String>(
+                        valueListenable: globalAvatarUrl,
+                        builder: (context, avatarUrl, _) {
+                          return Stack(
+                            clipBehavior: Clip.none,
                             children: [
-                              if (_avatarUrl.isNotEmpty)
-                                GestureDetector(
-                                  onTap: () => _removeProfilePicture(setModalState, (v) => isSaving = v),
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2), width: 4),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: _getAvatarImage(avatarUrl),
+                                  backgroundColor: _darkMode ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                                ),
+                              ),
+                              if (isSaving)
+                                Positioned.fill(
                                   child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle, border: Border.all(color: modalBg, width: 2)),
-                                    child: const Icon(Icons.delete_rounded, size: 14, color: Colors.white),
+                                    decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle),
+                                    child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
                                   ),
                                 ),
-                              if (_avatarUrl.isNotEmpty) const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _pickAndUploadImage(setModalState, (v) => isSaving = v),
-                                child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: const Color(0xFFCC6633), shape: BoxShape.circle, border: Border.all(color: modalBg, width: 2)), child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white)),
-                              ),
+                              // Trash Icon (Top Right)
+                              if (avatarUrl.isNotEmpty && !isSaving)
+                                Positioned(
+                                  top: -4,
+                                  right: -4,
+                                  child: GestureDetector(
+                                    onTap: () => _removeProfilePicture(setModalState, (v) => isSaving = v),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2), width: 1), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]),
+                                      child: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
+                                    ),
+                                  ),
+                                ),
+                              // Camera Icon (Bottom Right)
+                              if (!isSaving)
+                                Positioned(
+                                  bottom: -4,
+                                  right: -4,
+                                  child: GestureDetector(
+                                    onTap: () => _pickAndUploadImage(setModalState, (v) => isSaving = v),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: const Color(0xFFCC6633), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]),
+                                      child: const Icon(Icons.camera_alt_rounded, size: 20, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
                             ],
-                          )
-                        ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 32),
                       TextFormField(
@@ -552,9 +582,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
 
-  ImageProvider _getAvatarImage() {
-    if (_avatarUrl.isNotEmpty && _avatarUrl.startsWith('http')) {
-      return NetworkImage(_avatarUrl);
+  ImageProvider _getAvatarImage(String url) {
+    if (url.isNotEmpty && url.startsWith('http')) {
+      return NetworkImage(url);
     } else {
       return const AssetImage('assets/images/iconUtama.png');
     }
@@ -599,7 +629,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Header Profil
                     Row(
                       children: [
-                        CircleAvatar(radius: 35, backgroundImage: _getAvatarImage(), backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA)),
+                        ValueListenableBuilder<String>(
+                          valueListenable: globalAvatarUrl,
+                          builder: (context, avatarUrl, _) {
+                            return CircleAvatar(
+                              radius: 35,
+                              backgroundImage: _getAvatarImage(avatarUrl),
+                              backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                            );
+                          },
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
