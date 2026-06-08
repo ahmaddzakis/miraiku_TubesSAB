@@ -295,7 +295,7 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                                         "${langPoints.toInt()}",
                                         "/60",
                                         Icons.translate_rounded,
-                                        const Color(0xFF58CC02),
+                                        const Color(0xFFCC6633),
                                         isDark,
                                         _t("JLPT standard: Language max score is 60 points.", "Standar JLPT: Skor maksimal Bahasa adalah 60 poin.")
                                     ),
@@ -306,7 +306,7 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                                         "${readingPoints.toInt()}",
                                         "/120",
                                         Icons.menu_book_rounded,
-                                        const Color(0xFF1CB0F6),
+                                        const Color(0xFFCC6633),
                                         isDark,
                                         _t("JLPT standard: Reading max score is 120 points.", "Standar JLPT: Skor maksimal Membaca adalah 120 poin.")
                                     ),

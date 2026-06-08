@@ -17,12 +17,12 @@ class TopStatusBar extends StatelessWidget {
 
         return Container(
           color: barBg,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), // Padding disesuaikan
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0), // Padding disesuaikan
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // ==========================================
-              // 👑 BAGIAN KIRI: LOGO MIRAIKU GANTENG
+              // 👑 BAGIAN KIRI: LOGO MIRAIku GANTENG
               // ==========================================
               Row(
                 children: [

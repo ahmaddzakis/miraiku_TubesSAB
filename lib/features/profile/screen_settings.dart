@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart'; // Package baru untuk auto-version
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/game_manager.dart';
 import '../../core/notification_service.dart';
@@ -21,10 +22,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEffects = true;
   bool _darkMode = false;
   String _language = 'en';
+  bool _isDailyReminderOn = false;
 
   String _userName = "";
   String _userDesc = "";
-  String _avatarUrl = "";
 
   String _appVersion = "Memuat..."; // Variabel dinamis untuk versi aplikasi
 
@@ -53,12 +54,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _userName = meta['display_name'] ?? user.email?.split('@')[0] ?? "User";
         _userDesc = meta['bio'] ?? "Bandung, West Java";
-        _avatarUrl = meta['avatar_url'] ?? "";
+        globalAvatarUrl.value = meta['avatar_url'] ?? "";
 
         // Ambil preferensi dari Cloud Supabase, kalau tidak ada, pakai lokal
         _language = meta['setting_lang'] ?? prefs.getString('setting_lang') ?? 'en';
         _darkMode = meta['setting_dark'] ?? prefs.getBool('setting_dark') ?? false;
         _soundEffects = meta['setting_sound'] ?? prefs.getBool('setting_sound') ?? true;
+        _isDailyReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
       });
 
       // Sinkronkan ke UI utama
@@ -85,6 +87,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _t(String en, String id) {
     return globalLanguage.value == 'id' ? id : en;
+  }
+
+  void _showAboutApp(BuildContext context) {
+    final isDark = globalDarkMode.value;
+    showAboutDialog(
+      context: context,
+      applicationName: "MIRAIku",
+      applicationVersion: _appVersion,
+      applicationIcon: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Image.asset('assets/images/iconUtama.png', width: 48, height: 48),
+      ),
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          _t(
+            "MIRAIku is an interactive Japanese language learning platform designed to help users efficiently master Hiragana, Katakana, and essential vocabulary. Built with engaging gamification elements, MIRAIku makes the journey to Japanese fluency enjoyable, structured, and effective.",
+            "MIRAIku adalah platform pembelajaran bahasa Jepang interaktif yang dirancang untuk membantu pengguna menguasai Hiragana, Katakana, dan kosakata penting secara efisien. Dibangun dengan elemen gamifikasi yang menarik, MIRAIku membuat perjalanan menuju kemahiran bahasa Jepang menjadi menyenangkan, terstruktur, dan efektif."
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFCC6633).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                size: 18,
+                color: Color(0xFFCC6633),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _t("Developed by Ahmad Dzaki", "Dikembangkan oleh Ahmad Dzaki"),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFCC6633),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   // --- FUNGSI ALERT DIALOG UNTUK VALIDASI ---
@@ -129,8 +188,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Update metadata user
       await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': publicUrl}));
 
+      globalAvatarUrl.value = publicUrl;
+
       if (context.mounted) {
-        setState(() { _avatarUrl = publicUrl; });
         setModalState(() {}); // Force rebuild modal
         _showAlertDialog(_t("Success", "Berhasil"), _t("Profile photo has been updated!", "Foto profil berhasil diperbarui!"));
       }
@@ -141,7 +201,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // --- FUNGSI HAPUS FOTO PROFIL ---
+  Future<void> _removeProfilePicture(StateSetter setModalState, void Function(bool) setLoading) async {
+    setModalState(() => setLoading(true));
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return;
+
+      // Update metadata user dengan string kosong
+      await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': ''}));
+
+      globalAvatarUrl.value = "";
+
+      if (context.mounted) {
+        setModalState(() {}); // Force rebuild modal
+        _showAlertDialog(_t("Success", "Berhasil"), _t("Profile photo has been removed!", "Foto profil berhasil dihapus!"));
+      }
+    } catch (e) {
+      if (context.mounted) _showAlertDialog(_t("Error", "Gagal"), e.toString());
+    } finally {
+      setModalState(() => setLoading(false));
+    }
+  }
+
   // ==================== POP-UP GANTI BAHASA ====================
+  void _showTimePicker() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: globalReminderTime.value,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFFCC6633),
+              onPrimary: Colors.white,
+              onSurface: _darkMode ? Colors.white : Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFFCC6633)),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      globalReminderTime.value = picked;
+      await _updatePreference('reminder_hour', picked.hour);
+      await _updatePreference('reminder_minute', picked.minute);
+      NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
+    }
+  }
+
   void _showLanguageDialog() {
     showDialog(
       context: context,
@@ -178,6 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showEditProfileModal() {
     final TextEditingController nameController = TextEditingController(text: _userName);
     final TextEditingController descController = TextEditingController(text: _userDesc);
+    final formKey = GlobalKey<FormState>();
     bool isSaving = false;
 
     showModalBottomSheet(
@@ -194,95 +307,150 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(color: modalBg, borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32))),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
-                    const SizedBox(height: 24),
-                    Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
-                    const SizedBox(height: 24),
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        CircleAvatar(radius: 45, backgroundImage: _getAvatarImage(), backgroundColor: _darkMode ? const Color(0xFF333333) : const Color(0xFFE8E3DA)),
-                        if (isSaving)
-                          const CircleAvatar(radius: 45, backgroundColor: Colors.black26, child: CircularProgressIndicator(color: Colors.white)),
-                        GestureDetector(
-                          onTap: () => _pickAndUploadImage(setModalState, (v) => isSaving = v),
-                          child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: const Color(0xFFCC6633), shape: BoxShape.circle, border: Border.all(color: modalBg, width: 2)), child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white)),
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    TextField(
-                      controller: nameController,
-                      maxLength: 20,
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                      decoration: InputDecoration(
-                        counterText: "",
-                        labelText: _t("Display Name", "Nama Tampilan"),
-                        labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
-                        filled: true,
-                        fillColor: fieldBg,
-                        prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFFB5B0A8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: descController,
-                      maxLength: 50,
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                      decoration: InputDecoration(
-                        counterText: "",
-                        labelText: _t("Bio", "Bio"),
-                        labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
-                        filled: true,
-                        fillColor: fieldBg,
-                        prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity, height: 54,
-                      child: ElevatedButton(
-                        onPressed: isSaving ? null : () async {
-                          if (nameController.text.trim().isEmpty) {
-                            _showAlertDialog(_t("Invalid Name", "Nama Tidak Valid"), _t("Display name cannot be empty!", "Nama tampilan tidak boleh kosong!"));
-                            return;
-                          }
-
-                          setModalState(() => isSaving = true);
-                          try {
-                            await _supabase.auth.updateUser(UserAttributes(data: {
-                              'display_name': nameController.text.trim(),
-                              'bio': descController.text.trim(),
-                            }));
-                            if (context.mounted) {
-                              setState(() {
-                                _userName = nameController.text.trim();
-                                _userDesc = descController.text.trim();
-                              });
-                              Navigator.pop(context);
-                              _showAlertDialog(_t("Success", "Berhasil"), _t("Profile has been updated!", "Profil berhasil diperbarui!"));
-                            }
-                          } catch (e) {
-                            if (context.mounted) _showAlertDialog(_t("Update Failed", "Gagal Memperbarui"), e.toString());
-                          } finally {
-                            setModalState(() => isSaving = false);
-                          }
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
+                      const SizedBox(height: 24),
+                      Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
+                      const SizedBox(height: 24),
+                      ValueListenableBuilder<String>(
+                        valueListenable: globalAvatarUrl,
+                        builder: (context, avatarUrl, _) {
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2), width: 4),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: _getAvatarImage(avatarUrl),
+                                  backgroundColor: _darkMode ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                                ),
+                              ),
+                              if (isSaving)
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle),
+                                    child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
+                                  ),
+                                ),
+                              // Trash Icon (Top Right)
+                              if (avatarUrl.isNotEmpty && !isSaving)
+                                Positioned(
+                                  top: -4,
+                                  right: -4,
+                                  child: GestureDetector(
+                                    onTap: () => _removeProfilePicture(setModalState, (v) => isSaving = v),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2), width: 1), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]),
+                                      child: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
+                                    ),
+                                  ),
+                                ),
+                              // Camera Icon (Bottom Right)
+                              if (!isSaving)
+                                Positioned(
+                                  bottom: -4,
+                                  right: -4,
+                                  child: GestureDetector(
+                                    onTap: () => _pickAndUploadImage(setModalState, (v) => isSaving = v),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: const Color(0xFFCC6633), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]),
+                                      child: const Icon(Icons.camera_alt_rounded, size: 20, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
                         },
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                        child: isSaving
-                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text(_t("Save Changes", "Simpan Perubahan"), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        controller: nameController,
+                        maxLength: 25,
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]'))],
+                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                        decoration: InputDecoration(
+                          counterText: "",
+                          labelText: _t("Display Name", "Nama Tampilan"),
+                          labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
+                          filled: true,
+                          fillColor: fieldBg,
+                          prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFFB5B0A8)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
+                          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
+                          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return _t("Name required", "Nama wajib diisi");
+                          if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(v)) return _t("Letters and spaces only", "Hanya huruf dan spasi");
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: descController,
+                        maxLength: 50,
+                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                        decoration: InputDecoration(
+                          counterText: "",
+                          labelText: _t("Bio", "Bio"),
+                          labelStyle: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
+                          filled: true,
+                          fillColor: fieldBg,
+                          prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFFB5B0A8)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: const Color(0xFFE8E3DA).withValues(alpha: _darkMode ? 0.1 : 1))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFCC6633), width: 2)),
+                          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent)),
+                          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? _t("Bio required", "Bio wajib diisi") : null,
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity, height: 54,
+                        child: ElevatedButton(
+                          onPressed: isSaving ? null : () async {
+                            if (formKey.currentState!.validate()) {
+                              setModalState(() => isSaving = true);
+                              try {
+                                await _supabase.auth.updateUser(UserAttributes(data: {
+                                  'display_name': nameController.text.trim(),
+                                  'bio': descController.text.trim(),
+                                }));
+                                if (context.mounted) {
+                                  setState(() {
+                                    _userName = nameController.text.trim();
+                                    _userDesc = descController.text.trim();
+                                  });
+                                  Navigator.pop(context);
+                                  _showAlertDialog(_t("Success", "Berhasil"), _t("Profile has been updated!", "Profil berhasil diperbarui!"));
+                                }
+                              } catch (e) {
+                                if (context.mounted) _showAlertDialog(_t("Update Failed", "Gagal Memperbarui"), e.toString());
+                              } finally {
+                                if (context.mounted) setModalState(() => isSaving = false);
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                          child: isSaving
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text(_t("Save Changes", "Simpan Perubahan"), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -502,11 +670,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
 
-  ImageProvider _getAvatarImage() {
-    if (_avatarUrl.isNotEmpty && _avatarUrl.startsWith('http')) {
-      return NetworkImage(_avatarUrl);
+  ImageProvider _getAvatarImage(String url) {
+    if (url.isNotEmpty && url.startsWith('http')) {
+      return NetworkImage(url);
     } else {
-      return const AssetImage('assets/images/profileDefault.png');
+      return const AssetImage('assets/images/iconUtama.png');
     }
   }
 
@@ -549,7 +717,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Header Profil
                     Row(
                       children: [
-                        CircleAvatar(radius: 35, backgroundImage: _getAvatarImage(), backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA)),
+                        ValueListenableBuilder<String>(
+                          valueListenable: globalAvatarUrl,
+                          builder: (context, avatarUrl, _) {
+                            return CircleAvatar(
+                              radius: 35,
+                              backgroundImage: _getAvatarImage(avatarUrl),
+                              backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                            );
+                          },
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -581,6 +758,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ]),
                     const SizedBox(height: 32),
 
+                    Text(_t("NOTIFICATIONS", "NOTIFIKASI"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    const SizedBox(height: 12),
+                    _buildSettingsContainer(cardColor: cardColor, borderColor: borderColor, children: [
+                      _buildSwitchTile(
+                        title: _t("Daily Reminder", "Pengingat Harian"),
+                        icon: Icons.notifications_active_rounded,
+                        textColor: textColor,
+                        value: _isDailyReminderOn,
+                        onChanged: (val) async {
+                          setState(() => _isDailyReminderOn = val);
+                          await _updatePreference('is_daily_reminder_on', val);
+                          if (val) {
+                            await NotificationService().requestPermissions();
+                          }
+                          NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
+                        },
+                      ),
+                      if (_isDailyReminderOn) ...[
+                        Divider(height: 1, color: borderColor),
+                        ValueListenableBuilder<TimeOfDay>(
+                          valueListenable: globalReminderTime,
+                          builder: (context, time, _) {
+                            return _buildLinkTile(
+                              title: _t("Reminder Time", "Waktu Pengingat"),
+                              icon: Icons.access_time_rounded,
+                              trailingText: time.format(context),
+                              textColor: textColor,
+                              onTap: _showTimePicker,
+                            );
+                          },
+                        ),
+                      ],
+                    ]),
+                    const SizedBox(height: 32),
+
                     Text(_t("ACCOUNT", "AKUN"), style: const TextStyle(color: Color(0xFF8C8A87), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                     const SizedBox(height: 12),
                     _buildSettingsContainer(cardColor: cardColor, borderColor: borderColor, children: [
@@ -605,6 +817,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           icon: Icons.description_outlined,
                           textColor: textColor,
                           onTap: () => _launchURL('https://docs.google.com/document/d/1SSYXoZW_yu2ngBsUNEWN-SP5ELtPK9ZOi9bfW-Ww5u4/edit?usp=sharing')
+                      ),
+                      Divider(height: 1, color: borderColor),
+                      _buildLinkTile(
+                          title: _t("About", "Tentang"),
+                          icon: Icons.info_outline_rounded,
+                          textColor: textColor,
+                          onTap: () => _showAboutApp(context)
                       ),
                       Divider(height: 1, color: borderColor),
                       _buildLinkTile(title: _t("Version", "Versi"), icon: Icons.info_outline_rounded, trailingText: _appVersion, textColor: textColor)

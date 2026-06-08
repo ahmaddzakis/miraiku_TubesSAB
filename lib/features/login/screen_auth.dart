@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/services.dart';
 
 // Pastikan file globals ini sesuai dengan path aslimu
  // atau file tempat globalLanguage dan globalDarkMode berada
@@ -56,7 +57,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -96,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFCC6633),
                     foregroundColor: Colors.white,
@@ -118,7 +119,7 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -158,7 +159,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFCC6633),
                     foregroundColor: Colors.white,
@@ -180,7 +181,7 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -224,7 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
                     ),
                   ),
@@ -232,7 +233,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(dialogContext);
                         setState(() {
                           _isLoginMode = true;
                           _isSignUpStep2 = false;
@@ -261,7 +262,7 @@ class _AuthScreenState extends State<AuthScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -305,7 +306,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
                     ),
                   ),
@@ -313,7 +314,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(dialogContext);
                         setState(() {
                           _isLoginMode = false;
                           _isSignUpStep2 = true;
@@ -346,10 +347,13 @@ class _AuthScreenState extends State<AuthScreen> {
     final selectedLanguage = globalLanguage.value;
     final selectedDarkMode = globalDarkMode.value;
     setState(() => _isLoading = true);
+
     try {
+      // TODO: Verify this matches the 'Web client ID' in Google Cloud Console
       const webClientId = '564994938710-anv76b8tkf8uoobjohct7fohm8f4ovhu.apps.googleusercontent.com';
       final GoogleSignIn googleSignIn = GoogleSignIn(serverClientId: webClientId);
 
+      // Reset sign-in state to ensure the account picker always appears
       try {
         await googleSignIn.signOut();
       } catch (_) {}
@@ -412,7 +416,20 @@ class _AuthScreenState extends State<AuthScreen> {
           }));
           globalLanguage.value = selectedLanguage;
           globalDarkMode.value = selectedDarkMode;
+          if (mounted) Navigator.pop(context);
         }
+      }
+    } on PlatformException catch (e) {
+      debugPrint("Google Sign-In PlatformException: ${e.code} - ${e.message}");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Google Sign-In Error [${e.code}]: ${e.message ?? 'Unknown error'}"),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (error) {
       debugPrint("Google Sign-In Error: $error");
@@ -457,6 +474,8 @@ class _AuthScreenState extends State<AuthScreen> {
         globalLanguage.value = selectedLanguage;
         globalDarkMode.value = selectedDarkMode;
 
+        if (mounted) Navigator.pop(context);
+
         final prefs = await SharedPreferences.getInstance();
         if (_rememberMe) {
           await prefs.setString('remembered_email', _emailController.text.trim());
@@ -489,6 +508,8 @@ class _AuthScreenState extends State<AuthScreen> {
           
           // Force initialize game state for new user
           await GameManager.initializeNewAccount();
+
+          if (mounted) Navigator.pop(context);
         } else {
           // Email Sign Up
           final response = await supabase.auth.signUp(
@@ -507,6 +528,7 @@ class _AuthScreenState extends State<AuthScreen> {
             if (response.session != null) {
               // User is automatically signed in (email confirmation disabled)
               await GameManager.initializeNewAccount();
+              if (mounted) Navigator.pop(context);
             } else {
               _showSuccessDialog(
                 title: _t("Verify Your Email", "Verifikasi Email Anda"),
@@ -545,9 +567,9 @@ class _AuthScreenState extends State<AuthScreen> {
     bool isSending = false;
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (statefulContext, setDialogState) {
             final isDark = globalDarkMode.value;
             return AlertDialog(
               backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
@@ -605,7 +627,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: Text(_t("Cancel", "Batal"), style: const TextStyle(color: Color(0xFF8C8A87))),
                         ),
                       ),
@@ -618,7 +640,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                             try {
                               await Supabase.instance.client.auth.resetPasswordForEmail(resetEmailController.text.trim());
-                              if (context.mounted) Navigator.pop(context);
+                              if (statefulContext.mounted) Navigator.pop(dialogContext);
                               _showSuccessDialog(
                                 title: _t("Email Sent", "Email Terkirim"),
                                 message: _t(
@@ -667,12 +689,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
+    return ValueListenableBuilder<bool>(
         valueListenable: globalDarkMode,
-        builder: (context, isDark, _) {
-          return ValueListenableBuilder(
+        builder: (listenableContext, isDark, _) {
+          return ValueListenableBuilder<String>(
               valueListenable: globalLanguage,
-              builder: (context, lang, _) {
+              builder: (listenableContext2, lang, _) {
                 final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
                 final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
                 final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -782,7 +804,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   child: ClipOval(
                                     child: Image.asset(
-                                      'assets/images/cuteAsset.png',
+                                      'assets/images/iconUtama.png',
                                       width: 80,
                                       height: 80,
                                       fit: BoxFit.cover,
@@ -874,13 +896,20 @@ class _AuthScreenState extends State<AuthScreen> {
                                               controller: _nameController, label: _t("Display Name", "Nama Tampilan"),
                                               icon: Icons.person_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
                                               hints: [AutofillHints.name],
-                                              validator: (v) => (v == null || v.trim().isEmpty) ? _t("Name required", "Nama wajib diisi") : null,
+                                              maxLength: 25,
+                                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]'))],
+                                              validator: (v) {
+                                                if (v == null || v.trim().isEmpty) return _t("Name required", "Nama wajib diisi");
+                                                if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(v)) return _t("Letters and spaces only", "Hanya huruf dan spasi");
+                                                return null;
+                                              },
                                             ),
                                             const SizedBox(height: 18),
                                             _buildTextField(
                                               controller: _descController, label: "Bio",
                                               icon: Icons.info_outline_rounded, isDark: isDark, fieldBg: fieldBg, textColor: textColor,
                                               hints: [AutofillHints.jobTitle],
+                                              maxLength: 50,
                                               validator: (v) => (v == null || v.trim().isEmpty) ? _t("Bio required", "Bio wajib diisi") : null,
                                             ),
                                           ],
@@ -1011,7 +1040,8 @@ class _AuthScreenState extends State<AuthScreen> {
     required TextEditingController controller, required String label, required IconData icon,
     required bool isDark, required Color fieldBg, required Color textColor,
     bool isPassword = false, bool obscure = false, VoidCallback? onToggle,
-    TextInputType type = TextInputType.text, List<String>? hints, String? Function(String?)? validator
+    TextInputType type = TextInputType.text, List<String>? hints, String? Function(String?)? validator,
+    int? maxLength, List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
@@ -1019,9 +1049,13 @@ class _AuthScreenState extends State<AuthScreen> {
       keyboardType: type,
       autofillHints: hints,
       validator: validator,
+      maxLength: maxLength,
+      inputFormatters: inputFormatters,
       style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
       decoration: InputDecoration(
-        labelText: label, labelStyle: const TextStyle(color: Color(0xFFB5B0A8), fontSize: 14, fontWeight: FontWeight.w600),
+        hintText: label,
+        hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFFB5B0A8), fontSize: 14, fontWeight: FontWeight.w500),
+        counterText: "",
         filled: true, fillColor: fieldBg,
         prefixIcon: Icon(icon, color: const Color(0xFFB5B0A8), size: 20),
         suffixIcon: isPassword ? IconButton(icon: Icon(obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: const Color(0xFFB5B0A8), size: 20), onPressed: onToggle) : null,

@@ -17,6 +17,8 @@ final ValueNotifier<String> globalTimerText = ValueNotifier<String>("Penuh");
 final ValueNotifier<bool> globalDarkMode = ValueNotifier<bool>(false);
 final ValueNotifier<String> globalLanguage = ValueNotifier<String>('en');
 final ValueNotifier<bool> globalIsPremium = ValueNotifier<bool>(false);
+final ValueNotifier<String> globalAvatarUrl = ValueNotifier<String>('');
+final ValueNotifier<TimeOfDay> globalReminderTime = ValueNotifier<TimeOfDay>(const TimeOfDay(hour: 19, minute: 0));
 final ValueNotifier<List<String>> globalLearnedHiragana = ValueNotifier<List<String>>([]);
 final ValueNotifier<List<String>> globalLearnedKatakana = ValueNotifier<List<String>>([]);
 final ValueNotifier<List<String>> globalLearnedKanji = ValueNotifier<List<String>>([]);
@@ -68,6 +70,12 @@ class GameManager {
       NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
     }
     globalIsPremium.value = meta['is_premium'] ?? prefs.getBool('is_premium') ?? false;
+    globalAvatarUrl.value = meta['avatar_url'] ?? prefs.getString('gm_avatar_url') ?? '';
+
+    // Reminder Time
+    final int rHour = meta['reminder_hour'] ?? prefs.getInt('reminder_hour') ?? 19;
+    final int rMinute = meta['reminder_minute'] ?? prefs.getInt('reminder_minute') ?? 0;
+    globalReminderTime.value = TimeOfDay(hour: rHour, minute: rMinute);
 
     // 3. Learned Characters
     if (meta['learned_hiragana'] != null) {
@@ -131,6 +139,9 @@ class GameManager {
     prefs.setBool('is_dark_mode', globalDarkMode.value);
     prefs.setString('app_language', globalLanguage.value);
     prefs.setBool('is_premium', globalIsPremium.value);
+    prefs.setString('gm_avatar_url', globalAvatarUrl.value);
+    prefs.setInt('reminder_hour', globalReminderTime.value.hour);
+    prefs.setInt('reminder_minute', globalReminderTime.value.minute);
     prefs.setStringList('learned_hiragana_list', globalLearnedHiragana.value);
     prefs.setStringList('learned_katakana_list', globalLearnedKatakana.value);
     prefs.setStringList('learned_kanji_list', globalLearnedKanji.value);
@@ -149,8 +160,10 @@ class GameManager {
     // 1. Reset ValueNotifiers to defaults
     globalHearts.value = 5;
     globalXP.value = 0;
+    globalAvatarUrl.value = '';
     globalStreak.value = 0;
     globalIsPremium.value = false;
+    globalReminderTime.value = const TimeOfDay(hour: 19, minute: 0);
     globalLearnedHiragana.value = [];
     globalLearnedKatakana.value = [];
     globalLearnedKanji.value = [];
@@ -189,6 +202,7 @@ class GameManager {
     globalStreak.value = 1; // Hari pertama login
     globalXP.value = 0;
     globalIsPremium.value = false;
+    globalReminderTime.value = const TimeOfDay(hour: 19, minute: 0);
     globalLearnedHiragana.value = [];
     globalLearnedKatakana.value = [];
     globalLearnedKanji.value = [];
@@ -248,9 +262,12 @@ class GameManager {
           'gm_xp': globalXP.value,
           'gm_hearts': globalHearts.value,
           'gm_streak': globalStreak.value,
+          'avatar_url': globalAvatarUrl.value,
           'setting_dark': globalDarkMode.value,
           'setting_lang': globalLanguage.value,
           'is_daily_reminder_on': prefs.getBool('is_daily_reminder_on') ?? false,
+          'reminder_hour': globalReminderTime.value.hour,
+          'reminder_minute': globalReminderTime.value.minute,
           'is_premium': globalIsPremium.value,
           'learned_hiragana': globalLearnedHiragana.value,
           'learned_katakana': globalLearnedKatakana.value,

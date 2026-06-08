@@ -405,7 +405,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         title: Text(
           isTestMode ? '🏆 Unit Test Lulus!' : '🎉 Latihan Selesai!',
-          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4CAF50), fontSize: 24),
+          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFCC6633), fontSize: 24),
           textAlign: TextAlign.center,
         ),
         content: Column(
@@ -429,7 +429,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 children: [
                   _buildStatItem(Icons.flash_on, xpGained > 0 ? "+$xpGained" : "0", "XP", Colors.orange),
                   _buildStatItem(Icons.favorite, "${globalHearts.value}", "HP", Colors.red),
-                  _buildStatItem(Icons.check_circle, "$_score/$_originalQuestionCount", "Skor", Colors.green),
+                  _buildStatItem(Icons.check_circle, "$_score/$_originalQuestionCount", "Skor", const Color(0xFFCC6633)),
                 ],
               ),
             ),
@@ -932,9 +932,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             height: 56,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isAnswered
-                    ? (_isCurrentAnswerCorrect ? const Color(0xFF4CAF50) : const Color(0xFFE53935))
-                    : const Color(0xFFCC6633),
+                backgroundColor: const Color(0xFFCC6633),
                 disabledBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: _isAnswered ? 0 : (isButtonEnabled ? 4 : 0),

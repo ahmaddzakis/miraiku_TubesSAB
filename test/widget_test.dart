@@ -42,7 +42,7 @@ void main() {
   testWidgets('App renders without crashing', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     // We use a simplified version or the real app if initialization permits
-    await tester.pumpWidget(const MiraikuApp());
+    await tester.pumpWidget(const MIRAIkuApp());
 
     // Basic check to see if the app started (should show AuthScreen or Loading)
     expect(find.byType(MaterialApp), findsOneWidget);
