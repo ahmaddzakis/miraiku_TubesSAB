@@ -669,7 +669,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         begin: const Offset(0.0, 0.05),
                         end: Offset.zero,
                       ).animate(animation);
-                      
+
                       return FadeTransition(
                         opacity: animation,
                         child: SlideTransition(
@@ -698,8 +698,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                 border: Border.all(color: borderColor, width: 2),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFCC6633).withValues(alpha: 0.08), 
-                                    blurRadius: 20, 
+                                    color: const Color(0xFFCC6633).withValues(alpha: 0.08),
+                                    blurRadius: 20,
                                     offset: const Offset(0, 10)
                                   ),
                                 ],

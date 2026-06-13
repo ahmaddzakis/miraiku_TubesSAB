@@ -327,7 +327,8 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                                   _t("Time", "Waktu"),
                                   _formatDuration(widget.timeSpentSeconds),
                                   Icons.timer_rounded,
-                                  isDark, cardColor
+                                  isDark, cardColor,
+                                  subtitle: _t("Total duration", "Durasi total")
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -336,7 +337,8 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
                                   _t("Accuracy", "Akurasi"),
                                   "$accuracy%",
                                   Icons.ads_click_rounded,
-                                  isDark, cardColor
+                                  isDark, cardColor,
+                                  subtitle: _t("Correct answer rate", "Tingkat jawaban benar")
                               ),
                             ),
                           ],
@@ -435,7 +437,7 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
     );
   }
 
-  Widget _buildSmallStatCard(String label, String value, IconData icon, bool isDark, Color cardColor) {
+  Widget _buildSmallStatCard(String label, String value, IconData icon, bool isDark, Color cardColor, {String? subtitle}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -450,6 +452,13 @@ class _SimulationResultScreenState extends State<SimulationResultScreen> {
           const SizedBox(height: 12),
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor(isDark))),
           Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: subTextColor(isDark))),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 10, color: subTextColor(isDark).withValues(alpha: 0.6)),
+            ),
+          ],
         ],
       ),
     );

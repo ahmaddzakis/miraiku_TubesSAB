@@ -252,7 +252,7 @@ class GameManager {
     });
   }
 
-  static Future<void> syncToCloud({String? displayName, String? bio, String? avatarUrl}) async {
+  static Future<void> syncToCloud({String? displayName, String? bio, String? avatarUrl, Map<String, dynamic>? extraData}) async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
     if (user != null) {
@@ -290,6 +290,7 @@ class GameManager {
         if (displayName != null) updateData['display_name'] = displayName;
         if (bio != null) updateData['bio'] = bio;
         if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+        if (extraData != null) updateData.addAll(extraData);
 
         await supabase.auth.updateUser(UserAttributes(data: updateData));
       } catch (e) {
@@ -409,6 +410,18 @@ class GameManager {
     globalXP.value += amount;
     prefs.setInt('gm_xp', globalXP.value);
     await syncToCloud();
+  }
+
+  // Fungsi Pakai XP (Spend XP)
+  static Future<bool> spendXP(int amount, {Map<String, dynamic>? extraData}) async {
+    if (globalXP.value < amount) return false;
+
+    final prefs = await SharedPreferences.getInstance();
+    globalXP.value -= amount;
+    prefs.setInt('gm_xp', globalXP.value);
+    
+    await syncToCloud(extraData: extraData);
+    return true;
   }
 
   // Fungsi Kurangi Nyawa (Saat salah jawab)

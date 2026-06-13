@@ -195,7 +195,7 @@ class TopStatusBar extends StatelessWidget {
                             // KONTEN STREAK
                             if (type == 'streak') ...[
                               Text(
-                                "Kamu sudah membuka aplikasi selama ${globalStreak.value} hari berturut-turut! Jangan sampai terlewat 1 hari pun atau runtutanmu akan kembali ke 0.",
+                                "Kamu sudah membuka aplikasi selama ${globalStreak.value} hari berturut-turut! Jangan sampai terlewat 1 hari pun atau runtutanmu akan kembali ke 1.",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5),
                               ),

@@ -8,6 +8,7 @@ class PathNode extends StatelessWidget {
   final NodeStatus status;
   final Alignment alignment;
   final int stars;
+  final IconData? icon;
   final Function(int)? onReplaySelected;
 
   const PathNode({
@@ -16,6 +17,7 @@ class PathNode extends StatelessWidget {
     required this.status,
     required this.alignment,
     required this.stars,
+    this.icon,
     this.onReplaySelected,
   });
 
@@ -23,18 +25,28 @@ class PathNode extends StatelessWidget {
     return globalLanguage.value == 'id' ? id : en;
   }
 
-  // 🔥 DETEKSI IKON (DITAMBAH TROPHY UNTUK TEST)
+  // 🔥 DETEKSI IKON (Lebih Dinamis & Beragam)
   IconData _getContextIcon(String text) {
     final t = text.toLowerCase();
-    if (t.contains('test') || t.contains('ujian')) return Icons.emoji_events_rounded; // 🏆 Trophy
+    if (t.contains('test') || t.contains('ujian')) return Icons.emoji_events_rounded; 
+    if (t.contains('hiragana')) {
+      if (t.contains('1')) return Icons.create_rounded;
+      if (t.contains('2')) return Icons.record_voice_over_rounded;
+      if (t.contains('3')) return Icons.school_rounded;
+      return Icons.translate_rounded;
+    }
+    if (t.contains('katakana')) {
+      if (t.contains('1')) return Icons.menu_book_rounded;
+      if (t.contains('2')) return Icons.auto_stories_rounded;
+      if (t.contains('words')) return Icons.local_offer_rounded;
+      return Icons.style_rounded;
+    }
+    if (t.contains('kanji')) return Icons.architecture_rounded;
+    if (t.contains('grammar') || t.contains('tata bahasa')) return Icons.psychology_rounded;
     if (t.contains('angka') || t.contains('nomor') || t.contains('number')) return Icons.onetwothree_rounded;
     if (t.contains('salam') || t.contains('sapa') || t.contains('greeting')) return Icons.waving_hand_rounded;
     if (t.contains('waktu') || t.contains('jam') || t.contains('hari')) return Icons.schedule_rounded;
-    if (t.contains('keluarga') || t.contains('family')) return Icons.family_restroom_rounded;
-    if (t.contains('makanan') || t.contains('minuman') || t.contains('food')) return Icons.restaurant_rounded;
-    if (t.contains('kerja') || t.contains('profesi')) return Icons.work_rounded;
-    if (t.contains('hewan') || t.contains('binatang')) return Icons.pets_rounded;
-    return Icons.abc_rounded;
+    return Icons.auto_awesome_rounded;
   }
 
   // ==========================================
@@ -110,6 +122,7 @@ class PathNode extends StatelessWidget {
 
     Color nodeColor;
     Color borderColor;
+    List<BoxShadow>? shadows;
     Widget centerWidget;
 
     switch (status) {
@@ -120,27 +133,38 @@ class PathNode extends StatelessWidget {
         break;
       case NodeStatus.current:
         nodeColor = const Color(0xFFCC6633);
-        borderColor = isDark ? const Color(0xFF5A3A29) : const Color(0xFFF6E7DC);
-        centerWidget = Icon(_getContextIcon(title), color: Colors.white, size: 34);
+        borderColor = const Color(0xFFCC6633).withValues(alpha: 0.3);
+        shadows = [
+          BoxShadow(
+            color: const Color(0xFFCC6633).withValues(alpha: 0.4),
+            blurRadius: 20,
+            spreadRadius: 2,
+          )
+        ];
+        centerWidget = Icon(icon ?? _getContextIcon(title), color: Colors.white, size: 34);
         break;
       case NodeStatus.completed:
-        nodeColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEFEBE1);
-        borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
-        centerWidget = Icon(_getContextIcon(title), color: const Color(0xFFCC6633), size: 32);
+        nodeColor = const Color(0xFFCC6633).withValues(alpha: 0.1);
+        borderColor = const Color(0xFFCC6633);
+        centerWidget = Icon(icon ?? _getContextIcon(title), color: const Color(0xFFCC6633), size: 32);
         break;
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           Column(
             children: [
-              Container(
-                width: 62, height: 62,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: status == NodeStatus.current ? 72 : 64, 
+                height: status == NodeStatus.current ? 72 : 64,
                 decoration: BoxDecoration(
-                  color: nodeColor, shape: BoxShape.circle,
-                  border: Border.all(color: borderColor, width: status == NodeStatus.current ? 4 : 2),
+                  color: nodeColor, 
+                  shape: BoxShape.circle,
+                  border: Border.all(color: borderColor, width: status == NodeStatus.locked ? 2 : 4),
+                  boxShadow: shadows,
                 ),
                 child: Center(child: centerWidget),
               ),

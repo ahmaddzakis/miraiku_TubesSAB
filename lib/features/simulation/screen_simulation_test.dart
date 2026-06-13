@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/game_manager.dart';
 import '../../data/simulation_data.dart';
+import '../../widgets/shake_widget.dart';
 import 'simulation_result_screen.dart';
 
 class SimulationTestScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
   int? _selectedOption;
   bool _isAnswered = false;
   bool _isCurrentAnswerCorrect = false;
+  bool _shouldShake = false;
   late List<SimulationQuestion> _questions;
   late List<int?> _userAnswers;
   
@@ -33,10 +35,22 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
   @override
   void initState() {
     super.initState();
-    _questions = List.from(SimulationData.n5Questions);
+    
+    // Group, Shuffle, and Concatenate to maintain Section Order with Random Questions
+    final allQuestions = List<SimulationQuestion>.from(SimulationData.n5Questions);
+    
+    final languageKnowledgeList = allQuestions.where((q) => q.section == 'Language Knowledge').toList();
+    final readingList = allQuestions.where((q) => q.section == 'Reading').toList();
+    
+    languageKnowledgeList.shuffle();
+    readingList.shuffle();
+    
+    _questions = [...languageKnowledgeList, ...readingList];
+    
     _userAnswers = List.filled(_questions.length, null);
-    _languageTotal = _questions.where((q) => q.section == 'Language Knowledge').length;
-    _readingTotal = _questions.where((q) => q.section == 'Reading').length;
+    _languageTotal = languageKnowledgeList.length;
+    _readingTotal = readingList.length;
+
     _startTimer();
   }
 
@@ -87,6 +101,12 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
         HapticFeedback.mediumImpact();
       } else {
         HapticFeedback.heavyImpact();
+        setState(() {
+          _shouldShake = true;
+        });
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) setState(() => _shouldShake = false);
+        });
       }
     });
 
@@ -273,19 +293,21 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                     ),
                     Expanded(
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        switchInCurve: Curves.easeInOut,
-                        switchOutCurve: Curves.easeInOut,
+                        duration: const Duration(milliseconds: 500),
+                        switchInCurve: Curves.easeOutBack,
+                        switchOutCurve: Curves.easeIn,
                         transitionBuilder: (Widget child, Animation<double> animation) {
-                          var offsetAnimation = Tween<Offset>(
-                            begin: const Offset(0.0, 0.05), // Sedikit bergeser dari bawah
+                          var slideIn = Tween<Offset>(
+                            begin: const Offset(1.0, 0.0), // Masuk dari kanan
                             end: Offset.zero,
                           ).animate(animation);
 
+                          var fade = animation.drive(CurveTween(curve: Curves.easeInOut));
+
                           return FadeTransition(
-                            opacity: animation,
+                            opacity: fade,
                             child: SlideTransition(
-                              position: offsetAnimation,
+                              position: slideIn,
                               child: child,
                             ),
                           );
@@ -312,61 +334,76 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                               const SizedBox(height: 20),
                               
                               // Question Card
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(28),
-                                decoration: BoxDecoration(
-                                  color: cardColor,
-                                  borderRadius: BorderRadius.circular(32),
-                                  border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA), width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFCC6633).withValues(alpha: 0.08),
-                                      blurRadius: 24,
-                                      offset: const Offset(0, 12),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      question.question,
-                                      style: TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                        color: isDark ? Colors.white : const Color(0xFF2D2622),
-                                        height: 1.4,
+                              ShakeWidget(
+                                shake: _shouldShake,
+                                child: AnimatedScale(
+                                  duration: const Duration(milliseconds: 400),
+                                  scale: _isAnswered ? (_isCurrentAnswerCorrect ? 1.05 : 1.0) : 1.0,
+                                  curve: Curves.elasticOut,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(28),
+                                    decoration: BoxDecoration(
+                                      color: cardColor,
+                                      borderRadius: BorderRadius.circular(32),
+                                      border: Border.all(
+                                        color: _isAnswered 
+                                          ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.5) : const Color(0xFFE53935).withValues(alpha: 0.5))
+                                          : (isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA)), 
+                                        width: 2
                                       ),
-                                    ),
-                                    if (question.romaji != null) ...[
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        question.romaji!,
-                                        style: TextStyle(
-                                          fontSize: 15, 
-                                          color: isDark ? Colors.white38 : Colors.grey[700],
-                                          fontStyle: FontStyle.italic,
-                                          letterSpacing: 0.5,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: _isAnswered 
+                                            ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE53935).withValues(alpha: 0.1))
+                                            : const Color(0xFFCC6633).withValues(alpha: 0.08),
+                                          blurRadius: 24,
+                                          offset: const Offset(0, 12),
                                         ),
-                                      ),
-                                    ],
-                                    if (question.subQuestion != null) ...[
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 20),
-                                        child: Divider(color: accentColor.withValues(alpha: 0.1), thickness: 2),
-                                      ),
-                                      Text(
-                                        question.subQuestion!,
-                                        style: TextStyle(
-                                          fontSize: 18, 
-                                          fontWeight: FontWeight.w700,
-                                          color: isDark ? Colors.white70 : Colors.black87, 
-                                          height: 1.6,
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          question.question,
+                                          style: TextStyle(
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w900,
+                                            color: isDark ? Colors.white : const Color(0xFF2D2622),
+                                            height: 1.4,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ],
+                                        if (question.romaji != null) ...[
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            question.romaji!,
+                                            style: TextStyle(
+                                              fontSize: 15, 
+                                              color: isDark ? Colors.white38 : Colors.grey[700],
+                                              fontStyle: FontStyle.italic,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ],
+                                        if (question.subQuestion != null) ...[
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 20),
+                                            child: Divider(color: accentColor.withValues(alpha: 0.1), thickness: 2),
+                                          ),
+                                          Text(
+                                            question.subQuestion!,
+                                            style: TextStyle(
+                                              fontSize: 18, 
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark ? Colors.white70 : Colors.black87, 
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 24),

@@ -98,7 +98,6 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
               fontWeight: FontWeight.w900,
               fontSize: 18,
               color: textColor,
-              fontFamily: 'Serif'
             ),
             actions: [
               IconButton( // Tombol hapus riwayat

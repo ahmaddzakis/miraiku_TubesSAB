@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // IMPORT WAJIB UNTUK SUPABASE
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
 
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/top_status_bar.dart';
@@ -23,6 +24,9 @@ void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+  // Initialize Timezones early
+  tz.initializeTimeZones();
+
   try {
     // 📦 LOAD PERSISTENT SETTINGS
     final prefs = await SharedPreferences.getInstance();
@@ -39,10 +43,10 @@ void main() async {
     
     final notificationService = NotificationService();
     await notificationService.init();
+    await notificationService.requestPermissions(); // Request early for Android 13+ support
 
     final isReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
     if (isReminderOn) {
-      await notificationService.requestPermissions();
       await notificationService.scheduleDailyStudyReminder(globalLanguage.value);
     }
   } catch (e) {
@@ -159,22 +163,36 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
   bool _isUnit1Completed = false;
+  late List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _initScreens();
+  }
+
+  void _initScreens() {
+    _screens = [
+      LearnScreen(
+        isUnit1Completed: _isUnit1Completed,
+        onUnit1Completed: _handleUnit1Completed,
+      ),
+      const SimulationScreen(),
+      const KanaScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   void _handleUnit1Completed() {
     setState(() {
       _isUnit1Completed = true;
+      // Re-initialize LearnScreen with the new completion status
+      _screens[0] = LearnScreen(
+        isUnit1Completed: _isUnit1Completed,
+        onUnit1Completed: _handleUnit1Completed,
+      );
     });
   }
-
-  List<Widget> get _screens => [
-    LearnScreen(
-      isUnit1Completed: _isUnit1Completed,
-      onUnit1Completed: _handleUnit1Completed,
-    ),
-    const SimulationScreen(),
-    const KanaScreen(),
-    const ProfileScreen(),
-  ];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -190,26 +208,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           children: [
             const TopStatusBar(),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                switchInCurve: Curves.easeInOut,
-                switchOutCurve: Curves.easeInOut,
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.0, 0.05),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  );
-                },
-                child: KeyedSubtree(
-                  key: ValueKey<int>(_selectedIndex),
-                  child: _screens[_selectedIndex],
-                ),
+              child: IndexedStack(
+                index: _selectedIndex,
+                children: _screens,
               ),
             ),
           ],

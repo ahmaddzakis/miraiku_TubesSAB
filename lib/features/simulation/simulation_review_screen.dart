@@ -290,21 +290,23 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
                 ),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _currentIndex > 0 ? () => setState(() => _currentIndex--) : null,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          side: BorderSide(color: accentColor),
-                        ),
-                        child: Text(
-                          _t("PREVIOUS", "SEBELUMNYA"),
-                          style: TextStyle(fontWeight: FontWeight.w900, color: accentColor),
+                    if (_currentIndex > 0) ...[
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => setState(() => _currentIndex--),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            side: BorderSide(color: accentColor),
+                          ),
+                          child: Text(
+                            _t("PREVIOUS", "SEBELUMNYA"),
+                            style: TextStyle(fontWeight: FontWeight.w900, color: accentColor),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
+                      const SizedBox(width: 16),
+                    ],
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _currentIndex < _questions.length - 1 ? () => setState(() => _currentIndex++) : () => Navigator.pop(context),

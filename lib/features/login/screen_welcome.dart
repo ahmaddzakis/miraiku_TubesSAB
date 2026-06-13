@@ -239,7 +239,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: textColor,
-              fontFamily: 'Serif',
             ),
           ),
           const SizedBox(height: 16),

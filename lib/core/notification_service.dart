@@ -15,7 +15,7 @@ class NotificationService {
 
   /// Panggil ini di main.dart: await NotificationService().init();
   Future<void> init() async {
-    // 1. Inisialisasi Timezone
+    // 1. Inisialisasi Timezone (Sudah di main, tapi tetap aman jika dipanggil ulang)
     tz.initializeTimeZones();
     final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
@@ -24,8 +24,17 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    // 3. iOS Settings
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
     );
 
     await _notificationsPlugin.initialize(
@@ -36,13 +45,21 @@ class NotificationService {
     );
   }
 
-  /// Panggil ini sebelum menjadwalkan (khusus Android 13+)
+  /// Panggil ini sebelum menjadwalkan
   Future<void> requestPermissions() async {
     if (Platform.isAndroid) {
       final androidImplementation = _notificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       await androidImplementation?.requestNotificationsPermission();
       await androidImplementation?.requestExactAlarmsPermission();
+    } else if (Platform.isIOS) {
+      final iosImplementation = _notificationsPlugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      await iosImplementation?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     }
   }
 
@@ -76,13 +93,19 @@ class NotificationService {
       title,
       body,
       _nextInstanceOfTime(hour, minute),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
+      NotificationDetails(
+        android: const AndroidNotificationDetails(
           'daily_study_channel',
           'Study Reminders',
           channelDescription: 'Notifikasi pengingat belajar harian',
           importance: Importance.max,
           priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          subtitle: languageCode == 'id' ? 'Waktunya Belajar!' : 'Study Time!',
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

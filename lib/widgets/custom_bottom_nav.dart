@@ -28,9 +28,10 @@ class CustomBottomNavBar extends StatelessWidget {
             final Color navBgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F6F0);
             final Color shadowColor = isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05);
             final Color inactiveColor = isDark ? Colors.white54 : const Color(0xFF8C8A87);
+            final double bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
             return Container(
-              padding: const EdgeInsets.only(top: 8, bottom: 16, left: 8, right: 8),
+              padding: EdgeInsets.only(top: 8, bottom: 16 + bottomInset, left: 8, right: 8),
               decoration: BoxDecoration(
                 color: navBgColor,
                 boxShadow: [
