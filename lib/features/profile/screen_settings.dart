@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart'; // Package baru untuk auto-version
@@ -8,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/game_manager.dart';
 import '../../core/notification_service.dart';
+import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_snackbar.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -40,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _initAppVersion() async {
     final info = await PackageInfo.fromPlatform();
     setState(() {
-      _appVersion = info.version; // Otomatis terbaca dari pubspec.yaml
+      _appVersion = 'v${info.version}'; // Otomatis terbaca dari pubspec.yaml
     });
   }
 
@@ -89,62 +92,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return globalLanguage.value == 'id' ? id : en;
   }
 
-  void _showAboutApp(BuildContext context) {
-    final isDark = globalDarkMode.value;
-    showAboutDialog(
-      context: context,
-      applicationName: "MIRAIku",
-      applicationVersion: _appVersion,
-      applicationIcon: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Image.asset('assets/images/iconUtama.png', width: 48, height: 48),
-      ),
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          _t(
-            "MIRAIku is an interactive Japanese language learning platform designed to help users efficiently master Hiragana, Katakana, and essential vocabulary. Built with engaging gamification elements, MIRAIku makes the journey to Japanese fluency enjoyable, structured, and effective.",
-            "MIRAIku adalah platform pembelajaran bahasa Jepang interaktif yang dirancang untuk membantu pengguna menguasai Hiragana, Katakana, dan kosakata penting secara efisien. Dibangun dengan elemen gamifikasi yang menarik, MIRAIku membuat perjalanan menuju kemahiran bahasa Jepang menjadi menyenangkan, terstruktur, dan efektif."
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFCC6633).withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.auto_awesome_rounded,
-                size: 18,
-                color: Color(0xFFCC6633),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _t("Developed by Ahmad Dzaki", "Dikembangkan oleh Ahmad Dzaki"),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFFCC6633),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   // --- FUNGSI ALERT DIALOG UNTUK VALIDASI ---
   void _showAlertDialog(String title, String message) {
@@ -168,17 +115,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // --- FUNGSI UNGGAH FOTO KE SUPABASE STORAGE ---
   Future<void> _pickAndUploadImage(StateSetter setModalState, void Function(bool) setLoading) async {
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
 
     if (image == null) return;
+
+    // --- LOGIKA CROP GAMBAR ---
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: image.path,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: _t('Edit Photo', 'Edit Foto'),
+          toolbarColor: const Color(0xFFCC6633),
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+          hideBottomControls: true,
+          cropStyle: CropStyle.circle,
+        ),
+        IOSUiSettings(
+          title: _t('Edit Photo', 'Edit Foto'),
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+          cropStyle: CropStyle.circle,
+        ),
+      ],
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+    );
+
+    if (croppedFile == null) return;
 
     setModalState(() => setLoading(true));
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      final file = File(image.path);
-      final fileExt = image.path.split('.').last;
+      final file = File(croppedFile.path);
+      final fileExt = croppedFile.path.split('.').last;
       final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       // Pastikan bucket 'avatars' sudah ada dan publik di Supabase Console
@@ -314,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
                       const SizedBox(height: 24),
-                      Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
+                      Text(_t("Edit Profile", "Edit Profil"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor)),
                       const SizedBox(height: 24),
                       ValueListenableBuilder<String>(
                         valueListenable: globalAvatarUrl,
@@ -489,7 +461,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         Container(width: 40, height: 5, decoration: BoxDecoration(color: const Color(0xFF8C8A87).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10))),
                         const SizedBox(height: 24),
-                        Text(_t("Change Password", "Ubah Kata Sandi"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
+                        Text(_t("Change Password", "Ubah Kata Sandi"), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor)),
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: oldPasswordController, obscureText: obscureText,
@@ -567,8 +539,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               if (formKey.currentState!.validate()) {
                                 // 1. Validasi Anti-Sama
                                 if (oldPasswordController.text.trim() == newPasswordController.text.trim()) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(_t("New password cannot be the same as old password!", "Sandi baru tidak boleh sama dengan sandi lama!")))
+                                  AppSnackbar.showError(
+                                    context,
+                                    _t("New password cannot be the same as old password!", "Sandi baru tidak boleh sama dengan sandi lama!")
                                   );
                                   return;
                                 }
@@ -611,8 +584,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                                 if (context.mounted) {
                                                   Navigator.pop(dialogContext); // Tutup dialog konfirmasi
                                                   Navigator.pop(context); // Tutup bottom sheet
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(content: Text(_t("Password updated successfully!", "Sandi berhasil diperbarui!")))
+                                                  AppSnackbar.showSuccess(
+                                                    context,
+                                                    _t("Password updated successfully!", "Sandi berhasil diperbarui!")
                                                   );
                                                 }
                                               } catch (e) {
@@ -708,7 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             return Scaffold(
               backgroundColor: bgColor,
-              appBar: AppBar(backgroundColor: bgColor, elevation: 0, centerTitle: true, leading: IconButton(icon: Icon(Icons.arrow_back_ios_rounded, color: textColor), onPressed: () => Navigator.pop(context)), title: Text(_t("Settings", "Pengaturan"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontFamily: 'Serif'))),
+              appBar: AppBar(backgroundColor: bgColor, elevation: 0, centerTitle: true, leading: IconButton(icon: Icon(Icons.arrow_back_ios_rounded, color: textColor), onPressed: () => Navigator.pop(context)), title: Text(_t("Settings", "Pengaturan"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900))),
               body: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(), padding: const EdgeInsets.all(24),
                 child: Column(
@@ -732,7 +706,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_userName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif'), overflow: TextOverflow.ellipsis),
+                              Text(_userName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor), overflow: TextOverflow.ellipsis),
                               Text(_userDesc, style: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                             ],
                           ),
@@ -823,7 +797,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           title: _t("About", "Tentang"),
                           icon: Icons.info_outline_rounded,
                           textColor: textColor,
-                          onTap: () => _showAboutApp(context)
+                          onTap: () => AppDialogs.showAboutApp(context)
                       ),
                       Divider(height: 1, color: borderColor),
                       _buildLinkTile(title: _t("Version", "Versi"), icon: Icons.info_outline_rounded, trailingText: _appVersion, textColor: textColor)

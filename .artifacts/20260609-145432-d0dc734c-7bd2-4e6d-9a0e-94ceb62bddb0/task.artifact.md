@@ -1,0 +1,22 @@
+# Task Management
+
+- [x] Research existing "About" dialog implementations
+- [x] Design a unified and improved "About" dialog
+- [x] Create centralized `AppDialogs` utility class
+- [x] Update `screen_profile.dart` to use shared dialog
+- [x] Update `screen_settings.dart` to use shared dialog
+- [x] Verify design consistency and responsiveness
+- [x] Refactor Simulation Result Screen (Dynamic Time & Accuracy Clarity)
+- [x] Refactor Simulation Review Screen (Conditional Pagination)
+- [x] Refactor Simulation Screen UI/UX (New CTA & XP Logic)
+- [x] Implement strict History limitation logic
+- [x] Create `AppSnackbar` utility class for top-floating notifications
+- [x] Globally replace key `ScaffoldMessenger` calls with `AppSnackbar`
+- [x] Refactor Simulation button to "One-time Unlock + Pay-per-play" system
+- [x] Refactor Exam Question randomization (Grouped Shuffling)
+- [x] Add confirmation dialog before starting simulation
+- [x] Refactor Auth error handling (Rate limits & Clean messages)
+- [x] Create `LoginSuccessScreen` transition screen
+- [x] Integrate `LoginSuccessScreen` into `screen_auth.dart`
+- [x] Refactor Learning Path UI (Dynamic Icons, Glow Effects, Smart Connectors)
+- [x] Finalize documentation (Walkthrough & Task)

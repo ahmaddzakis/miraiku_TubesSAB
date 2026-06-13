@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/game_manager.dart';
 import '../../core/notification_service.dart';
+import '../../core/widgets/app_snackbar.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -41,15 +42,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await NotificationService().scheduleDailyStudyReminder(globalLanguage.value);
       if (mounted) {
         final timeStr = globalReminderTime.value.format(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_t("Daily reminder activated for $timeStr!", "Pengingat harian berhasil diaktifkan untuk jam $timeStr!"))),
+        AppSnackbar.showSuccess(
+          context,
+          _t("Daily reminder activated for $timeStr!", "Pengingat harian berhasil diaktifkan untuk jam $timeStr!")
         );
       }
     } else {
       await NotificationService().cancelAll();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_t("Daily reminder deactivated.", "Pengingat harian telah dinonaktifkan."))),
+        AppSnackbar.showSuccess(
+          context,
+          _t("Daily reminder deactivated.", "Pengingat harian telah dinonaktifkan.")
         );
       }
     }
@@ -60,15 +63,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       initialTime: globalReminderTime.value,
       builder: (context, child) {
+        final isDark = globalDarkMode.value;
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: const Color(0xFFCC6633),
               onPrimary: Colors.white,
-              onSurface: globalDarkMode.value ? Colors.white : Colors.black,
+              surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              onSurface: isDark ? Colors.white : Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFFCC6633)),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFCC6633),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              hourMinuteTextColor: isDark ? Colors.white : Colors.black,
+              hourMinuteColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade100,
+              dayPeriodTextColor: isDark ? Colors.white70 : Colors.black87,
+              dayPeriodColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade100,
+              dialBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+              dialHandColor: const Color(0xFFCC6633),
+              dialTextColor: isDark ? Colors.white : Colors.black,
+              entryModeIconColor: const Color(0xFFCC6633),
+              helpTextStyle: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           child: child!,
@@ -122,7 +145,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               appBar: AppBar(
                 backgroundColor: bgColor, elevation: 0, centerTitle: true,
                 leading: IconButton(icon: Icon(Icons.arrow_back_ios_rounded, color: textColor), onPressed: () => Navigator.pop(context)),
-                title: Text(_t("Notifications", "Notifikasi"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontFamily: 'Serif')),
+                title: Text(_t("Notifications", "Notifikasi"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900)),
               ),
               body: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)))

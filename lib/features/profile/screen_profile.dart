@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/game_manager.dart';
+import '../../core/widgets/app_dialogs.dart';
+import '../login/screen_auth.dart';
 import 'screen_notifications.dart';
 import 'screen_settings.dart';
 
@@ -401,62 +404,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return globalLanguage.value == 'id' ? id : en;
   }
 
-  void _showAboutApp(BuildContext context) {
-    final isDark = globalDarkMode.value;
-    showAboutDialog(
-      context: context,
-      applicationName: "MIRAIku",
-      applicationVersion: _appVersion,
-      applicationIcon: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Image.asset('assets/images/iconUtama.png', width: 48, height: 48),
-      ),
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          _t(
-            "MIRAIku is an interactive Japanese language learning platform designed to help users efficiently master Hiragana, Katakana, and essential vocabulary. Built with engaging gamification elements, MIRAIku makes the journey to Japanese fluency enjoyable, structured, and effective.",
-            "MIRAIku adalah platform pembelajaran bahasa Jepang interaktif yang dirancang untuk membantu pengguna menguasai Hiragana, Katakana, dan kosakata penting secara efisien. Dibangun dengan elemen gamifikasi yang menarik, MIRAIku membuat perjalanan menuju kemahiran bahasa Jepang menjadi menyenangkan, terstruktur, dan efektif."
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFCC6633).withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.auto_awesome_rounded,
-                size: 18,
-                color: Color(0xFFCC6633),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _t("Developed by Ahmad Dzaki", "Dikembangkan oleh Ahmad Dzaki"),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFFCC6633),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -870,7 +817,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 subtitle: _t("Learn more about MIRAIku", "Pelajari lebih lanjut tentang MIRAIku"),
                                 textColor: textColor,
                                 subTextColor: subTextColor,
-                                onTap: () => _showAboutApp(context),
+                                onTap: () => AppDialogs.showAboutApp(context),
                                 isDark: isDark
                             ),
                           ],
@@ -896,7 +843,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // VERSION FOOTER
                     Center(
                       child: Text(
-                        "MIRAIku Version $_appVersion",
+                        "MIRAIku Version v$_appVersion",
                         style: TextStyle(
                           fontSize: 12,
                           color: subTextColor.withValues(alpha: 0.5),
@@ -1082,22 +1029,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
               try {
-                // 1. Reset local progress before sign out to prevent data leakage
+                // 1. Clear both Supabase and native Google instance
+                await _supabase.auth.signOut();
+                try {
+                  await GoogleSignIn().signOut();
+                } catch (_) {}
+
+                // 2. Reset local progress to prevent data leakage
                 await GameManager.resetProgress();
                 
-                // 2. Sign out from Supabase (this will trigger AuthStateChange listener in main.dart)
-                await _supabase.auth.signOut();
-                
-                // 3. Pop the dialog if still mounted
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+                if (!context.mounted) return;
+
+                // 3. Force navigate to AuthScreen and clear stack
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const AuthScreen()),
+                  (route) => false,
+                );
               } catch (e) {
                 debugPrint("Error during logout: $e");
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  _showErrorDialog(_t("Logout Failed", "Gagal Keluar"), e.toString());
-                }
+                // Final fallback: reset progress and force redirect even on error
+                await GameManager.resetProgress();
+                if (!context.mounted) return;
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const AuthScreen()),
+                  (route) => false,
+                );
               }
             },
             child: Text(_t("LOGOUT", "KELUAR"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

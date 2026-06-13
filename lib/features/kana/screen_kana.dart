@@ -99,143 +99,149 @@ class _KanaScreenState extends State<KanaScreen> {
         return Scaffold(
           backgroundColor: bgColor,
           body: SafeArea(
-            child: ValueListenableBuilder(
-              valueListenable: _activeTab == 0 
-                  ? globalLearnedHiragana 
-                  : (_activeTab == 1 ? globalLearnedKatakana : globalLearnedKanji),
-              builder: (context, _, child) {
-                return Column(
-                  children: [
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        switchInCurve: Curves.easeInOut,
-                        switchOutCurve: Curves.easeInOut,
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.0, 0.05),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: SingleChildScrollView(
-                          key: ValueKey<int>(_activeTab),
-                          physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.symmetric(horizontal: isTablet ? 48.0 : 24.0),
-                          child: Center(
-                            child: Container(
-                              constraints: const BoxConstraints(maxWidth: 800),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 24 * scale),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(child: _buildTab(0, "Hiragana", isDark, scale)),
-                                      SizedBox(width: 8 * scale),
-                                      Expanded(child: _buildTab(1, "Katakana", isDark, scale)),
-                                      SizedBox(width: 8 * scale),
-                                      Expanded(child: _buildTab(2, "Kanji", isDark, scale)),
-                                    ],
-                                  ),
-                                  SizedBox(height: 24 * scale),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await GameManager.syncToCloud();
+                if (mounted) setState(() {});
+              },
+              child: ValueListenableBuilder(
+                valueListenable: _activeTab == 0 
+                    ? globalLearnedHiragana 
+                    : (_activeTab == 1 ? globalLearnedKatakana : globalLearnedKanji),
+                builder: (context, _, child) {
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 400),
+                          switchInCurve: Curves.easeInOut,
+                          switchOutCurve: Curves.easeInOut,
+                          transitionBuilder: (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.0, 0.05),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: SingleChildScrollView(
+                            key: ValueKey<int>(_activeTab),
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            padding: EdgeInsets.symmetric(horizontal: isTablet ? 48.0 : 24.0),
+                            child: Center(
+                              child: Container(
+                                constraints: const BoxConstraints(maxWidth: 800),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(height: 24 * scale),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(child: _buildTab(0, "Hiragana", isDark, scale)),
+                                        SizedBox(width: 8 * scale),
+                                        Expanded(child: _buildTab(1, "Katakana", isDark, scale)),
+                                        SizedBox(width: 8 * scale),
+                                        Expanded(child: _buildTab(2, "Kanji", isDark, scale)),
+                                      ],
+                                    ),
+                                    SizedBox(height: 24 * scale),
 
-                                  Center(
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: EdgeInsets.all(24 * scale),
-                                      decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(16)),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(headerTitle, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22 * scale, fontFamily: 'Serif')),
-                                          SizedBox(height: 8 * scale),
-                                          Text(headerDesc, style: TextStyle(color: const Color(0xFFF7E6D4), fontSize: 13 * scale, height: 1.4)),
-                                          SizedBox(height: 20 * scale),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.end,
-                                            children: [
-                                              Container(
-                                                padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
-                                                decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
-                                                child: Text(
-                                                  "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
-                                                  style: TextStyle(color: const Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 12 * scale),
-                                                ),
-                                              )
-                                            ],
-                                          )
-                                        ],
+                                    Center(
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: EdgeInsets.all(24 * scale),
+                                        decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(16)),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(headerTitle, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22 * scale)),
+                                            SizedBox(height: 8 * scale),
+                                            Text(headerDesc, style: TextStyle(color: const Color(0xFFF7E6D4), fontSize: 13 * scale, height: 1.4)),
+                                            SizedBox(height: 20 * scale),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
+                                                  decoration: BoxDecoration(color: const Color(0xFFF7E6D4), borderRadius: BorderRadius.circular(12)),
+                                                  child: Text(
+                                                    "${_currentLearned.length} / $_totalCurrentCharacters ${_t('LEARNED', 'SELESAI')}",
+                                                    style: TextStyle(color: const Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 12 * scale),
+                                                  ),
+                                                )
+                                              ],
+                                            )
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(height: 24 * scale),
+                                    SizedBox(height: 24 * scale),
 
-                                  if (_activeTab == 0) ...[
-                                    _buildSectionTitle("GOJŪON (Basic 46)", scale),
-                                    _buildGrid(AlphabetData.hiraBasic, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle("DAKUON", scale),
-                                    _buildGrid(AlphabetData.hiraDakuon, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle("HANDAKUON", scale),
-                                    _buildGrid(AlphabetData.hiraHandakuon, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle("YŌON", scale),
-                                    _buildGrid(AlphabetData.hiraYoon, isDark, isYoon: true, scale: scale),
-                                    const SizedBox(height: 100),
-                                  ] else if (_activeTab == 1) ...[
-                                    _buildSectionTitle("GOJŪON (Basic 46)", scale),
-                                    _buildGrid(AlphabetData.kataBasic, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle("DAKUON", scale),
-                                    _buildGrid(AlphabetData.kataDakuon, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle("HANDAKUON", scale),
-                                    _buildGrid(AlphabetData.kataHandakuon, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle("YŌON", scale),
-                                    _buildGrid(AlphabetData.kataYoon, isDark, isYoon: true, scale: scale),
-                                    const SizedBox(height: 100),
-                                  ] else if (_activeTab == 2) ...[
-                                    _buildSectionTitle(_t("NUMBERS (1-10)", "ANGKA (1-10)"), scale),
-                                    _buildGrid(AlphabetData.kanjiNumbers, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle(_t("NATURE & ELEMENTS", "ALAM & ELEMEN"), scale),
-                                    _buildGrid(AlphabetData.kanjiNature, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle(_t("PEOPLE & DIRECTIONS", "ORANG & ARAH"), scale),
-                                    _buildGrid(AlphabetData.kanjiPeople, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle(_t("TIME & DATES", "WAKTU & TANGGAL"), scale),
-                                    _buildGrid(AlphabetData.kanjiTime, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle(_t("BODY PARTS & SIZE", "BAGIAN TUBUH & UKURAN"), scale),
-                                    _buildGrid(AlphabetData.kanjiBody, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle(_t("VERBS & ACTIONS", "KATA KERJA & AKSI"), scale),
-                                    _buildGrid(AlphabetData.kanjiVerbs, isDark, scale: scale),
-                                    SizedBox(height: 32 * scale),
-                                    _buildSectionTitle(_t("PLACES & EDUCATION", "TEMPAT & PENDIDIKAN"), scale),
-                                    _buildGrid(AlphabetData.kanjiPlaces, isDark, scale: scale),
-                                    const SizedBox(height: 100),
-                                  ]
-                                ],
+                                    if (_activeTab == 0) ...[
+                                      _buildSectionTitle("GOJŪON (Basic 46)", scale),
+                                      _buildGrid(AlphabetData.hiraBasic, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle("DAKUON", scale),
+                                      _buildGrid(AlphabetData.hiraDakuon, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle("HANDAKUON", scale),
+                                      _buildGrid(AlphabetData.hiraHandakuon, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle("YŌON", scale),
+                                      _buildGrid(AlphabetData.hiraYoon, isDark, isYoon: true, scale: scale),
+                                      const SizedBox(height: 100),
+                                    ] else if (_activeTab == 1) ...[
+                                      _buildSectionTitle("GOJŪON (Basic 46)", scale),
+                                      _buildGrid(AlphabetData.kataBasic, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle("DAKUON", scale),
+                                      _buildGrid(AlphabetData.kataDakuon, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle("HANDAKUON", scale),
+                                      _buildGrid(AlphabetData.kataHandakuon, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle("YŌON", scale),
+                                      _buildGrid(AlphabetData.kataYoon, isDark, isYoon: true, scale: scale),
+                                      const SizedBox(height: 100),
+                                    ] else if (_activeTab == 2) ...[
+                                      _buildSectionTitle(_t("NUMBERS (1-10)", "ANGKA (1-10)"), scale),
+                                      _buildGrid(AlphabetData.kanjiNumbers, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle(_t("NATURE & ELEMENTS", "ALAM & ELEMEN"), scale),
+                                      _buildGrid(AlphabetData.kanjiNature, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle(_t("PEOPLE & DIRECTIONS", "ORANG & ARAH"), scale),
+                                      _buildGrid(AlphabetData.kanjiPeople, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle(_t("TIME & DATES", "WAKTU & TANGGAL"), scale),
+                                      _buildGrid(AlphabetData.kanjiTime, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle(_t("BODY PARTS & SIZE", "BAGIAN TUBUH & UKURAN"), scale),
+                                      _buildGrid(AlphabetData.kanjiBody, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle(_t("VERBS & ACTIONS", "KATA KERJA & AKSI"), scale),
+                                      _buildGrid(AlphabetData.kanjiVerbs, isDark, scale: scale),
+                                      SizedBox(height: 32 * scale),
+                                      _buildSectionTitle(_t("PLACES & EDUCATION", "TEMPAT & PENDIDIKAN"), scale),
+                                      _buildGrid(AlphabetData.kanjiPlaces, isDark, scale: scale),
+                                      const SizedBox(height: 100),
+                                    ]
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -399,7 +405,7 @@ class _KanaScreenState extends State<KanaScreen> {
                           children: [
                             GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, color: Color(0xFF8C8A87))),
                             const Spacer(),
-                            Text(_t("Learn Strokes", "Pelajari Coretan"), style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w900, color: textColor, fontFamily: 'Serif')),
+                            Text(_t("Learn Strokes", "Pelajari Coretan"), style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w900, color: textColor)),
                             const Spacer(),
                             const SizedBox(width: 24),
                           ],
@@ -420,6 +426,7 @@ class _KanaScreenState extends State<KanaScreen> {
                                   child: Image.asset(
                                     _activeTab == 0 ? 'assets/gifs/hiragana_${romaji.toLowerCase()}.gif' : 'assets/gifs/katakana_${romaji.toLowerCase()}.gif',
                                     height: 90 * scale,
+                                    cacheHeight: (90 * scale * MediaQuery.of(context).devicePixelRatio).toInt(),
                                     errorBuilder: (c, e, s) => Text(kana, style: TextStyle(fontSize: 60 * scale, color: textColor)),
                                   ),
                                 )
