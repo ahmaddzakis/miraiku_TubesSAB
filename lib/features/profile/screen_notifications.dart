@@ -147,12 +147,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 leading: IconButton(icon: Icon(Icons.arrow_back_ios_rounded, color: textColor), onPressed: () => Navigator.pop(context)),
                 title: Text(_t("Notifications", "Notifikasi"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900)),
               ),
-              body: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)))
-                : ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                children: [
+              body: SafeArea(
+                bottom: true,
+                child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)))
+                  : ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom + 24),
+                  children: [
                   Text(
                     _t("STUDY REMINDERS", "PENGINGAT BELAJAR"),
                     style: const TextStyle(

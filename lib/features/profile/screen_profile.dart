@@ -421,11 +421,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         // LOCAL STATS
         final int simulationCount = prefs.getInt('simulation_completed_count') ?? 0;
-        final bool isUnit1Finished = (prefs.getInt('u1_test_stars') ?? 0) >= 1;
-        final bool isUnit2Finished = (prefs.getInt('u2_test_stars') ?? 0) >= 1;
-        final bool isUnit3Finished = (prefs.getInt('u3_test_stars') ?? 0) >= 1;
-        final bool isUnit4Finished = (prefs.getInt('u4_test_stars') ?? 0) >= 1;
-        final bool isAllUnitsFinished = isUnit1Finished && isUnit2Finished && isUnit3Finished && isUnit4Finished;
+        final int finishedUnits = [
+          (prefs.getInt('u1_test_stars') ?? 0) >= 1,
+          (prefs.getInt('u2_test_stars') ?? 0) >= 1,
+          (prefs.getInt('u3_test_stars') ?? 0) >= 1,
+          (prefs.getInt('u4_test_stars') ?? 0) >= 1,
+        ].where((b) => b).length;
+        final bool isAllUnitsFinished = finishedUnits >= 4;
 
         final int claimedCount = [
           _claimedHiragana, _claimedKatakana, _claimedKanji, _claimedAlphabetMaster,
@@ -435,6 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Scaffold(
           backgroundColor: bgColor,
           body: SafeArea(
+            bottom: true,
             child: RefreshIndicator(
               onRefresh: () async {
                 _loadSupabaseUserData();
@@ -457,15 +460,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 width: 130,
                                 height: 130,
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                                  borderRadius: BorderRadius.circular(32),
                                   border: Border.all(color: const Color(0xFFCC6633), width: 3),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(4.0),
-                                  child: CircleAvatar(
-                                    radius: 60,
-                                    backgroundColor: cardColor,
-                                    backgroundImage: _getAvatarImage(avatarUrl),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Image(
+                                      image: _getAvatarImage(avatarUrl),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -755,8 +760,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   "The ultimate goal! Complete all level tests from Unit 1 to Unit 4.",
                                                   "Tujuan akhir! Selesaikan semua ujian level dari Unit 1 hingga Unit 4."
                                               ),
-                                              progress: isAllUnitsFinished ? 1.0 : 0.0,
-                                              progressLabel: isAllUnitsFinished ? "COMPLETED" : "Unit 1-4",
+                                              progress: (finishedUnits / 4).clamp(0.0, 1.0),
+                                              progressLabel: isAllUnitsFinished ? _t("COMPLETED", "SELESAI") : _t("Unit $finishedUnits/4", "Unit $finishedUnits/4"),
                                               isCompleted: isAllUnitsFinished,
                                               isClaimed: _claimedMirai,
                                               onClaim: () => _claimAchievement('ach_mirai'),
@@ -851,7 +856,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 100),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
                   ],
                 ),
               ),
@@ -1028,19 +1033,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
+              // 1. Show non-dismissible loading overlay immediately
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) => PopScope(
+                  canPop: false,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const CircularProgressIndicator(color: Color(0xFFCC6633)),
+                    ),
+                  ),
+                ),
+              );
+
               try {
-                // 1. Clear both Supabase and native Google instance
+                // 2. Clear both Supabase and native Google instance
                 await _supabase.auth.signOut();
                 try {
                   await GoogleSignIn().signOut();
                 } catch (_) {}
 
-                // 2. Reset local progress to prevent data leakage
+                // 3. Reset local progress to prevent data leakage
                 await GameManager.resetProgress();
                 
                 if (!context.mounted) return;
 
-                // 3. Force navigate to AuthScreen and clear stack
+                // 4. Force navigate to AuthScreen and clear stack
+                // We do NOT pop the loading dialog manually to prevent background flashes.
+                // pushAndRemoveUntil will clear the entire stack including the dialog.
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const AuthScreen()),
                   (route) => false,

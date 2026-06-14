@@ -33,7 +33,12 @@ class AppDialogs {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: EdgeInsets.only(
+                        left: 32,
+                        top: 32,
+                        right: 32,
+                        bottom: MediaQuery.of(context).padding.bottom + 32,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -178,7 +183,10 @@ class AppDialogs {
                                     applicationVersion: version,
                                     applicationIcon: Padding(
                                       padding: const EdgeInsets.all(12),
-                                      child: Image.asset('assets/images/iconUtama.png', width: 64),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.asset('assets/images/iconUtama.png', width: 64),
+                                      ),
                                     ),
                                   );
                                 },

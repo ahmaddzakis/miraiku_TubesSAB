@@ -395,12 +395,31 @@ class _AuthScreenState extends State<AuthScreen> {
             });
           }
         } else if (_isLoginMode && isAlreadyRegistered) {
-          await Supabase.instance.client.auth.updateUser(UserAttributes(data: {
+          // --- PREVENT OVERWRITE OF CUSTOM AVATAR ---
+          final existingAvatar = meta['avatar_url'] as String?;
+          final googleAvatar = user.userMetadata?['avatar_url'] as String?;
+          
+          final Map<String, dynamic> updateData = {
             'setting_lang': selectedLanguage,
             'setting_dark': selectedDarkMode,
-          }));
+          };
+
+          // Only use Google avatar if user doesn't have one yet
+          if ((existingAvatar == null || existingAvatar.isEmpty) && 
+              (googleAvatar != null && googleAvatar.isNotEmpty)) {
+            updateData['avatar_url'] = googleAvatar;
+          }
+
+          await Supabase.instance.client.auth.updateUser(UserAttributes(data: updateData));
+          
           globalLanguage.value = selectedLanguage;
           globalDarkMode.value = selectedDarkMode;
+          if (existingAvatar != null && existingAvatar.isNotEmpty) {
+            globalAvatarUrl.value = existingAvatar;
+          } else if (googleAvatar != null && googleAvatar.isNotEmpty) {
+            globalAvatarUrl.value = googleAvatar;
+          }
+
           if (mounted) {
             Navigator.pushReplacement(
               context,
@@ -702,11 +721,14 @@ class _AuthScreenState extends State<AuthScreen> {
             return Scaffold(
               backgroundColor: bgColor,
               resizeToAvoidBottomInset: true,
-              body: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: ConstrainedBox(
+              body: SafeArea(
+                bottom: true,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 20),
+                      child: ConstrainedBox(
                       constraints: BoxConstraints(minHeight: constraints.maxHeight),
                       child: IntrinsicHeight(
                         child: Stack(
@@ -1029,7 +1051,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   );
                 },
               ),
-            );
+            ),
+          );
           },
         );
       },

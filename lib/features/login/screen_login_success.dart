@@ -55,11 +55,14 @@ class _LoginSuccessScreenState extends State<LoginSuccessScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/images/iconUtama.png',
-                    width: 150,
-                    height: 150,
-                    fit: BoxFit.contain,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/iconUtama.png',
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Text(

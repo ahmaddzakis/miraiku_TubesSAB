@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -23,6 +24,12 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Lock orientation to Portrait
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // Initialize Timezones early
   tz.initializeTimeZones();
@@ -81,6 +88,12 @@ class MIRAIkuApp extends StatelessWidget {
                   primary: const Color(0xFFCC6633),
                   surface: const Color(0xFFF9F6F0),
                 ),
+                pageTransitionsTheme: const PageTransitionsTheme(
+                  builders: {
+                    TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                  },
+                ),
                 scaffoldBackgroundColor: const Color(0xFFF9F6F0),
                 appBarTheme: const AppBarTheme(
                   backgroundColor: Color(0xFFF9F6F0),
@@ -109,6 +122,12 @@ class MIRAIkuApp extends StatelessWidget {
                   surface: const Color(0xFF121212),
                   brightness: Brightness.dark,
                 ),
+                pageTransitionsTheme: const PageTransitionsTheme(
+                  builders: {
+                    TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                  },
+                ),
                 scaffoldBackgroundColor: const Color(0xFF121212),
                 appBarTheme: const AppBarTheme(
                   backgroundColor: Color(0xFF121212),
@@ -133,16 +152,24 @@ class MIRAIkuApp extends StatelessWidget {
               home: StreamBuilder<AuthState>(
                 stream: Supabase.instance.client.auth.onAuthStateChange,
                 builder: (context, snapshot) {
+                  // Handle loading state
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCC6633))));
+                    return const Scaffold(
+                      body: Center(
+                        child: CircularProgressIndicator(color: Color(0xFFCC6633)),
+                      ),
+                    );
                   }
 
+                  // Auth session check
                   final session = snapshot.data?.session;
+                  
                   if (session != null) {
                     return const MainNavigationScreen();
-                  } else {
-                    return const WelcomeScreen();
                   }
+                  
+                  // Default fallback for null session or during sign-out transition
+                  return const WelcomeScreen();
                 },
               ),
             );

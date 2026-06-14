@@ -296,13 +296,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                                  borderRadius: BorderRadius.circular(28),
                                   border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2), width: 4),
                                 ),
-                                child: CircleAvatar(
-                                  radius: 50,
-                                  backgroundImage: _getAvatarImage(avatarUrl),
-                                  backgroundColor: _darkMode ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image(
+                                    image: _getAvatarImage(avatarUrl),
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        width: 100,
+                                        height: 100,
+                                        color: _darkMode ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                               if (isSaving)
@@ -683,21 +696,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Scaffold(
               backgroundColor: bgColor,
               appBar: AppBar(backgroundColor: bgColor, elevation: 0, centerTitle: true, leading: IconButton(icon: Icon(Icons.arrow_back_ios_rounded, color: textColor), onPressed: () => Navigator.pop(context)), title: Text(_t("Settings", "Pengaturan"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900))),
-              body: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(), padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              body: SafeArea(
+                bottom: true,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     // Header Profil
                     Row(
                       children: [
                         ValueListenableBuilder<String>(
                           valueListenable: globalAvatarUrl,
                           builder: (context, avatarUrl, _) {
-                            return CircleAvatar(
-                              radius: 35,
-                              backgroundImage: _getAvatarImage(avatarUrl),
-                              backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA),
+                            return Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(18),
+                                child: Image(
+                                  image: _getAvatarImage(avatarUrl),
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -806,7 +831,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-            );
+            ),
+          );
           },
         );
       },

@@ -16,7 +16,7 @@ class SimulationTestScreen extends StatefulWidget {
   State<SimulationTestScreen> createState() => _SimulationTestScreenState();
 }
 
-class _SimulationTestScreenState extends State<SimulationTestScreen> {
+class _SimulationTestScreenState extends State<SimulationTestScreen> with SingleTickerProviderStateMixin {
   int _currentQuestionIndex = 0;
   int _languageScore = 0;
   int _readingScore = 0;
@@ -31,6 +31,9 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
   
   Timer? _timer;
   int _timeLeft = 50 * 60; // 50 mins total (25 Language + 25 Reading)
+
+  // Animation Controllers for premium feel
+  late AnimationController _mainController;
 
   @override
   void initState() {
@@ -51,19 +54,25 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
     _languageTotal = languageKnowledgeList.length;
     _readingTotal = readingList.length;
 
+    _mainController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
     _startTimer();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _mainController.dispose();
     super.dispose();
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_timeLeft > 0) {
-        setState(() => _timeLeft--);
+        if (mounted) setState(() => _timeLeft--);
       } else {
         _timer?.cancel();
         _finishTest();
@@ -101,21 +110,12 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
         HapticFeedback.mediumImpact();
       } else {
         HapticFeedback.heavyImpact();
-        setState(() {
-          _shouldShake = true;
-        });
+        _shouldShake = true;
         Future.delayed(const Duration(milliseconds: 400), () {
           if (mounted) setState(() => _shouldShake = false);
         });
       }
     });
-
-    // Auto next after selection in simulation (optional, but requested no immediate feedback)
-    // If we want to show it's answered but not if it's correct/wrong:
-    // Actually, "hasil benar atau salahnya itu tidak langsung ditampilkan ke user" 
-    // means we should probably just move to next or record it and move on.
-    
-    // Modification: Don't show correct/wrong state in _buildOptionTile during test
   }
 
   void _nextQuestion() {
@@ -271,7 +271,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                               ),
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOut,
+                                curve: Curves.easeInOutQuart,
                                 height: 8,
                                 width: (MediaQuery.of(context).size.width - 48) * progress,
                                 decoration: BoxDecoration(
@@ -293,19 +293,17 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                     ),
                     Expanded(
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        switchInCurve: Curves.easeOutBack,
-                        switchOutCurve: Curves.easeIn,
+                        duration: const Duration(milliseconds: 400),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
                         transitionBuilder: (Widget child, Animation<double> animation) {
-                          var slideIn = Tween<Offset>(
-                            begin: const Offset(1.0, 0.0), // Masuk dari kanan
+                          final slideIn = Tween<Offset>(
+                            begin: const Offset(0.05, 0.0),
                             end: Offset.zero,
                           ).animate(animation);
 
-                          var fade = animation.drive(CurveTween(curve: Curves.easeInOut));
-
                           return FadeTransition(
-                            opacity: fade,
+                            opacity: animation,
                             child: SlideTransition(
                               position: slideIn,
                               child: child,
@@ -336,73 +334,70 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
                               // Question Card
                               ShakeWidget(
                                 shake: _shouldShake,
-                                child: AnimatedScale(
+                                child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 400),
-                                  scale: _isAnswered ? (_isCurrentAnswerCorrect ? 1.05 : 1.0) : 1.0,
-                                  curve: Curves.elasticOut,
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(28),
-                                    decoration: BoxDecoration(
-                                      color: cardColor,
-                                      borderRadius: BorderRadius.circular(32),
-                                      border: Border.all(
+                                  curve: Curves.easeOutBack,
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(28),
+                                  decoration: BoxDecoration(
+                                    color: cardColor,
+                                    borderRadius: BorderRadius.circular(32),
+                                    border: Border.all(
+                                      color: _isAnswered 
+                                        ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.5) : const Color(0xFFE53935).withValues(alpha: 0.5))
+                                        : (isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA)), 
+                                      width: 2
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
                                         color: _isAnswered 
-                                          ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.5) : const Color(0xFFE53935).withValues(alpha: 0.5))
-                                          : (isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA)), 
-                                        width: 2
+                                          ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE53935).withValues(alpha: 0.1))
+                                          : const Color(0xFFCC6633).withValues(alpha: 0.08),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 12),
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _isAnswered 
-                                            ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE53935).withValues(alpha: 0.1))
-                                            : const Color(0xFFCC6633).withValues(alpha: 0.08),
-                                          blurRadius: 24,
-                                          offset: const Offset(0, 12),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        question.question,
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w900,
+                                          color: isDark ? Colors.white : const Color(0xFF2D2622),
+                                          height: 1.4,
                                         ),
-                                      ],
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
+                                      ),
+                                      if (question.romaji != null) ...[
+                                        const SizedBox(height: 12),
                                         Text(
-                                          question.question,
+                                          question.romaji!,
                                           style: TextStyle(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.w900,
-                                            color: isDark ? Colors.white : const Color(0xFF2D2622),
-                                            height: 1.4,
+                                            fontSize: 15, 
+                                            color: isDark ? Colors.white38 : Colors.grey[700],
+                                            fontStyle: FontStyle.italic,
+                                            letterSpacing: 0.5,
                                           ),
                                         ),
-                                        if (question.romaji != null) ...[
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            question.romaji!,
-                                            style: TextStyle(
-                                              fontSize: 15, 
-                                              color: isDark ? Colors.white38 : Colors.grey[700],
-                                              fontStyle: FontStyle.italic,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                        if (question.subQuestion != null) ...[
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(vertical: 20),
-                                            child: Divider(color: accentColor.withValues(alpha: 0.1), thickness: 2),
-                                          ),
-                                          Text(
-                                            question.subQuestion!,
-                                            style: TextStyle(
-                                              fontSize: 18, 
-                                              fontWeight: FontWeight.w700,
-                                              color: isDark ? Colors.white70 : Colors.black87, 
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                        ],
                                       ],
-                                    ),
+                                      if (question.subQuestion != null) ...[
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 20),
+                                          child: Divider(color: accentColor.withValues(alpha: 0.1), thickness: 2),
+                                        ),
+                                        Text(
+                                          question.subQuestion!,
+                                          style: TextStyle(
+                                            fontSize: 18, 
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark ? Colors.white70 : Colors.black87, 
+                                            height: 1.6,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                               ),
@@ -464,8 +459,8 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
     return GestureDetector(
       onTap: () => _handleOptionSelect(index),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
@@ -485,7 +480,9 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> {
         ),
         child: Row(
           children: [
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
               width: 42,
               height: 42,
               decoration: BoxDecoration(

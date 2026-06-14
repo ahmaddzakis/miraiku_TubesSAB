@@ -209,7 +209,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             padding: const EdgeInsets.all(6), // The "white gap"
             decoration: BoxDecoration(
               color: Colors.white,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(32),
               border: Border.all(color: Colors.redAccent, width: 4),
               boxShadow: [
                 BoxShadow(
@@ -221,8 +221,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
             child: Container(
               clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
               ),
               child: Image.asset(
                 image,
