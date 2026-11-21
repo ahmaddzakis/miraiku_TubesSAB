@@ -5,7 +5,8 @@ class SimulationQuestion {
   final String? subQuestion; // For reading/context
   final List<String> options;
   final int correctAnswerIndex;
-  final String? explanation;
+  final String? explanationEn;
+  final String? explanationId;
   final String? audioPath; // For listening
 
   SimulationQuestion({
@@ -15,7 +16,8 @@ class SimulationQuestion {
     this.subQuestion,
     required this.options,
     required this.correctAnswerIndex,
-    this.explanation,
+    this.explanationEn,
+    this.explanationId,
     this.audioPath,
   });
 }
@@ -29,7 +31,8 @@ class SimulationData {
       romaji: 'Ano ____ ni ki ga takusan arimasu.',
       options: ['かわ', 'やま', 'うみ', 'そら'],
       correctAnswerIndex: 1,
-      explanation: 'Kanji 山 dibaca "yama" yang berarti gunung.',
+      explanationId: 'Kanji 山 dibaca "yama" yang berarti gunung.',
+      explanationEn: 'The Kanji 山 is read as "yama", which means mountain.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -37,7 +40,8 @@ class SimulationData {
       romaji: 'Watashi wa pan ____ tabemasu.',
       options: ['を', 'に', 'が', 'は'],
       correctAnswerIndex: 0,
-      explanation: 'Partikel を (o) digunakan untuk menandai objek langsung dari kata kerja.',
+      explanationId: 'Partikel を (o) digunakan untuk menandai objek langsung dari kata kerja.',
+      explanationEn: 'The particle を (o) is used to mark the direct object of a verb.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -45,7 +49,8 @@ class SimulationData {
       romaji: 'Kinou wa totemo ____ deshita.',
       options: ['あつい', 'あかるい', 'さむい', 'ぬくい'],
       correctAnswerIndex: 2,
-      explanation: 'さむい (samui) berarti dingin untuk cuaca.',
+      explanationId: 'さむい (samui) berarti dingin untuk cuaca.',
+      explanationEn: 'さむい (samui) means cold (for weather).',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -53,7 +58,8 @@ class SimulationData {
       romaji: 'Gakkou e ____ de ikimasu.',
       options: ['車', '水', '木', '人'],
       correctAnswerIndex: 0,
-      explanation: 'Kanji 車 dibaca "kuruma" yang berarti mobil.',
+      explanationId: 'Kanji 車 dibaca "kuruma" yang berarti mobil.',
+      explanationEn: 'The Kanji 車 is read as "kuruma", which means car.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -61,7 +67,8 @@ class SimulationData {
       romaji: 'Tsukue no ue ____ hon ga arimasu.',
       options: ['を', 'へ', 'に', 'と'],
       correctAnswerIndex: 2,
-      explanation: 'Partikel に (ni) menunjukkan keberadaan posisi benda.',
+      explanationId: 'Partikel に (ni) menunjukkan keberadaan posisi benda.',
+      explanationEn: 'The particle に (ni) indicates the location or existence of an object.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -69,7 +76,8 @@ class SimulationData {
       romaji: '____ depaato e ikou.',
       options: ['きのう', 'きょう', 'あした', 'あさって'],
       correctAnswerIndex: 2,
-      explanation: 'Ashita berarti besok dalam bahasa Jepang.',
+      explanationId: 'Ashita berarti besok dalam bahasa Jepang.',
+      explanationEn: 'Ashita means tomorrow in Japanese.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -77,7 +85,8 @@ class SimulationData {
       romaji: '____ to hanashimashita.',
       options: ['がくせい', 'いしゃ', 'せんせい', 'かいしゃいん'],
       correctAnswerIndex: 2,
-      explanation: 'Kanji 先生 dibaca "sensei" yang berarti guru.',
+      explanationId: 'Kanji 先生 dibaca "sensei" yang berarti guru.',
+      explanationEn: 'The Kanji 先生 is read as "sensei", which means teacher.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -85,7 +94,8 @@ class SimulationData {
       romaji: 'Ginkou wa nanji ____ owarimasu ka?',
       options: ['まで', 'から', 'に', 'を'],
       correctAnswerIndex: 2,
-      explanation: 'Partikel に (ni) digunakan untuk menunjukkan waktu yang spesifik.',
+      explanationId: 'Partikel に (ni) digunakan untuk menunjukkan waktu yang spesifik.',
+      explanationEn: 'The particle に (ni) is used to indicate a specific point in time.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -93,7 +103,8 @@ class SimulationData {
       romaji: 'Kono ongaku wa ____ desu.',
       options: ['たかい', 'ひろい', 'しずか', 'にぎやか'],
       correctAnswerIndex: 2,
-      explanation: 'しずか (shizuka) berarti tenang atau sepi.',
+      explanationId: 'しずか (shizuka) berarti tenang atau sepi.',
+      explanationEn: 'しずか (shizuka) means quiet or peaceful.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -101,7 +112,8 @@ class SimulationData {
       romaji: '____ o nomimashita.',
       options: ['おちゃ', 'みず', 'にく', 'ごはん'],
       correctAnswerIndex: 1,
-      explanation: 'Kanji 水 dibaca "mizu" yang berarti air.',
+      explanationId: 'Kanji 水 dibaca "mizu" yang berarti air.',
+      explanationEn: 'The Kanji 水 is read as "mizu", which means water.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -109,7 +121,8 @@ class SimulationData {
       romaji: 'Tanaka-san wa doko ____ imasu ka?',
       options: ['を', 'が', 'に', 'で'],
       correctAnswerIndex: 2,
-      explanation: 'Partikel に (ni) digunakan untuk menyatakan keberadaan orang atau benda.',
+      explanationId: 'Partikel に (ni) digunakan untuk menyatakan keberadaan orang atau benda.',
+      explanationEn: 'The particle に (ni) is used to indicate the presence or location of people or things.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -117,7 +130,8 @@ class SimulationData {
       romaji: '____ nihongo o benkyou shimasu.',
       options: ['まいにち', 'まいあさ', 'まいばん', 'まいしゅう'],
       correctAnswerIndex: 0,
-      explanation: '毎日 (mainichi) berarti setiap hari.',
+      explanationId: '毎日 (mainichi) berarti setiap hari.',
+      explanationEn: '毎日 (mainichi) means every day.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -125,7 +139,8 @@ class SimulationData {
       romaji: '____ no ryouri wa oishii desu.',
       options: ['ちゅうごく', 'かんこく', 'にほん', 'アメリカ'],
       correctAnswerIndex: 2,
-      explanation: 'Kanji 日本 dibaca "nihon" yang berarti Jepang.',
+      explanationId: 'Kanji 日本 dibaca "nihon" yang berarti Jepang.',
+      explanationEn: 'The Kanji 日本 is read as "nihon", which means Japan.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -133,7 +148,8 @@ class SimulationData {
       romaji: 'Eki made ____ ikimashita.',
       options: ['はしって', 'あるいて', 'のって', 'およいで'],
       correctAnswerIndex: 1,
-      explanation: 'Aruite berarti dengan berjalan kaki.',
+      explanationId: 'Aruite berarti dengan berjalan kaki.',
+      explanationEn: 'Aruite means "by walking".',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -141,7 +157,8 @@ class SimulationData {
       romaji: '____ o kaite kudasai.',
       options: ['なまえ', 'じしょ', 'ほん', 'かみ'],
       correctAnswerIndex: 0,
-      explanation: 'Namae berarti nama.',
+      explanationId: 'Namae berarti nama.',
+      explanationEn: 'Namae means name.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -149,7 +166,8 @@ class SimulationData {
       romaji: 'Gakkou ____ yasumimashita.',
       options: ['に', 'を', 'が', 'と'],
       correctAnswerIndex: 1,
-      explanation: 'Partikel を (o) digunakan bersama kata kerja yasumu untuk menyatakan absen dari suatu tempat.',
+      explanationId: 'Partikel を (o) digunakan bersama kata kerja yasumu untuk menyatakan absen dari suatu tempat.',
+      explanationEn: 'The particle を (o) is used with the verb yasumu to indicate being absent from a place.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -157,7 +175,8 @@ class SimulationData {
       romaji: 'Watashi no ie wa ____ desu.',
       options: ['ひろい', 'せまい', 'おもい', 'かるい'],
       correctAnswerIndex: 0,
-      explanation: 'Hiroi berarti luas.',
+      explanationId: 'Hiroi berarti luas.',
+      explanationEn: 'Hiroi means spacious or wide.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -165,7 +184,8 @@ class SimulationData {
       romaji: '____ o sansatsu kaimashita.',
       options: ['ほん', 'ざっし', 'しんぶん', 'ノート'],
       correctAnswerIndex: 0,
-      explanation: 'Kanji 本 dibaca "hon" yang berarti buku.',
+      explanationId: 'Kanji 本 dibaca "hon" yang berarti buku.',
+      explanationEn: 'The Kanji 本 is read as "hon", which means book.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -173,7 +193,8 @@ class SimulationData {
       romaji: 'Dare ____ issho ni ikimasu ka?',
       options: ['を', 'が', 'と', 'へ'],
       correctAnswerIndex: 2,
-      explanation: 'Partikel と (to) berarti "bersama/dengan" dalam konteks ini.',
+      explanationId: 'Partikel と (to) berarti "bersama/dengan" dalam konteks ini.',
+      explanationEn: 'The particle と (to) means "with" in this context.',
     ),
     SimulationQuestion(
       section: 'Language Knowledge',
@@ -181,7 +202,8 @@ class SimulationData {
       romaji: '____ kaban o motteimasu.',
       options: ['ちいさい', 'たかい', 'おおい', 'おおきい'],
       correctAnswerIndex: 3,
-      explanation: 'Kanji 大きい dibaca "ookii" yang berarti besar.',
+      explanationId: 'Kanji 大きい dibaca "ookii" yang berarti besar.',
+      explanationEn: 'The Kanji 大きい is read as "ookii", which means big.',
     ),
 
     // READING (20 Questions)
@@ -192,7 +214,8 @@ class SimulationData {
       subQuestion: 'わたしは　おきてから　なにを　しますか。',
       options: ['ねます', 'コーヒーをのみます', '６じにおきます', 'しごとをします'],
       correctAnswerIndex: 1,
-      explanation: 'Teks menyatakan setelah bangun (sorekara), tokoh meminum kopi.',
+      explanationId: 'Teks menyatakan setelah bangun (sorekara), tokoh meminum kopi.',
+      explanationEn: 'The text states that after waking up (sorekara), the character drinks coffee.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -201,7 +224,8 @@ class SimulationData {
       subQuestion: 'デパートで　なにを　かいましたか。',
       options: ['くつだけ', 'シャツだけ', 'くつとシャツ', 'なにもかいませんでした'],
       correctAnswerIndex: 2,
-      explanation: 'Teks menyebutkan membeli sepatu dan juga (mo) kemeja.',
+      explanationId: 'Teks menyebutkan membeli sepatu dan juga (mo) kemeja.',
+      explanationEn: 'The text mentions buying shoes and also (mo) a shirt.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -210,7 +234,8 @@ class SimulationData {
       subQuestion: 'このひとのごきょうだいは　だれですか。',
       options: ['あね', 'あに', 'いもうto', 'おとうto'],
       correctAnswerIndex: 0,
-      explanation: 'Teks menyebutkan memiliki kakak perempuan (ane).',
+      explanationId: 'Teks menyebutkan memiliki kakak perempuan (ane).',
+      explanationEn: 'The text mentions having an older sister (ane).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -219,7 +244,8 @@ class SimulationData {
       subQuestion: 'このひとは　今日　なにを　しますか。',
       options: ['デパートへいきます', 'ともだちにあいます', 'ほんをよみます', 'さんぽをします'],
       correctAnswerIndex: 2,
-      explanation: 'Karena hujan (ame desu kara), tokoh akan membaca buku di rumah.',
+      explanationId: 'Karena hujan (ame desu kara), tokoh akan membaca buku di rumah.',
+      explanationEn: 'Because it is raining (ame desu kara), the character will read a book at home.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -228,7 +254,8 @@ class SimulationData {
       subQuestion: '休みは　いつですか。',
       options: ['げつようび', 'かようび', 'すいようび', 'もくようび'],
       correctAnswerIndex: 1,
-      explanation: 'Teks menyatakan Selasa (kayoubi) adalah hari libur (yasumi).',
+      explanationId: 'Teks menyatakan Selasa (kayoubi) adalah hari libur (yasumi).',
+      explanationEn: 'The text states that Tuesday (kayoubi) is a holiday (yasumi).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -237,7 +264,8 @@ class SimulationData {
       subQuestion: 'このひとの　しゅみは　なんですか。',
       options: ['りょうり', 'スポーツ', 'しゃしん', 'おんがく'],
       correctAnswerIndex: 2,
-      explanation: 'Shumi (hobi) tokoh adalah mengambil foto (shashin o toru).',
+      explanationId: 'Shumi (hobi) tokoh adalah mengambil foto (shashin o toru).',
+      explanationEn: 'The character\'s hobby (shumi) is taking photos (shashin o toru).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -246,7 +274,8 @@ class SimulationData {
       subQuestion: 'いぬの　いろは　なにいろですか。',
       options: ['くろ', 'あか', 'あお', 'しろ'],
       correctAnswerIndex: 3,
-      explanation: 'Teks menyebutkan anjing tersebut berwarna putih (shiroi).',
+      explanationId: 'Teks menyebutkan anjing tersebut berwarna putih (shiroi).',
+      explanationEn: 'The text mentions that the dog is white (shiroi).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -255,7 +284,8 @@ class SimulationData {
       subQuestion: 'このりょうりは　どうですか。',
       options: ['あまくておいしい', 'からいがおいしい', 'まずい', 'からくない'],
       correctAnswerIndex: 1,
-      explanation: 'Masakan ini sedikit pedas (karai) tapi (demo) enak (oishii).',
+      explanationId: 'Masakan ini sedikit pedas (karai) tapi (demo) enak (oishii).',
+      explanationEn: 'This dish is a bit spicy (karai) but (demo) delicious (oishii).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -264,7 +294,8 @@ class SimulationData {
       subQuestion: 'いつ　日本へ　行きましたか。',
       options: ['きょねん', 'ことし', 'らいねん', 'きのう'],
       correctAnswerIndex: 0,
-      explanation: 'Tokoh pergi ke Jepang pada tahun lalu (kyonen).',
+      explanationId: 'Tokoh pergi ke Jepang pada tahun lalu (kyonen).',
+      explanationEn: 'The character went to Japan last year (kyonen).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -273,7 +304,8 @@ class SimulationData {
       subQuestion: 'このひとの　へやは　どんな　へやですか。',
       options: ['おおきくてあたらしい', 'ちいさくてふるい', 'おおきくてふるい', 'ちいさくてあたらしい'],
       correctAnswerIndex: 3,
-      explanation: 'Kamar tersebut tidak besar (kecil) namun baru (atarashii).',
+      explanationId: 'Kamar tersebut tidak besar (kecil) namun baru (atarashii).',
+      explanationEn: 'The room is not big (small) but it is new (atarashii).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -282,16 +314,18 @@ class SimulationData {
       subQuestion: 'パーティーは　なんじに　はじまりますか。',
       options: ['５じ', '６じ', '７じ', '８じ'],
       correctAnswerIndex: 1,
-      explanation: 'Pesta dimulai dari (kara) jam 6.',
+      explanationId: 'Pesta dimulai dari (kara) jam 6.',
+      explanationEn: 'The party starts from (kara) 6 o\'clock.',
     ),
     SimulationQuestion(
       section: 'Reading',
       question: '図書館では　しずかに　してください。飲み物を　飲まないで　ください。',
       romaji: 'Toshokan dewa shizuka ni shite kudasai. Nomimono o nomanaide kudasai.',
-      subQuestion: '図書館で　なにを　してはいけませんか।',
+      subQuestion: '図書館で　なにを　してはいけませんか。',
       options: ['本をよむ', 'べんきょうする', 'のみものをのむ', 'しずかにする'],
       correctAnswerIndex: 2,
-      explanation: 'Dilarang (nomanaide kudasai) meminum minuman di perpustakaan.',
+      explanationId: 'Dilarang (nomanaide kudasai) meminum minuman di perpustakaan.',
+      explanationEn: 'Drinking (nomanaide kudasai) is prohibited in the library.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -300,7 +334,8 @@ class SimulationData {
       subQuestion: '昨日の　天気は　どうでしたか。',
       options: ['あつかった', 'さむかった', 'よかった', 'あめだった'],
       correctAnswerIndex: 1,
-      explanation: 'Teks menyatakan kemarin dingin (samukatta).',
+      explanationId: 'Teks menyatakan kemarin dingin (samukatta).',
+      explanationEn: 'The text states that it was cold (samukatta) yesterday.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -309,7 +344,8 @@ class SimulationData {
       subQuestion: 'このひとは　どのきせつが　すきですか。',
       options: ['なつ', 'あき', 'ふゆ', 'はる'],
       correctAnswerIndex: 3,
-      explanation: 'Tokoh paling menyukai musim semi (haru).',
+      explanationId: 'Tokoh paling menyukai musim semi (haru).',
+      explanationEn: 'The character likes spring (haru) the most.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -318,7 +354,8 @@ class SimulationData {
       subQuestion: 'どうやって　学校へ　行きますか。',
       options: ['でんしゃ', 'じてんしゃ', 'バス', 'あるいて'],
       correctAnswerIndex: 2,
-      explanation: 'Tokoh pergi ke sekolah menggunakan bus (basu de).',
+      explanationId: 'Tokoh pergi ke sekolah menggunakan bus (basu de).',
+      explanationEn: 'The character goes to school by bus (basu de).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -327,7 +364,8 @@ class SimulationData {
       subQuestion: 'だれの　たんじょうびですか。',
       options: ['ちち', 'はは', 'あね', 'ともだち'],
       correctAnswerIndex: 1,
-      explanation: 'Hari ini adalah ulang tahun ibu (haha).',
+      explanationId: 'Hari ini adalah ulang tahun ibu (haha).',
+      explanationEn: 'Today is mother\'s (haha) birthday.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -336,7 +374,8 @@ class SimulationData {
       subQuestion: '会社は　なんじに　おわりますか。',
       options: ['９じ', '５じ', '７じ', '６じ'],
       correctAnswerIndex: 1,
-      explanation: 'Perusahaan/kantor selesai (made) pada jam 5.',
+      explanationId: 'Perusahaan/kantor selesai (made) pada jam 5.',
+      explanationEn: 'The office closes (made) at 5 o\'clock.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -345,7 +384,8 @@ class SimulationData {
       subQuestion: 'あおいセーターは　いくらですか。',
       options: ['３０００えん', '５０００えん', '８０００えん', '４０００えん'],
       correctAnswerIndex: 0,
-      explanation: 'Sweater biru (aoi no) harganya 3000 yen.',
+      explanationId: 'Sweater biru (aoi no) harganya 3000 yen.',
+      explanationEn: 'The blue sweater (aoi no) costs 3000 yen.',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -354,7 +394,8 @@ class SimulationData {
       subQuestion: 'いつ　海へ　行きますか。',
       options: ['こんしゅう', 'らいしゅう', 'せんしゅう', 'きのう'],
       correctAnswerIndex: 1,
-      explanation: 'Tokoh akan pergi ke laut minggu depan (raishuu).',
+      explanationId: 'Tokoh akan pergi ke laut minggu depan (raishuu).',
+      explanationEn: 'The character will go to the sea next week (raishuu).',
     ),
     SimulationQuestion(
       section: 'Reading',
@@ -363,7 +404,8 @@ class SimulationData {
       subQuestion: 'トイレは　どこですか。',
       options: ['１かい', '２かい', '３かい', 'ちか'],
       correctAnswerIndex: 1,
-      explanation: 'Teks menyatakan toilet berada di lantai 2 (nikai).',
+      explanationId: 'Teks menyatakan toilet berada di lantai 2 (nikai).',
+      explanationEn: 'The text states that the toilet is on the 2nd floor (nikai).',
     ),
   ];
 }

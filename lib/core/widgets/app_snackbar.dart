@@ -1,28 +1,36 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_shadows.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_text_styles.dart';
 
 /// A modern, top-floating notification utility for MIRAIku.
-/// This replaces the default bottom-anchored SnackBar with a cleaner,
-/// animated overlay that slides down from the top.
+/// Replaces the default bottom-anchored SnackBar with a clean,
+/// animated overlay that slides down from the top and respects reduce-motion.
 class AppSnackbar {
   static OverlayEntry? _currentEntry;
 
   /// Shows a success notification with the theme's primary color.
   static void showSuccess(BuildContext context, String message) {
-    _show(context, message, const Color(0xFFCC6633), Icons.check_circle_rounded);
+    _show(context, message, AppColors.primaryLight, Icons.check_circle_rounded);
   }
 
-  /// Shows an error notification with a soft red color.
+  /// Shows an error notification with the semantic error color.
   static void showError(BuildContext context, String message) {
-    _show(context, message, const Color(0xFFE53935), Icons.error_outline_rounded);
+    _show(context, message, AppColors.errorLight, Icons.error_outline_rounded);
   }
 
-  static void _show(BuildContext context, String message, Color color, IconData icon) {
-    // Remove existing notification immediately to handle rapid calls
+  static void _show(
+    BuildContext context,
+    String message,
+    Color color,
+    IconData icon,
+  ) {
     _currentEntry?.remove();
     _currentEntry = null;
 
     final overlay = Overlay.of(context);
-    
+
     _currentEntry = OverlayEntry(
       builder: (context) => _TopSnackbarWidget(
         message: message,
@@ -56,7 +64,8 @@ class _TopSnackbarWidget extends StatefulWidget {
   State<_TopSnackbarWidget> createState() => _TopSnackbarWidgetState();
 }
 
-class _TopSnackbarWidgetState extends State<_TopSnackbarWidget> with SingleTickerProviderStateMixin {
+class _TopSnackbarWidgetState extends State<_TopSnackbarWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
   bool _isRemoving = false;
@@ -65,21 +74,17 @@ class _TopSnackbarWidgetState extends State<_TopSnackbarWidget> with SingleTicke
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: AppSpacing.animNormal,
       vsync: this,
     );
 
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, -1.5),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
 
-    // Auto-dismiss after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted && !_isRemoving) {
         _dismiss();
@@ -103,30 +108,33 @@ class _TopSnackbarWidgetState extends State<_TopSnackbarWidget> with SingleTicke
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SafeArea(
       child: Align(
         alignment: Alignment.topCenter,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            0,
+          ),
           child: SlideTransition(
             position: _offsetAnimation,
             child: Material(
               color: Colors.transparent,
               child: GestureDetector(
-                onTap: _dismiss, // Allow manual dismissal by tapping
+                onTap: _dismiss,
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 500),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: widget.color,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    boxShadow: AppShadows.dialog(isDark),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -136,9 +144,8 @@ class _TopSnackbarWidgetState extends State<_TopSnackbarWidget> with SingleTicke
                       Flexible(
                         child: Text(
                           widget.message,
-                          style: const TextStyle(
+                          style: AppTextStyles.bodyMedium.copyWith(
                             color: Colors.white,
-                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.2,
                           ),

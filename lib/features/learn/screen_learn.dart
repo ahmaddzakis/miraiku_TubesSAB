@@ -1,6 +1,12 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/game_manager.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../../widgets/path_node.dart';
 import 'widget_learn.dart';
 import 'screen_exercise.dart';
@@ -33,6 +39,22 @@ class _LearnScreenState extends State<LearnScreen> {
 
   // --- STATE UNIT 4 (BASIC GRAMMAR) ---
   int _u4ParticlesStars = 0, _u4Verbs1Stars = 0, _u4Verbs2Stars = 0, _u4AdjectivesStars = 0, _u4TestCompleted = 0;
+
+  final List<String> _motivationalMessagesEn = [
+    "One step closer to Japan! 🎌",
+    "Ganbatte kudasai! You can do it! 🔥",
+    "Take a deep breath... Let's collect some XP! ✨",
+    "Focus for a moment, let's conquer this! 🚀",
+    "A journey of a thousand miles begins with a single step! 🗺️",
+  ];
+
+  final List<String> _motivationalMessagesId = [
+    "Satu langkah lebih dekat ke Jepang! 🎌",
+    "Ganbatte kudasai! Kamu pasti bisa! 🔥",
+    "Tarik napas panjang... Ayo kumpulkan XP! ✨",
+    "Fokus sejenak, mari taklukkan materi ini! 🚀",
+    "Perjalanan seribu mil dimulai dengan satu langkah! 🗺️",
+  ];
 
   @override
   void initState() {
@@ -98,68 +120,60 @@ class _LearnScreenState extends State<LearnScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: globalDarkMode,
-      builder: (context, isDark, _) {
-        return ValueListenableBuilder(
-          valueListenable: globalLanguage,
-          builder: (context, lang, _) {
-            final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-            final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+    final colorScheme = Theme.of(context).colorScheme;
+    final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final Color borderColor = colorScheme.outline;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-            // Kunci Pembuka Unit 2 & 3 & 4
-            bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
-            bool isUnit3Unlocked = _u2TestCompleted >= 1;
-            bool isUnit4Unlocked = _u3TestCompleted >= 1;
+    // Kunci Pembuka Unit 2 & 3 & 4
+    bool isUnit2Unlocked = widget.isUnit1Completed || _u1TestCompleted >= 1;
+    bool isUnit3Unlocked = _u2TestCompleted >= 1;
+    bool isUnit4Unlocked = _u3TestCompleted >= 1;
 
-            return Scaffold(
-              backgroundColor: bgColor,
-              body: RefreshIndicator(
-                onRefresh: () async {
-                  await _loadProgress();
-                  await GameManager.syncToCloud();
-                },
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 24),
-                        const UnitHeaderCard(),
-                        const SizedBox(height: 40),
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadProgress();
+          await GameManager.syncToCloud();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                const UnitHeaderCard(),
+                const SizedBox(height: 40),
 
-                        _buildUnit1(borderColor),
+                _buildUnit1(borderColor),
 
-                        const SizedBox(height: 40),
-                        Divider(thickness: 2, color: borderColor),
-                        const SizedBox(height: 20),
+                const SizedBox(height: 40),
+                Divider(thickness: 2, color: borderColor),
+                const SizedBox(height: 20),
 
-                        _buildUnit2(isDark, borderColor, isUnit2Unlocked),
+                _buildUnit2(isDark, borderColor, isUnit2Unlocked),
 
-                        const SizedBox(height: 40),
-                        Divider(thickness: 2, color: borderColor),
-                        const SizedBox(height: 20),
+                const SizedBox(height: 40),
+                Divider(thickness: 2, color: borderColor),
+                const SizedBox(height: 20),
 
-                        _buildUnit3(isDark, borderColor, isUnit3Unlocked),
+                _buildUnit3(isDark, borderColor, isUnit3Unlocked),
 
-                        const SizedBox(height: 40),
-                        Divider(thickness: 2, color: borderColor),
-                        const SizedBox(height: 20),
+                const SizedBox(height: 40),
+                Divider(thickness: 2, color: borderColor),
+                const SizedBox(height: 20),
 
-                        _buildUnit4(isDark, borderColor, isUnit4Unlocked),
+                _buildUnit4(isDark, borderColor, isUnit4Unlocked),
 
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -193,7 +207,7 @@ class _LearnScreenState extends State<LearnScreen> {
         _buildVerticalConnector(borderColor, _u1NumStars >= 3 && _u1TestCompleted >= 1),
 
         _buildClickableNode(
-          context, _t("Unit Test\n20 min", "Ujian Unit\n15 mnt"), 0,
+          context, _t("Unit Test\n15 min", "Ujian Unit\n15 mnt"), 0,
           _u1TestCompleted >= 1 ? NodeStatus.completed : (_u1NumStars == 3 ? NodeStatus.current : NodeStatus.locked),
           1, 'test', () {
           setState(() {
@@ -213,7 +227,18 @@ class _LearnScreenState extends State<LearnScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildUnit2HeaderCard(isDark, isUnit2Unlocked),
+        UnitHeaderCard(
+          unitNumber: 2,
+          titleEn: 'KATAKANA & LOANWORDS',
+          titleId: 'KATAKANA & KATA SERAPAN',
+          subtitleEn: isUnit2Unlocked
+              ? 'Learn the second alphabet system for foreign words'
+              : 'Complete Unit 1 Test to unlock',
+          subtitleId: isUnit2Unlocked
+              ? 'Pelajari sistem alfabet kedua untuk kata serapan asing'
+              : 'Selesaikan Ujian Unit 1 untuk membuka akses',
+          isUnlocked: isUnit2Unlocked,
+        ),
         const SizedBox(height: 40),
 
         _buildClickableNode(context, _t("Katakana Basics 1", "Katakana Dasar 1"), _u2Kata1Stars, _u2Kata1Stars >= 3 ? NodeStatus.completed : (isUnit2Unlocked ? NodeStatus.current : NodeStatus.locked), 2, 'katakana_1', () {
@@ -242,7 +267,7 @@ class _LearnScreenState extends State<LearnScreen> {
         _buildVerticalConnector(borderColor, _u2Words2Stars >= 3 && _u2TestCompleted >= 1),
 
         _buildClickableNode(
-          context, _t("Unit 2 Test\n20 min", "Ujian Unit 2\n15 mnt"), 0,
+          context, _t("Unit 2 Test\n15 min", "Ujian Unit 2\n15 mnt"), 0,
           _u2TestCompleted >= 1 ? NodeStatus.completed : (_u2Words2Stars >= 3 ? NodeStatus.current : NodeStatus.locked),
           2, 'test', () {
           setState(() {
@@ -261,7 +286,18 @@ class _LearnScreenState extends State<LearnScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildUnit3HeaderCard(isDark, isUnit3Unlocked),
+        UnitHeaderCard(
+          unitNumber: 3,
+          titleEn: 'BASIC KANJI',
+          titleId: 'KANJI DASAR',
+          subtitleEn: isUnit3Unlocked
+              ? 'Master the essential ideograms for N5 level'
+              : 'Complete Unit 2 Test to unlock',
+          subtitleId: isUnit3Unlocked
+              ? 'Kuasai ideogram penting untuk level N5'
+              : 'Selesaikan Ujian Unit 2 untuk membuka akses',
+          isUnlocked: isUnit3Unlocked,
+        ),
         const SizedBox(height: 40),
 
         _buildClickableNode(context, _t("Kanji Numbers", "Kanji Angka"), _u3NumStars, _u3NumStars >= 3 ? NodeStatus.completed : (isUnit3Unlocked ? NodeStatus.current : NodeStatus.locked), 3, 'kanji_numbers', () {
@@ -278,7 +314,7 @@ class _LearnScreenState extends State<LearnScreen> {
         _buildVerticalConnector(borderColor, _u3PeopleStars >= 3 && _u3TestCompleted >= 1),
 
         _buildClickableNode(
-          context, _t("Unit 3 Test\n20 min", "Ujian Unit 3\n15 mnt"), 0,
+          context, _t("Unit 3 Test\n15 min", "Ujian Unit 3\n15 mnt"), 0,
           _u3TestCompleted >= 1 ? NodeStatus.completed : (_u3PeopleStars >= 3 ? NodeStatus.current : NodeStatus.locked),
           3, 'test', () {
           setState(() {
@@ -297,7 +333,18 @@ class _LearnScreenState extends State<LearnScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildUnit4HeaderCard(isDark, isUnit4Unlocked),
+        UnitHeaderCard(
+          unitNumber: 4,
+          titleEn: 'BASIC GRAMMAR',
+          titleId: 'TATA BAHASA DASAR',
+          subtitleEn: isUnit4Unlocked
+              ? 'Construct sentences with particles and verbs'
+              : 'Complete Unit 3 Test to unlock',
+          subtitleId: isUnit4Unlocked
+              ? 'Susun kalimat dengan partikel dan kata kerja'
+              : 'Selesaikan Ujian Unit 3 untuk membuka akses',
+          isUnlocked: isUnit4Unlocked,
+        ),
         const SizedBox(height: 40),
 
         _buildClickableNode(context, _t("Basic Particles", "Partikel Dasar"), _u4ParticlesStars, _u4ParticlesStars >= 3 ? NodeStatus.completed : (isUnit4Unlocked ? NodeStatus.current : NodeStatus.locked), 4, 'grammar_particles', () {
@@ -318,7 +365,7 @@ class _LearnScreenState extends State<LearnScreen> {
         _buildVerticalConnector(borderColor, _u4AdjectivesStars >= 3 && _u4TestCompleted >= 1),
 
         _buildClickableNode(
-          context, _t("Unit 4 Test\n20 min", "Ujian Unit 4\n15 mnt"), 0,
+          context, _t("Unit 4 Test\n15 min", "Ujian Unit 4\n15 mnt"), 0,
           _u4TestCompleted >= 1 ? NodeStatus.completed : (_u4AdjectivesStars == 3 ? NodeStatus.current : NodeStatus.locked),
           4, 'test', () {
           setState(() {
@@ -335,6 +382,7 @@ class _LearnScreenState extends State<LearnScreen> {
 
   // --- HELPER BUILDER ---
   Widget _buildVerticalConnector(Color color, bool isCompleted) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.only(left: 28),
@@ -342,7 +390,7 @@ class _LearnScreenState extends State<LearnScreen> {
         width: 6,
         height: 35,
         decoration: BoxDecoration(
-          color: isCompleted ? const Color(0xFFCC6633) : color,
+          color: isCompleted ? colorScheme.primary : color,
           borderRadius: BorderRadius.circular(3),
         ),
       ),
@@ -360,15 +408,21 @@ class _LearnScreenState extends State<LearnScreen> {
               ? null
               : () {
             if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
-              unit: unit, 
-              difficulty: diff, 
-              currentStars: stars, 
-              currentHearts: currentHearts, 
-              onQuizPassed: onSuccess,
-              isReplay: status == NodeStatus.completed,
-              hint: globalLanguage.value == 'id' ? hintId : hintEn,
-            )));
+            _showMotivationalPopup(
+              context: context,
+              title: title,
+              onStart: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
+                  unit: unit, 
+                  difficulty: diff, 
+                  currentStars: stars, 
+                  currentHearts: currentHearts, 
+                  onQuizPassed: onSuccess,
+                  isReplay: status == NodeStatus.completed,
+                  hint: globalLanguage.value == 'id' ? hintId : hintEn,
+                )));
+              },
+            );
           },
           child: PathNode(
             title: title, 
@@ -378,15 +432,21 @@ class _LearnScreenState extends State<LearnScreen> {
             icon: _getIconForLevel(title),
             onReplaySelected: (selectedStarIndex) {
               if (currentHearts <= 0) { _showNoHeartsDialog(); return; }
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
-                unit: unit, 
-                difficulty: diff, 
-                currentStars: selectedStarIndex,
-                currentHearts: currentHearts,
-                onQuizPassed: onSuccess,
-                isReplay: true,
-                hint: globalLanguage.value == 'id' ? hintId : hintEn,
-              )));
+              _showMotivationalPopup(
+                context: context,
+                title: title,
+                onStart: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ExerciseScreen(
+                    unit: unit, 
+                    difficulty: diff, 
+                    currentStars: selectedStarIndex,
+                    currentHearts: currentHearts,
+                    onQuizPassed: onSuccess,
+                    isReplay: true,
+                    hint: globalLanguage.value == 'id' ? hintId : hintEn,
+                  )));
+                },
+              );
             },
           ),
         );
@@ -394,91 +454,79 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
-  // 🔥 FUNGSI HEADER BARU: DESAIN MIRIP UNIT 1 (KOTAK BESAR, TEKS BERTUMPUK)
-  Widget _buildUnit2HeaderCard(bool isDark, bool unlocked) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      decoration: BoxDecoration(
-        color: unlocked ? const Color(0xFFCC6633) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-              'UNIT 2',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
-          ),
-          const SizedBox(height: 8),
-          Text(
-              _t('KATAKANA & LOANWORDS', 'KATAKANA & KATA SERAPAN'),
-              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
-          ),
-          const SizedBox(height: 12),
-          Text(
-              unlocked ? _t('Learn the second alphabet system for foreign words', 'Pelajari sistem alfabet kedua untuk kata serapan asing') : _t('Complete Unit 1 Test to unlock', 'Selesaikan Ujian Unit 1 untuk membuka akses'),
-              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
-          ),
-        ],
-      ),
-    );
-  }
+  void _showMotivationalPopup({
+    required BuildContext context,
+    required String title,
+    required VoidCallback onStart,
+  }) {
+    final bool isId = globalLanguage.value == 'id';
+    final List<String> messages =
+        isId ? _motivationalMessagesId : _motivationalMessagesEn;
+    final String randomMessage = messages[Random().nextInt(messages.length)];
+    final colorScheme = Theme.of(context).colorScheme;
 
-  Widget _buildUnit3HeaderCard(bool isDark, bool unlocked) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      decoration: BoxDecoration(
-        color: unlocked ? const Color(0xFFCC6633) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-              'UNIT 3',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
+        backgroundColor: colorScheme.surface,
+        title: Column(
+          children: [
+            Icon(
+              Icons.auto_awesome_rounded,
+              color: colorScheme.primary,
+              size: 48,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              title,
+              style: AppTextStyles.titleLarge.copyWith(
+                fontWeight: FontWeight.w900,
+                color: colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Text(
+          randomMessage,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(height: 8),
-          Text(
-              _t('BASIC KANJI', 'KANJI DASAR'),
-              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
-          ),
-          const SizedBox(height: 12),
-          Text(
-              unlocked ? _t('Master the essential ideograms for N5 level', 'Kuasai ideogram penting untuk level N5') : _t('Complete Unit 2 Test to unlock', 'Selesaikan Ujian Unit 2 untuk membuka akses'),
-              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnit4HeaderCard(bool isDark, bool unlocked) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      decoration: BoxDecoration(
-        color: unlocked ? const Color(0xFFCC6633) : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE8E3DA)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-              'UNIT 4',
-              style: TextStyle(color: unlocked ? Colors.white.withValues(alpha: 0.7) : Colors.grey, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5)
-          ),
-          const SizedBox(height: 8),
-          Text(
-              _t('BASIC GRAMMAR', 'TATA BAHASA DASAR'),
-              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontSize: 24, fontWeight: FontWeight.w900)
-          ),
-          const SizedBox(height: 12),
-          Text(
-              unlocked ? _t('Construct sentences with particles and verbs', 'Susun kalimat dengan partikel dan kata kerja') : _t('Complete Unit 3 Test to unlock', 'Selesaikan Ujian Unit 3 untuk membuka akses'),
-              style: TextStyle(color: unlocked ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 15, height: 1.4)
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.xxl,
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: _t('CANCEL', 'BATAL'),
+                  variant: AppButtonVariant.text,
+                  height: 48,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: AppButton(
+                  label: _t('START', 'MULAI'),
+                  height: 48,
+                  borderRadius: AppSpacing.radiusMd,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onStart();
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -486,19 +534,28 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   void _showNoHeartsDialog() {
-    final bool isDark = globalDarkMode.value;
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
+        backgroundColor: colorScheme.surface,
         title: Column(
           children: [
-            const Icon(Icons.favorite_border_rounded, color: Color(0xFFE53935), size: 60),
-            const SizedBox(height: 16),
+            const Icon(
+              Icons.favorite_border_rounded,
+              color: AppColors.heartCrimson,
+              size: 60,
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
-              _t('Nyawa Habis!', 'Nyawa Habis!'),
-              style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333), fontSize: 22),
+              _t('Out of Hearts!', 'Nyawa Habis!'),
+              style: AppTextStyles.headlineMedium.copyWith(
+                fontWeight: FontWeight.w900,
+                color: colorScheme.onSurface,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -509,26 +566,37 @@ class _LearnScreenState extends State<LearnScreen> {
             Text(
               _t(
                 'Don\'t give up! Mistakes are the best teachers. Restore your hearts and keep going!',
-                'Jangan menyerah! Kesalahan adalah guru terbaik. Pulihkan nyawa dan teruslah belajar!'
+                'Jangan menyerah! Kesalahan adalah guru terbaik. Pulihkan nyawa dan teruslah belajar!',
               ),
               textAlign: TextAlign.center,
-              style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF4B4B4B), height: 1.5, fontSize: 16),
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.streakFlame.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.flash_on, color: Colors.orange, size: 18),
+                  const Icon(
+                    Icons.flash_on,
+                    color: AppColors.streakFlame,
+                    size: 18,
+                  ),
                   const SizedBox(width: 6),
                   Text(
-                    "150 XP per Nyawa",
-                    style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 13),
+                    _t("150 XP per Heart", "150 XP per Nyawa"),
+                    style: AppTextStyles.labelLarge.copyWith(
+                      color: AppColors.streakFlame,
+                    ),
                   ),
                 ],
               ),
@@ -536,49 +604,48 @@ class _LearnScreenState extends State<LearnScreen> {
           ],
         ),
         actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.xxl,
+        ),
         actions: [
           Column(
             children: [
-              SizedBox(
-                width: double.infinity,
+              AppButton(
+                label: _t('RESTORE WITH XP', 'BELI DENGAN XP'),
                 height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC6633),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  onPressed: () async {
-                    bool success = await GameManager.buyHeartWithXP();
-                    if (!context.mounted) return;
-                    if (success) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(_t('Heart restored! Go for it!', 'Nyawa berhasil dipulihkan! Semangat!')),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_t('Not enough XP!', 'XP tidak cukup!'))),
-                      );
-                    }
-                  },
-                  child: Text(_t('RESTORE WITH XP', 'BELI DENGAN XP'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                ),
+                borderRadius: AppSpacing.radiusMd,
+                onPressed: () async {
+                  final bool success = await GameManager.buyHeartWithXP();
+                  if (!context.mounted) return;
+                  if (success) {
+                    Navigator.pop(context);
+                    AppSnackbar.showSuccess(
+                      context,
+                      _t(
+                        'Heart restored! Go for it!',
+                        'Nyawa berhasil dipulihkan! Semangat!',
+                      ),
+                    );
+                  } else {
+                    AppSnackbar.showError(
+                      context,
+                      _t('Not enough XP!', 'XP tidak cukup!'),
+                    );
+                  }
+                },
               ),
-              const SizedBox(height: 12),
-              TextButton(
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: _t('LATER', 'NANTI SAJA'),
+                variant: AppButtonVariant.text,
+                height: 48,
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  _t('LATER', 'NANTI SAJA'),
-                  style: TextStyle(color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.bold),
-                ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );

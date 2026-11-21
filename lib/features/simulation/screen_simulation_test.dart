@@ -1,10 +1,14 @@
 import 'dart:async';
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/game_manager.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shadows.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/app_badge.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_progress_bar.dart';
 import '../../data/simulation_data.dart';
 import '../../widgets/shake_widget.dart';
 import 'simulation_result_screen.dart';
@@ -16,7 +20,8 @@ class SimulationTestScreen extends StatefulWidget {
   State<SimulationTestScreen> createState() => _SimulationTestScreenState();
 }
 
-class _SimulationTestScreenState extends State<SimulationTestScreen> with SingleTickerProviderStateMixin {
+class _SimulationTestScreenState extends State<SimulationTestScreen>
+    with SingleTickerProviderStateMixin {
   int _currentQuestionIndex = 0;
   int _languageScore = 0;
   int _readingScore = 0;
@@ -27,36 +32,46 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
   bool _isCurrentAnswerCorrect = false;
   bool _shouldShake = false;
   late List<SimulationQuestion> _questions;
+  late List<int> _questionIndices;
   late List<int?> _userAnswers;
-  
-  Timer? _timer;
-  int _timeLeft = 50 * 60; // 50 mins total (25 Language + 25 Reading)
 
-  // Animation Controllers for premium feel
+  static const int _totalDurationSeconds = 50 * 60; // 50 mins total
+  Timer? _timer;
+  int _timeLeft = _totalDurationSeconds;
+
   late AnimationController _mainController;
 
   @override
   void initState() {
     super.initState();
-    
-    // Group, Shuffle, and Concatenate to maintain Section Order with Random Questions
-    final allQuestions = List<SimulationQuestion>.from(SimulationData.n5Questions);
-    
-    final languageKnowledgeList = allQuestions.where((q) => q.section == 'Language Knowledge').toList();
-    final readingList = allQuestions.where((q) => q.section == 'Reading').toList();
-    
-    languageKnowledgeList.shuffle();
-    readingList.shuffle();
-    
-    _questions = [...languageKnowledgeList, ...readingList];
-    
+
+    // Group, Shuffle, and Concatenate while preserving exact indices in SimulationData.n5Questions
+    final allQuestions = SimulationData.n5Questions;
+
+    final List<int> languageIndices = [];
+    final List<int> readingIndices = [];
+
+    for (int i = 0; i < allQuestions.length; i++) {
+      if (allQuestions[i].section == 'Language Knowledge') {
+        languageIndices.add(i);
+      } else if (allQuestions[i].section == 'Reading') {
+        readingIndices.add(i);
+      }
+    }
+
+    languageIndices.shuffle();
+    readingIndices.shuffle();
+
+    _questionIndices = [...languageIndices, ...readingIndices];
+    _questions = _questionIndices.map((i) => allQuestions[i]).toList();
+
     _userAnswers = List.filled(_questions.length, null);
-    _languageTotal = languageKnowledgeList.length;
-    _readingTotal = readingList.length;
+    _languageTotal = languageIndices.length;
+    _readingTotal = readingIndices.length;
 
     _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: AppSpacing.animSlow,
     );
 
     _startTimer();
@@ -81,8 +96,8 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
   }
 
   String get _formattedTime {
-    int minutes = _timeLeft ~/ 60;
-    int seconds = _timeLeft % 60;
+    final int minutes = _timeLeft ~/ 60;
+    final int seconds = _timeLeft % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
@@ -96,11 +111,13 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
     if (_selectedOption == null || _isAnswered) return;
 
     final currentQuestion = _questions[_currentQuestionIndex];
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     setState(() {
       _isAnswered = true;
       _userAnswers[_currentQuestionIndex] = _selectedOption;
-      _isCurrentAnswerCorrect = _selectedOption == currentQuestion.correctAnswerIndex;
-      
+      _isCurrentAnswerCorrect =
+          _selectedOption == currentQuestion.correctAnswerIndex;
+
       if (_isCurrentAnswerCorrect) {
         if (currentQuestion.section == 'Language Knowledge') {
           _languageScore++;
@@ -110,10 +127,12 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
         HapticFeedback.mediumImpact();
       } else {
         HapticFeedback.heavyImpact();
-        _shouldShake = true;
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (mounted) setState(() => _shouldShake = false);
-        });
+        if (!reduceMotion) {
+          _shouldShake = true;
+          Future.delayed(AppSpacing.animSlow, () {
+            if (mounted) setState(() => _shouldShake = false);
+          });
+        }
       }
     });
   }
@@ -133,15 +152,17 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
 
   void _finishTest() async {
     _timer?.cancel();
-    
-    // JLPT N5 Scaling (Simplified for app: Lang 60, Reading 120 = 180 total)
-    double langPoints = (_languageScore / (_languageTotal == 0 ? 1 : _languageTotal)) * 60;
-    double readingPoints = (_readingScore / (_readingTotal == 0 ? 1 : _readingTotal)) * 120;
-    double totalPoints = langPoints + readingPoints;
-    bool isPassed = totalPoints >= 80;
-    int timeSpent = (75 * 60) - _timeLeft;
 
-    // Save Result to History via GameManager
+    // JLPT N5 Scaling (Simplified for app: Lang 60, Reading 120 = 180 total)
+    final double langPoints =
+        (_languageScore / (_languageTotal == 0 ? 1 : _languageTotal)) * 60;
+    final double readingPoints =
+        (_readingScore / (_readingTotal == 0 ? 1 : _readingTotal)) * 120;
+    final double totalPoints = langPoints + readingPoints;
+    final bool isPassed = totalPoints >= 80;
+    final int timeSpent = _totalDurationSeconds - _timeLeft;
+
+    // Save Result to History via GameManager including exact shuffled questionIndices
     final Map<String, dynamic> newResult = {
       'date': DateTime.now().toIso8601String(),
       'languageScore': _languageScore,
@@ -152,20 +173,17 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
       'totalPoints': totalPoints,
       'isPassed': isPassed,
       'userAnswers': _userAnswers,
+      'questionIndices': _questionIndices,
     };
 
     List<dynamic> history = List.from(globalSimulationHistory.value);
     history.insert(0, newResult);
-    
-    // Keep only last 10 attempts
-    if (history.length > 10) history = history.sublist(0, 10);
-    
-    globalSimulationHistory.value = history;
-    await GameManager.syncToCloud();
 
-    final prefs = await SharedPreferences.getInstance();
-    int currentCount = prefs.getInt('simulation_completed_count') ?? 0;
-    await prefs.setInt('simulation_completed_count', currentCount + 1);
+    if (history.length > 10) history = history.sublist(0, 10);
+    globalSimulationHistory.value = history;
+
+    await GameManager.incrementSimulationCount();
+    await GameManager.syncToCloud();
 
     if (mounted) {
       Navigator.pushReplacement(
@@ -180,6 +198,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
             totalPoints: totalPoints,
             isPassed: isPassed,
             userAnswers: _userAnswers,
+            questions: _questions,
           ),
         ),
       );
@@ -188,6 +207,7 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
       builder: (context, isDark, _) {
@@ -196,224 +216,244 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
           builder: (context, lang, _) {
             final question = _questions[_currentQuestionIndex];
             final progress = (_currentQuestionIndex + 1) / _questions.length;
-            final Color accentColor = const Color(0xFFCC6633);
-            final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F2EE);
-            final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+            final Color accentColor =
+                isDark ? AppColors.primaryDark : AppColors.primaryLight;
+            final Color bgColor =
+                isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+            final Color cardColor =
+                isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+            final Color textColor =
+                isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+            final Color subTextColor = isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight;
+            final Color borderColor =
+                isDark ? AppColors.borderDark : AppColors.borderLight;
+            final Color successColor =
+                isDark ? AppColors.successDark : AppColors.successLight;
+            final Color errorColor =
+                isDark ? AppColors.errorDark : AppColors.errorLight;
 
-            return Scaffold(
-              backgroundColor: bgColor,
-              body: SafeArea(
-                child: Column(
-                  children: [
-                    // Synchronized Header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: () => _showExitConfirmation(),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: cardColor,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                                  ),
-                                  child: Icon(Icons.close_rounded, color: isDark ? Colors.white70 : Colors.black45, size: 24),
-                                ),
-                              ),
-                              Text(
-                                "JLPT N5 • SIMULATION",
-                                style: TextStyle(
-                                  color: accentColor,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 11,
-                                  letterSpacing: 2.2,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.timer_outlined, size: 18, color: accentColor),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      _formattedTime,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: accentColor,
-                                        fontWeight: FontWeight.w900,
-                                        fontFeatures: const [FontFeature.tabularFigures()],
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) {
+                if (didPop) return;
+                _showExitConfirmation();
+              },
+              child: Scaffold(
+                backgroundColor: bgColor,
+                body: SafeArea(
+                  child: Column(
+                    children: [
+                      // Synchronized Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                          vertical: AppSpacing.md,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Semantics(
+                                  button: true,
+                                  label: _t('Exit exam', 'Keluar ujian'),
+                                  child: GestureDetector(
+                                    onTap: _showExitConfirmation,
+                                    child: Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: cardColor,
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.radiusMd,
+                                        ),
+                                        border: Border.all(color: borderColor),
+                                      ),
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        color: subTextColor,
+                                        size: 22,
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Stack(
-                            children: [
-                              Container(
-                                height: 8,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(10),
+                                Text(
+                                  "JLPT N5 • SIMULATION",
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: accentColor,
+                                    letterSpacing: 2.0,
+                                  ),
                                 ),
-                              ),
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOutQuart,
-                                height: 8,
-                                width: (MediaQuery.of(context).size.width - 48) * progress,
-                                decoration: BoxDecoration(
+                                AppBadge(
+                                  label: _formattedTime,
+                                  icon: Icons.timer_outlined,
                                   color: accentColor,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: accentColor.withValues(alpha: 0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          final slideIn = Tween<Offset>(
-                            begin: const Offset(0.05, 0.0),
-                            end: Offset.zero,
-                          ).animate(animation);
-
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: slideIn,
-                              child: child,
+                              ],
                             ),
-                          );
-                        },
-                        child: SingleChildScrollView(
-                          key: ValueKey<int>(_currentQuestionIndex),
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Section Header
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  question.section.toUpperCase(),
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accentColor, letterSpacing: 1.2),
-                                ),
+                            const SizedBox(height: AppSpacing.lg),
+                            AppProgressBar(
+                              progress: progress,
+                              color: accentColor,
+                              semanticLabel: _t(
+                                'Exam progress',
+                                'Progres ujian',
                               ),
-                              const SizedBox(height: 20),
-                              
-                              // Question Card
-                              ShakeWidget(
-                                shake: _shouldShake,
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 400),
-                                  curve: Curves.easeOutBack,
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(28),
-                                  decoration: BoxDecoration(
-                                    color: cardColor,
-                                    borderRadius: BorderRadius.circular(32),
-                                    border: Border.all(
-                                      color: _isAnswered 
-                                        ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.5) : const Color(0xFFE53935).withValues(alpha: 0.5))
-                                        : (isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE8E3DA)), 
-                                      width: 2
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: reduceMotion
+                              ? Duration.zero
+                              : AppSpacing.animNormal,
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                            if (reduceMotion) return child;
+                            final slideIn = Tween<Offset>(
+                              begin: const Offset(0.04, 0.0),
+                              end: Offset.zero,
+                            ).animate(animation);
+
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: slideIn,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: SingleChildScrollView(
+                            key: ValueKey<int>(_currentQuestionIndex),
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.xl,
+                              AppSpacing.xs,
+                              AppSpacing.xl,
+                              100,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                AppBadge(
+                                  label: question.section.toUpperCase(),
+                                  color: accentColor,
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+
+                                // Question Card
+                                ShakeWidget(
+                                  shake: _shouldShake,
+                                  child: AnimatedContainer(
+                                    duration: reduceMotion
+                                        ? Duration.zero
+                                        : AppSpacing.animNormal,
+                                    curve: Curves.easeOutBack,
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(28),
+                                    decoration: BoxDecoration(
+                                      color: cardColor,
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusXxl,
+                                      ),
+                                      border: Border.all(
+                                        color: _isAnswered
+                                            ? (_isCurrentAnswerCorrect
+                                                ? successColor.withValues(
+                                                    alpha: 0.6,
+                                                  )
+                                                : errorColor.withValues(
+                                                    alpha: 0.6,
+                                                  ))
+                                            : borderColor,
+                                        width: 2,
+                                      ),
+                                      boxShadow: _isAnswered
+                                          ? AppShadows.accentGlow(
+                                              _isCurrentAnswerCorrect
+                                                  ? successColor
+                                                  : errorColor,
+                                              isDark: isDark,
+                                            )
+                                          : AppShadows.card(isDark),
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: _isAnswered 
-                                          ? (_isCurrentAnswerCorrect ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE53935).withValues(alpha: 0.1))
-                                          : const Color(0xFFCC6633).withValues(alpha: 0.08),
-                                        blurRadius: 24,
-                                        offset: const Offset(0, 12),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        question.question,
-                                        style: TextStyle(
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.w900,
-                                          color: isDark ? Colors.white : const Color(0xFF2D2622),
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                      if (question.romaji != null) ...[
-                                        const SizedBox(height: 12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
                                         Text(
-                                          question.romaji!,
-                                          style: TextStyle(
-                                            fontSize: 15, 
-                                            color: isDark ? Colors.white38 : Colors.grey[700],
-                                            fontStyle: FontStyle.italic,
-                                            letterSpacing: 0.5,
+                                          question.question,
+                                          style: AppTextStyles.japaneseTitle
+                                              .copyWith(
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w900,
+                                            color: textColor,
+                                            height: 1.4,
                                           ),
                                         ),
-                                      ],
-                                      if (question.subQuestion != null) ...[
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 20),
-                                          child: Divider(color: accentColor.withValues(alpha: 0.1), thickness: 2),
-                                        ),
-                                        Text(
-                                          question.subQuestion!,
-                                          style: TextStyle(
-                                            fontSize: 18, 
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark ? Colors.white70 : Colors.black87, 
-                                            height: 1.6,
+                                        if (question.romaji != null) ...[
+                                          const SizedBox(height: AppSpacing.sm),
+                                          Text(
+                                            question.romaji!,
+                                            style: AppTextStyles.bodyLarge
+                                                .copyWith(
+                                              color: subTextColor,
+                                              fontStyle: FontStyle.italic,
+                                              letterSpacing: 0.5,
+                                            ),
                                           ),
-                                        ),
+                                        ],
+                                        if (question.subQuestion != null) ...[
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: AppSpacing.lg,
+                                            ),
+                                            child: Divider(
+                                              color: accentColor.withValues(
+                                                alpha: 0.15,
+                                              ),
+                                              thickness: 2,
+                                            ),
+                                          ),
+                                          Text(
+                                            question.subQuestion!,
+                                            style: AppTextStyles.japaneseBody
+                                                .copyWith(
+                                              color: textColor.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 24),
-                              
-                              // Options List
-                              ...List.generate(question.options.length, (index) {
-                                return _buildOptionTile(index, question.options[index], isDark);
-                              }),
-                            ],
+                                const SizedBox(height: AppSpacing.xl),
+
+                                // Options List
+                                ...List.generate(question.options.length,
+                                    (index) {
+                                  return _buildOptionTile(
+                                    index,
+                                    question.options[index],
+                                    isDark,
+                                    reduceMotion,
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    _buildBottomBar(isDark),
-                  ],
+                      _buildBottomBar(isDark),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -427,87 +467,85 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
     return globalLanguage.value == 'id' ? id : en;
   }
 
-  Widget _buildOptionTile(int index, String text, bool isDark) {
+  Widget _buildOptionTile(
+    int index,
+    String text,
+    bool isDark,
+    bool reduceMotion,
+  ) {
     final bool isSelected = _selectedOption == index;
-    final Color accentColor = const Color(0xFFCC6633);
-    
-    
-    // Skema warna yang diperbaiki untuk visibilitas maksimal
-    Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
-    Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
-    Color letterBoxColor = isDark ? Colors.white.withValues(alpha: 0.07) : const Color(0xFFF5F5F5);
-    Color letterTextColor = isDark ? Colors.white70 : const Color(0xFF8C8A87);
-    
-    if (_isAnswered) {
-      // In simulation, we don't show correct/wrong immediately
-      if (isSelected) {
-        borderColor = accentColor;
-        bgColor = isDark ? const Color(0xFF4A2B18) : const Color(0xFFF6E7DC);
-        letterBoxColor = accentColor;
-        letterTextColor = Colors.white;
-        textColor = isDark ? Colors.white : accentColor;
-      }
-    } else if (isSelected) {
+    final Color accentColor =
+        isDark ? AppColors.primaryDark : AppColors.primaryLight;
+
+    Color borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    Color bgColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    Color textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    Color letterBoxColor =
+        isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
+    Color letterTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+    if (isSelected) {
       borderColor = accentColor;
-      bgColor = isDark ? const Color(0xFF4A2B18) : const Color(0xFFF6E7DC);
+      bgColor = isDark
+          ? AppColors.primaryContainerDark
+          : AppColors.primaryContainerLight;
       letterBoxColor = accentColor;
-      letterTextColor = Colors.white;
-      textColor = isDark ? Colors.white : accentColor;
+      letterTextColor =
+          isDark ? AppColors.onPrimaryDark : AppColors.onPrimaryLight;
+      textColor = isDark ? AppColors.textPrimaryDark : accentColor;
     }
 
     return GestureDetector(
       onTap: () => _handleOptionSelect(index),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: reduceMotion ? Duration.zero : AppSpacing.animNormal,
         curve: Curves.easeOutCubic,
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(
             color: borderColor,
             width: (isSelected || _isAnswered) ? 2.5 : 1.5,
           ),
-          boxShadow: isSelected && !_isAnswered ? [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ] : [],
+          boxShadow: isSelected && !_isAnswered
+              ? AppShadows.accentGlow(accentColor, isDark: isDark)
+              : const [],
         ),
         child: Row(
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
+              duration: reduceMotion ? Duration.zero : AppSpacing.animNormal,
               curve: Curves.easeOutCubic,
               width: 42,
               height: 42,
               decoration: BoxDecoration(
                 color: letterBoxColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Center(
                 child: Text(
                   String.fromCharCode(65 + index),
-                  style: TextStyle(
+                  style: AppTextStyles.titleMedium.copyWith(
                     color: letterTextColor,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 text,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+                style: AppTextStyles.japaneseBody.copyWith(
                   color: textColor,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -519,68 +557,110 @@ class _SimulationTestScreenState extends State<SimulationTestScreen> with Single
 
   Widget _buildBottomBar(bool isDark) {
     final bool canConfirm = _selectedOption != null || _isAnswered;
-    final Color accentColor = const Color(0xFFCC6633);
-    
-    Color btnColor = canConfirm ? accentColor : (isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE0E0E0));
+    final Color bgColor =
+        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final Color borderColor =
+        isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121212) : const Color(0xFFF5F2EE),
-        border: Border(top: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05))),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        MediaQuery.of(context).padding.bottom + AppSpacing.lg,
       ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 60,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: btnColor,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE0E0E0),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 0,
-          ),
-          onPressed: canConfirm 
-            ? (_isAnswered ? _nextQuestion : _submitAnswer)
-            : null,
-          child: Text(
-            _isAnswered 
-              ? (_currentQuestionIndex == _questions.length - 1 ? _t("FINISH", "SELESAI") : _t("CONTINUE", "LANJUTKAN")) 
-              : _t("SUBMIT ANSWER", "KONFIRMASI"),
-            style: TextStyle(
-              color: canConfirm ? Colors.white : (isDark ? Colors.white24 : Colors.black26),
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border(top: BorderSide(color: borderColor)),
+      ),
+      child: AppButton(
+        label: _isAnswered
+            ? (_currentQuestionIndex == _questions.length - 1
+                ? _t("FINISH", "SELESAI")
+                : _t("CONTINUE", "LANJUTKAN"))
+            : _t("SUBMIT ANSWER", "KONFIRMASI"),
+        onPressed:
+            canConfirm ? (_isAnswered ? _nextQuestion : _submitAnswer) : null,
       ),
     );
   }
 
   void _showExitConfirmation() {
     final isDark = globalDarkMode.value;
+    final errorColor = isDark ? AppColors.errorDark : AppColors.errorLight;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(_t("Exit Simulation?", "Keluar Simulasi?"), style: const TextStyle(fontWeight: FontWeight.w900)),
-        content: Text(_t("Your progress will be lost. You will need to start over.", "Semua kemajuan akan hilang. Kamu harus mengulang dari awal.")),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context), 
-            child: Text(_t("CONTINUE", "LANJUTKAN"), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: Text(_t("EXIT", "KELUAR"), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
-        ],
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: AppSpacing.xs),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: errorColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.warning_amber_rounded,
+                size: 48,
+                color: errorColor,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              "Chotto Matte! 🛑",
+              textAlign: TextAlign.center,
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              _t(
+                "Are you sure you want to exit? All simulation progress in this session will be lost!",
+                "Yakin ingin keluar? Semua progress simulasi di sesi ini akan hilang lho!",
+              ),
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: _t("CANCEL", "BATAL"),
+                    variant: AppButtonVariant.ghost,
+                    height: 48,
+                    onPressed: () => Navigator.pop(dialogContext),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: AppButton(
+                    label: _t("EXIT", "KELUAR"),
+                    variant: AppButtonVariant.danger,
+                    height: 48,
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

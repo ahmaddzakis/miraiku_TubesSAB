@@ -1,12 +1,16 @@
-
 import 'package:flutter/material.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/game_manager.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shadows.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/app_badge.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_snackbar.dart';
-import 'screen_simulation_test.dart';
-
 import 'screen_simulation_history.dart';
+import 'screen_simulation_test.dart';
 
 class SimulationScreen extends StatefulWidget {
   const SimulationScreen({super.key});
@@ -41,38 +45,49 @@ class _SimulationScreenState extends State<SimulationScreen> {
     if (!_isUnlocked) {
       setState(() => _isProcessing = true);
       try {
-        // --- LOGIC: ONE-TIME UNLOCK (1500 XP) ---
         if (globalXP.value < 1500) {
           AppSnackbar.showError(
             context,
-            _t("Not enough XP to unlock the simulation.", "XP tidak cukup untuk membuka simulasi.")
+            _t(
+              "Not enough XP to unlock the simulation.",
+              "XP tidak cukup untuk membuka simulasi.",
+            ),
           );
           return;
         }
 
-        // Deduct and Update Cloud Metadata
-        bool success = await GameManager.spendXP(1500, extraData: {'unlocked_sim_n5': true});
-        
+        final bool success = await GameManager.spendXP(
+          1500,
+          extraData: {'unlocked_sim_n5': true},
+        );
+
         if (success) {
           setState(() => _isUnlocked = true);
           if (mounted) {
             AppSnackbar.showSuccess(
               context,
-              _t("Simulation unlocked! Now you can start the exam for 100 XP.", "Simulasi terbuka! Sekarang kamu bisa memulai ujian seharga 100 XP.")
+              _t(
+                "Simulation unlocked! Now you can start the exam for 100 XP.",
+                "Simulasi terbuka! Sekarang kamu bisa memulai ujian seharga 100 XP.",
+              ),
             );
           }
         }
       } catch (e) {
-        if (mounted) AppSnackbar.showError(context, _t("Error: $e", "Kesalahan: $e"));
+        if (mounted) {
+          AppSnackbar.showError(context, _t("Error: $e", "Kesalahan: $e"));
+        }
       } finally {
         if (mounted) setState(() => _isProcessing = false);
       }
     } else {
-      // --- LOGIC: START EXAM WITH CONFIRMATION (100 XP) ---
       if (globalXP.value < 100) {
         AppSnackbar.showError(
           context,
-          _t("Not enough XP to start the exam.", "XP tidak cukup untuk memulai ujian.")
+          _t(
+            "Not enough XP to start the exam.",
+            "XP tidak cukup untuk memulai ujian.",
+          ),
         );
         return;
       }
@@ -83,24 +98,42 @@ class _SimulationScreenState extends State<SimulationScreen> {
 
   void _showStartConfirmation() {
     final isDark = globalDarkMode.value;
+    final primaryColor =
+        isDark ? AppColors.primaryDark : AppColors.primaryLight;
+    final surfaceColor =
+        isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor =
+        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final subTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.topCenter,
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 64, 24, 24),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  64,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+                  border: Border.all(color: borderColor),
+                  boxShadow: AppShadows.dialog(isDark),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -108,115 +141,84 @@ class _SimulationScreenState extends State<SimulationScreen> {
                     Text(
                       _t("Ready to Start?", "Siap untuk Mulai?"),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF2D2622),
-                        letterSpacing: -0.5,
+                      style: AppTextStyles.headlineLarge.copyWith(
+                        color: textColor,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       _t(
                         "Believe in yourself! You've prepared well for this. Focus and do your best!",
-                        "Percayalah pada dirimu sendiri! Kamu sudah bersiap dengan baik. Fokus dan lakukan yang terbaik!"
+                        "Percayalah pada dirimu sendiri! Kamu sudah bersiap dengan baik. Fokus dan lakukan yang terbaik!",
                       ),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                        height: 1.5,
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        color: subTextColor,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFCC6633).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.bolt_rounded, color: Color(0xFFCC6633), size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            _t("Cost: 100 XP", "Biaya: 100 XP"),
-                            style: const TextStyle(
-                              color: Color(0xFFCC6633),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: AppSpacing.xl),
+                    AppBadge(
+                      label: _t("Cost: 100 XP", "Biaya: 100 XP"),
+                      icon: Icons.bolt_rounded,
+                      color: primaryColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.sm,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxl),
                     Row(
                       children: [
                         Expanded(
-                          child: TextButton(
+                          child: AppButton(
+                            label: _t("CANCEL", "BATAL"),
+                            variant: AppButtonVariant.ghost,
                             onPressed: () => Navigator.pop(dialogContext),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-                              ),
-                            ),
-                            child: Text(
-                              _t("CANCEL", "BATAL"),
-                              style: TextStyle(
-                                color: isDark ? Colors.white60 : Colors.black45,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
-                          child: ElevatedButton(
+                          child: AppButton(
+                            label: _t("START", "MULAI"),
                             onPressed: () async {
                               Navigator.pop(dialogContext);
                               setState(() => _isProcessing = true);
-                              
+
                               try {
-                                bool success = await GameManager.spendXP(100);
+                                final bool success =
+                                    await GameManager.spendXP(100);
 
                                 if (success && mounted) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const SimulationTestScreen()),
-                                  );
+                                  await GameManager.incrementSimulationCount();
+                                  if (mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SimulationTestScreen(),
+                                      ),
+                                    );
+                                  }
                                 } else if (!success && mounted) {
                                   AppSnackbar.showError(
                                     context,
-                                    _t("Not enough XP to start the exam.", "XP tidak cukup untuk memulai ujian.")
+                                    _t(
+                                      "Not enough XP to start the exam.",
+                                      "XP tidak cukup untuk memulai ujian.",
+                                    ),
                                   );
                                 }
                               } catch (e) {
-                                if (mounted) AppSnackbar.showError(context, _t("Error: $e", "Kesalahan: $e"));
+                                if (mounted) {
+                                  AppSnackbar.showError(
+                                    context,
+                                    _t("Error: $e", "Kesalahan: $e"),
+                                  );
+                                }
                               } finally {
                                 if (mounted) setState(() => _isProcessing = false);
                               }
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFCC6633),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                            ),
-                            child: Text(
-                              _t("START", "MULAI"),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
                           ),
                         ),
                       ],
@@ -227,19 +229,22 @@ class _SimulationScreenState extends State<SimulationScreen> {
               Positioned(
                 top: -42,
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCC6633),
+                    color: isDark
+                        ? AppColors.bannerPrimaryDark
+                        : AppColors.primaryLight,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFCC6633).withValues(alpha: 0.4),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                      )
-                    ],
+                    boxShadow: AppShadows.accentGlow(
+                      primaryColor,
+                      isDark: isDark,
+                    ),
                   ),
-                  child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 42),
+                  child: const Icon(
+                    Icons.rocket_launch_rounded,
+                    color: Colors.white,
+                    size: 42,
+                  ),
                 ),
               ),
             ],
@@ -254,9 +259,14 @@ class _SimulationScreenState extends State<SimulationScreen> {
     if (history.isEmpty) {
       _showCustomDialog(
         title: _t("No History", "Tidak Ada Riwayat"),
-        message: _t("You haven't completed any simulations yet.", "Kamu belum menyelesaikan simulasi apa pun."),
+        message: _t(
+          "You haven't completed any simulations yet.",
+          "Kamu belum menyelesaikan simulasi apa pun.",
+        ),
         icon: Icons.history_rounded,
-        iconColor: Colors.grey,
+        iconColor: globalDarkMode.value
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight,
       );
       return;
     }
@@ -280,53 +290,48 @@ class _SimulationScreenState extends State<SimulationScreen> {
       builder: (context) {
         final isDark = globalDarkMode.value;
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          backgroundColor:
+              isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.xs),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
+                  color: iconColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 48, color: iconColor),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : const Color(0xFF2D2622),
+                style: AppTextStyles.headlineMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white70 : Colors.black87,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC6633),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text("OK"),
-                ),
+              const SizedBox(height: AppSpacing.xxl),
+              AppButton(
+                label: "OK",
+                height: 48,
+                onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
@@ -341,14 +346,18 @@ class _SimulationScreenState extends State<SimulationScreen> {
 
   double _getScale(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
-    if (width > 600) return 1.2; // Tablet
-    if (width < 360) return 0.9; // Small phone
+    if (width > 600) return 1.15;
+    if (width < 360) return 0.9;
     return 1.0;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFFCC6633)));
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryLight),
+      );
+    }
 
     final media = MediaQuery.of(context);
     final double scale = _getScale(context);
@@ -357,9 +366,14 @@ class _SimulationScreenState extends State<SimulationScreen> {
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
       builder: (context, isDark, _) {
-        final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF7F2);
-        final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
-        final Color subTextColor = isDark ? Colors.white70 : const Color(0xFF666666);
+        final Color bgColor =
+            isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+        final Color textColor =
+            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+        final Color subTextColor =
+            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+        final Color primaryColor =
+            isDark ? AppColors.primaryDark : AppColors.primaryLight;
 
         return Scaffold(
           backgroundColor: bgColor,
@@ -370,143 +384,237 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 await GameManager.syncToCloud();
               },
               child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isTablet ? 48.0 : 24.0),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? AppSpacing.huge : AppSpacing.xl,
+                  ),
                   child: Center(
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: 800),
+                      constraints: const BoxConstraints(
+                        maxWidth: AppSpacing.maxContentWidth,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const SizedBox(height: 32),
+                          const SizedBox(height: AppSpacing.xxl),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFCC6633).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                child: Text(
-                                  "OFFICIAL JLPT N5 STANDARD",
-                                  style: TextStyle(color: const Color(0xFFCC6633), fontSize: 10 * scale, fontWeight: FontWeight.bold, letterSpacing: 1),
+                              AppBadge(
+                                label: "OFFICIAL JLPT N5 STANDARD",
+                                color: primaryColor,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.xs,
                                 ),
                               ),
                               if (_isUnlocked) ...[
-                                const SizedBox(width: 8),
-                                Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(100),
-                                    onTap: _showLatestHistory,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
+                                const SizedBox(width: AppSpacing.xs),
+                                Semantics(
+                                  button: true,
+                                  label: _t('Exam history', 'Riwayat ujian'),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusPill,
                                       ),
-                                      child: Icon(Icons.history_rounded, color: const Color(0xFFCC6633), size: 16 * scale),
+                                      onTap: _showLatestHistory,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: primaryColor.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: primaryColor.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.history_rounded,
+                                          color: primaryColor,
+                                          size: 18 * scale,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ],
                             ],
                           ),
-                          SizedBox(height: 16 * scale),
+                          SizedBox(height: AppSpacing.md * scale),
                           Text(
                             _t("JLPT N5 Mock Exam", "Simulasi Ujian JLPT N5"),
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 28 * scale, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
+                            style: AppTextStyles.headlineLarge.copyWith(
+                              fontSize: 28 * scale,
+                              color: textColor,
+                            ),
                           ),
-                          SizedBox(height: 12 * scale),
+                          SizedBox(height: AppSpacing.sm * scale),
                           Text(
                             _t(
                               "Professional simulation covering Language Knowledge and Reading. Test your skills under official timing constraints.",
-                              "Simulasi profesional mencakup Pengetahuan Bahasa dan Membaca. Uji kemampuanmu dalam batasan waktu resmi."
+                              "Simulasi profesional mencakup Pengetahuan Bahasa dan Membaca. Uji kemampuanmu dalam batasan waktu resmi.",
                             ),
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: subTextColor, fontSize: 14 * scale, height: 1.5),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: subTextColor,
+                              fontSize: 14 * scale,
+                            ),
                           ),
-                          SizedBox(height: 32 * scale),
+                          SizedBox(height: AppSpacing.xxl * scale),
 
                           if (isTablet)
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(child: _buildExamStructureCard(isDark, textColor, subTextColor, scale)),
-                                const SizedBox(width: 20),
+                                Expanded(
+                                  child: _buildExamStructureCard(
+                                    isDark,
+                                    textColor,
+                                    subTextColor,
+                                    primaryColor,
+                                    scale,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.lg),
                                 Expanded(
                                   child: Column(
                                     children: [
-                                      _buildGradingSystemCard(isDark, textColor, subTextColor, scale),
-                                      const SizedBox(height: 20),
-                                      _buildOneAttemptCard(isDark, textColor, subTextColor, scale),
+                                      _buildGradingSystemCard(
+                                        isDark,
+                                        textColor,
+                                        subTextColor,
+                                        primaryColor,
+                                        scale,
+                                      ),
+                                      const SizedBox(height: AppSpacing.lg),
+                                      _buildOneAttemptCard(
+                                        isDark,
+                                        textColor,
+                                        subTextColor,
+                                        primaryColor,
+                                        scale,
+                                      ),
                                     ],
                                   ),
                                 ),
                               ],
                             )
                           else ...[
-                            _buildExamStructureCard(isDark, textColor, subTextColor, scale),
-                            const SizedBox(height: 20),
-                            _buildGradingSystemCard(isDark, textColor, subTextColor, scale),
-                            const SizedBox(height: 20),
-                            _buildOneAttemptCard(isDark, textColor, subTextColor, scale),
+                            _buildExamStructureCard(
+                              isDark,
+                              textColor,
+                              subTextColor,
+                              primaryColor,
+                              scale,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            _buildGradingSystemCard(
+                              isDark,
+                              textColor,
+                              subTextColor,
+                              primaryColor,
+                              scale,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            _buildOneAttemptCard(
+                              isDark,
+                              textColor,
+                              subTextColor,
+                              primaryColor,
+                              scale,
+                            ),
                           ],
-                          
-                          SizedBox(height: 32 * scale),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 64 * scale,
-                            child: ElevatedButton(
-                              onPressed: _isProcessing ? null : _handleSimulationAction,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isUnlocked ? const Color(0xFFCC6633) : const Color(0xFF8C8A87),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                elevation: 0,
-                              ),
-                                  child: _isProcessing
-                                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          _isUnlocked 
-                                            ? _t("START SIMULATION", "MULAI SIMULASI") 
-                                            : _t("UNLOCK SIMULATION", "BUKA SIMULASI"),
-                                          style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w900, letterSpacing: 1),
+
+                          SizedBox(height: AppSpacing.xxl * scale),
+                          AppButton(
+                            label: _isUnlocked
+                                ? _t("START SIMULATION", "MULAI SIMULASI")
+                                : _t("UNLOCK SIMULATION", "BUKA SIMULASI"),
+                            height: 60 * scale,
+                            isLoading: _isProcessing,
+                            backgroundColor: _isUnlocked
+                                ? (isDark
+                                    ? AppColors.bannerPrimaryDark
+                                    : AppColors.primaryLight)
+                                : (isDark
+                                    ? AppColors.surfaceContainerHighDark
+                                    : AppColors.textSecondaryLight),
+                            foregroundColor: Colors.white,
+                            onPressed: _handleSimulationAction,
+                            customChild: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _isUnlocked
+                                        ? _t(
+                                            "START SIMULATION",
+                                            "MULAI SIMULASI",
+                                          )
+                                        : _t(
+                                            "UNLOCK SIMULATION",
+                                            "BUKA SIMULASI",
+                                          ),
+                                    style: AppTextStyles.titleLarge.copyWith(
+                                      color: Colors.white,
+                                      fontSize: 17 * scale,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Icon(
+                                    Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 22 * scale,
+                                  ),
+                                  if (!_isUnlocked) ...[
+                                    const SizedBox(width: AppSpacing.md),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
                                         ),
-                                        const SizedBox(width: 12),
-                                        Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22 * scale),
-                                        if (!_isUnlocked) ...[
-                                          const SizedBox(width: 16),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: const Row(
-                                              children: [
-                                                Icon(Icons.stars_rounded, color: Colors.white, size: 18),
-                                                SizedBox(width: 6),
-                                                Text(
-                                                  "1500 XP",
-                                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                                ),
-                                              ],
-                                            ),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.radiusSm,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.stars_rounded,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            "1500 XP",
+                                            style: AppTextStyles.labelLarge
+                                                .copyWith(color: Colors.white),
                                           ),
                                         ],
-                                      ],
+                                      ),
                                     ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 48),
+                          const SizedBox(height: AppSpacing.huge),
                         ],
                       ),
                     ),
@@ -520,72 +628,76 @@ class _SimulationScreenState extends State<SimulationScreen> {
     );
   }
 
-  Widget _buildExamStructureCard(bool isDark, Color textColor, Color subTextColor, double scale) {
-    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final Color sectionColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF8F9FA);
+  Widget _buildExamStructureCard(
+    bool isDark,
+    Color textColor,
+    Color subTextColor,
+    Color primaryColor,
+    double scale,
+  ) {
+    final Color sectionColor = isDark
+        ? AppColors.surfaceVariantDark
+        : AppColors.surfaceVariantLight.withValues(alpha: 0.5);
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24 * scale),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
+    return AppCard(
+      padding: EdgeInsets.all(AppSpacing.xl * scale),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppSpacing.xs),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: primaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
-                child: Icon(Icons.assignment_rounded, color: const Color(0xFFCC6633), size: 24 * scale),
+                child: Icon(
+                  Icons.assignment_rounded,
+                  color: primaryColor,
+                  size: 24 * scale,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 _t("Test Modules", "Modul Ujian"),
-                style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.bold, color: textColor),
+                style: AppTextStyles.titleLarge.copyWith(
+                  fontSize: 20 * scale,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
               ),
             ],
           ),
-          SizedBox(height: 24 * scale),
+          SizedBox(height: AppSpacing.xl * scale),
           _buildSessionDetail(
             title: _t("Language Knowledge", "Pengetahuan Bahasa"),
             subtitle: "Moji, Goi, Bunpou",
             duration: "25",
             description: _t(
               "Kanji reading, vocabulary context, and grammar particles.",
-              "Cara baca Kanji, kosakata sesuai konteks, dan partikel tata bahasa."
+              "Cara baca Kanji, kosakata sesuai konteks, dan partikel tata bahasa.",
             ),
             isDark: isDark,
             textColor: textColor,
             subTextColor: subTextColor,
+            primaryColor: primaryColor,
             bgColor: sectionColor,
             scale: scale,
           ),
-          SizedBox(height: 16 * scale),
+          SizedBox(height: AppSpacing.md * scale),
           _buildSessionDetail(
             title: _t("Reading", "Membaca"),
             subtitle: "Dokkai",
             duration: "25",
             description: _t(
               "Short sentences, paragraphs, and informational texts.",
-              "Kalimat pendek, paragraf, dan teks informasi (email/pengumuman)."
+              "Kalimat pendek, paragraf, dan teks informasi (email/pengumuman).",
             ),
             isDark: isDark,
             textColor: textColor,
             subTextColor: subTextColor,
+            primaryColor: primaryColor,
             bgColor: sectionColor,
             scale: scale,
           ),
@@ -602,15 +714,20 @@ class _SimulationScreenState extends State<SimulationScreen> {
     required bool isDark,
     required Color textColor,
     required Color subTextColor,
+    required Color primaryColor,
     required Color bgColor,
     required double scale,
   }) {
+    final badgeBg =
+        isDark ? AppColors.bannerPrimaryDark : AppColors.primaryLight;
     return Container(
-      padding: EdgeInsets.all(16 * scale),
+      padding: EdgeInsets.all(AppSpacing.md * scale),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -622,82 +739,141 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16 * scale, color: textColor)),
-                    Text(subtitle, style: TextStyle(color: const Color(0xFFCC6633), fontSize: 12 * scale, fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16 * scale,
+                        color: textColor,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: primaryColor,
+                        fontSize: 12 * scale,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCC6633),
-                  borderRadius: BorderRadius.circular(8),
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(AppSpacing.xs),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.timer_outlined, color: Colors.white, size: 14 * scale),
+                    Icon(
+                      Icons.timer_outlined,
+                      color: Colors.white,
+                      size: 14 * scale,
+                    ),
                     const SizedBox(width: 4),
-                    Text("$duration mnt", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12 * scale)),
+                    Text(
+                      "$duration mnt",
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: Colors.white,
+                        fontSize: 12 * scale,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12 * scale),
-          Text(description, style: TextStyle(color: subTextColor, fontSize: 13 * scale, height: 1.4)),
+          SizedBox(height: AppSpacing.sm * scale),
+          Text(
+            description,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: subTextColor,
+              fontSize: 13 * scale,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildGradingSystemCard(bool isDark, Color textColor, Color subTextColor, double scale) {
-    return Container(
-      padding: EdgeInsets.all(24 * scale),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFF2D2622),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: const Color(0xFF2D2622).withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
+  Widget _buildGradingSystemCard(
+    bool isDark,
+    Color textColor,
+    Color subTextColor,
+    Color primaryColor,
+    double scale,
+  ) {
+    return AppCard(
+      padding: EdgeInsets.all(AppSpacing.xl * scale),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.analytics_rounded, color: const Color(0xFFCC6633), size: 24 * scale),
-              const SizedBox(width: 12),
+              Icon(
+                Icons.analytics_rounded,
+                color: primaryColor,
+                size: 24 * scale,
+              ),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 _t("Grading System", "Sistem Penilaian"),
-                style: TextStyle(color: Colors.white, fontSize: 18 * scale, fontWeight: FontWeight.bold),
+                style: AppTextStyles.titleLarge.copyWith(
+                  color: textColor,
+                  fontSize: 18 * scale,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
-          SizedBox(height: 24 * scale),
+          SizedBox(height: AppSpacing.xl * scale),
           Row(
             children: [
-              _buildGradeStat(_t("MAX SCORE", "SKOR MAKS"), "180", Colors.white, scale),
-              Container(width: 1, height: 40 * scale, color: Colors.white24, margin: EdgeInsets.symmetric(horizontal: 24 * scale)),
-              _buildGradeStat(_t("PASSING GRADE", "BATAS LULUS"), "80", const Color(0xFFCC6633), scale),
+              _buildGradeStat(
+                _t("MAX SCORE", "SKOR MAKS"),
+                "180",
+                textColor,
+                subTextColor,
+                scale,
+              ),
+              Container(
+                width: 1,
+                height: 40 * scale,
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                margin: EdgeInsets.symmetric(horizontal: AppSpacing.xl * scale),
+              ),
+              _buildGradeStat(
+                _t("PASSING GRADE", "BATAS LULUS"),
+                "80",
+                primaryColor,
+                subTextColor,
+                scale,
+              ),
             ],
           ),
-          SizedBox(height: 20 * scale),
+          SizedBox(height: AppSpacing.lg * scale),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: isDark
+                  ? AppColors.surfaceVariantDark
+                  : AppColors.surfaceVariantLight,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Text(
               _t(
                 "Pass criteria: Total score ≥ 80 AND meet minimum sectional standard. Zero score in any section results in failure.",
-                "Kriteria lulus: Skor total ≥ 80 DAN memenuhi standar minimum tiap sesi. Skor nol pada sesi mana pun dianggap tidak lulus."
+                "Kriteria lulus: Skor total ≥ 80 DAN memenuhi standar minimum tiap sesi. Skor nol pada sesi mana pun dianggap tidak lulus.",
               ),
-              style: TextStyle(color: Colors.white60, fontSize: 11 * scale, fontStyle: FontStyle.italic, height: 1.4),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: subTextColor,
+                fontSize: 11 * scale,
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -705,48 +881,83 @@ class _SimulationScreenState extends State<SimulationScreen> {
     );
   }
 
-  Widget _buildGradeStat(String label, String value, Color valueColor, double scale) {
+  Widget _buildGradeStat(
+    String label,
+    String value,
+    Color valueColor,
+    Color subTextColor,
+    double scale,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white60, fontSize: 10 * scale, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        Text(
+          label,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: subTextColor,
+            fontSize: 10 * scale,
+            letterSpacing: 1.2,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: valueColor, fontSize: 28 * scale, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: AppTextStyles.headlineLarge.copyWith(
+            color: valueColor,
+            fontSize: 28 * scale,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildOneAttemptCard(bool isDark, Color textColor, Color subTextColor, double scale) {
-    return Container(
-      padding: EdgeInsets.all(20 * scale),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFCC6633).withValues(alpha: 0.2)),
-      ),
+  Widget _buildOneAttemptCard(
+    bool isDark,
+    Color textColor,
+    Color subTextColor,
+    Color primaryColor,
+    double scale,
+  ) {
+    return AppCard(
+      padding: EdgeInsets.all(AppSpacing.lg * scale),
+      borderColor: primaryColor.withValues(alpha: 0.25),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: const Color(0xFFCC6633).withValues(alpha: 0.1),
+              color: primaryColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.gavel_rounded, color: const Color(0xFFCC6633), size: 24 * scale),
+            child: Icon(
+              Icons.gavel_rounded,
+              color: primaryColor,
+              size: 24 * scale,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _t("Strict Exam Rules", "Aturan Ujian Ketat"),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16 * scale, color: textColor),
+                  style: AppTextStyles.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16 * scale,
+                    color: textColor,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _t("Continuous timer. No pauses. Result is final.", "Waktu berjalan terus. Tanpa jeda. Hasil bersifat final."),
-                  style: TextStyle(fontSize: 12 * scale, color: subTextColor),
+                  _t(
+                    "Continuous timer. No pauses. Result is final.",
+                    "Waktu berjalan terus. Tanpa jeda. Hasil bersifat final.",
+                  ),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontSize: 12 * scale,
+                    color: subTextColor,
+                  ),
                 ),
               ],
             ),
@@ -755,5 +966,4 @@ class _SimulationScreenState extends State<SimulationScreen> {
       ),
     );
   }
-
 }

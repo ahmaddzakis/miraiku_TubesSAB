@@ -1,11 +1,23 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/game_manager.dart';
+import '../../core/repository/local_repository.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/app_badge.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_progress_bar.dart';
+import '../../core/widgets/app_snackbar.dart';
+import '../leaderboard/screen_leaderboard.dart';
 import '../login/screen_auth.dart';
+import '../tracker/screen_jlpt_tracker.dart';
 import 'screen_notifications.dart';
 import 'screen_settings.dart';
 
@@ -27,13 +39,15 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _supabase = Supabase.instance.client;
 
-  // Metadata User
+  // User Metadata
   String _userName = 'MIRAIku User';
   String _userDesc = 'Semangat Belajar Bahasa Jepang!';
   String _userEmail = 'miraiku@example.com';
 
   // Local Statistics
   bool _isDailyClaimedToday = false;
+  bool _isClaimingDaily = false;
+  bool _isBuyingShield = false;
 
   // Achievements Status
   bool _claimedHiragana = false;
@@ -76,128 +90,239 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _loadSupabaseUserData() {
+  void _loadSupabaseUserData() async {
+    final meta = await LocalRepository.getUserProgress();
     final user = _supabase.auth.currentUser;
-    if (user != null) {
-      final meta = user.userMetadata;
-      if (meta != null) {
-        setState(() {
-          _userName = meta['display_name'] ?? 'MIRAIku User';
-          _userDesc = meta['bio'] ?? 'Semangat Belajar Bahasa Jepang!';
-          globalAvatarUrl.value = meta['avatar_url'] ?? '';
-          _userEmail = user.email ?? 'miraiku@example.com';
 
-          // Achievements from metadata
-          _claimedHiragana = meta['ach_hira'] ?? false;
-          _claimedKatakana = meta['ach_kata'] ?? false;
-          _claimedKanji = meta['ach_kanji'] ?? false;
-          _claimedAlphabetMaster = meta['ach_alphabet'] ?? false;
-          _claimedSim = meta['ach_sim'] ?? false;
-          _claimed3Days = meta['ach_3d'] ?? false;
-          _claimed7Days = meta['ach_7d'] ?? false;
-          _claimed14Days = meta['ach_14d'] ?? false;
-          _claimed30Days = meta['ach_30d'] ?? false;
-          _claimedMirai = meta['ach_mirai'] ?? false;
+    if (mounted) {
+      setState(() {
+        _userName = meta['display_name'] ?? 'MIRAIku User';
+        _userDesc = meta['bio'] ?? 'Semangat Belajar Bahasa Jepang!';
+        globalAvatarUrl.value = meta['avatar_url'] ?? '';
+        _userEmail = user?.email ?? 'miraiku@example.com';
 
-          // Cek tanggal klaim harian dari Cloud Supabase (Anti-Cheat)
-          final String today = DateTime.now().toIso8601String().substring(0, 10);
-          final String? cloudLastClaim = meta['gm_last_daily_claim'];
+        _claimedHiragana = meta['ach_hira'] ?? false;
+        _claimedKatakana = meta['ach_kata'] ?? false;
+        _claimedKanji = meta['ach_kanji'] ?? false;
+        _claimedAlphabetMaster = meta['ach_alphabet'] ?? false;
+        _claimedSim = meta['ach_sim'] ?? false;
+        _claimed3Days = meta['ach_3d'] ?? false;
+        _claimed7Days = meta['ach_7d'] ?? false;
+        _claimed14Days = meta['ach_14d'] ?? false;
+        _claimed30Days = meta['ach_30d'] ?? false;
+        _claimedMirai = meta['ach_mirai'] ?? false;
+      });
 
-          if (cloudLastClaim == today) {
+      final String today = DateTime.now().toIso8601String().substring(0, 10);
+      final String? cloudLastClaim = meta['gm_last_daily_claim'];
+
+      if (cloudLastClaim == today) {
+        await prefs.setString('gm_last_daily_claim', today);
+        if (mounted) {
+          setState(() {
             _isDailyClaimedToday = true;
-            prefs.setString('gm_last_daily_claim', today); // Sinkronisasi ke lokal
-          }
-        });
+          });
+        }
+      } else {
+        await _loadLocalStats();
       }
     }
   }
 
   Future<void> _loadLocalStats() async {
-    // Gunakan format standar internasional YYYY-MM-DD
+    await prefs.reload();
     final String today = DateTime.now().toIso8601String().substring(0, 10);
     final lastClaim = prefs.getString('gm_last_daily_claim');
 
-    setState(() {
-      _isDailyClaimedToday = (lastClaim == today);
-    });
+    if (mounted) {
+      setState(() {
+        _isDailyClaimedToday = (lastClaim == today);
+      });
+    }
   }
 
+  /// Claims the Daily Omikuji Surprise Box (Core Drive 7: Unpredictability & Curiosity).
+  /// Grants guaranteed +50 base XP plus a random Omikuji fortune bonus:
+  /// - Daikichi (大吉 - Great Blessing): +50 Bonus XP (Total +100 XP)
+  /// - Chuukichi (中吉 - Middle Blessing): +25 Bonus XP (Total +75 XP)
+  /// - Shoukichi (小吉 - Small Blessing): +10 Bonus XP + 1 Heart (Total +60 XP + 1 HP)
   Future<void> _claimDailyReward() async {
-    if (_isDailyClaimedToday) {
-      if (mounted) {
+    if (_isDailyClaimedToday || _isClaimingDaily) {
+      if (mounted && _isDailyClaimedToday) {
         _showErrorDialog(
-            _t("Already Claimed", "Sudah Diklaim"),
-            _t("Come back tomorrow for more rewards!", "Kembali lagi besok untuk hadiah lainnya!")
+          _t("Already Claimed", "Sudah Diklaim"),
+          _t(
+            "Come back tomorrow for your next Daily Omikuji!",
+            "Kembali lagi besok untuk kejutan Omikuji berikutnya!",
+          ),
         );
       }
       return;
     }
 
-    final String today = DateTime.now().toIso8601String().substring(0, 10);
-
-    // Manual update XP and prefs ke lokal
-    globalXP.value += 50;
-    await prefs.setInt('gm_xp', globalXP.value);
-    await prefs.setString('gm_last_daily_claim', today);
-
-    // Kirim satu request saja untuk cegah rate limit
-    try {
-      await _supabase.auth.updateUser(UserAttributes(data: {
-        'gm_xp': globalXP.value,
-        'gm_last_daily_claim': today,
-      }));
-    } catch (e) {
-      debugPrint("Gagal update daily claim ke Supabase: $e");
-    }
-
     setState(() {
-      _isDailyClaimedToday = true;
+      _isClaimingDaily = true;
     });
 
-    if (mounted) {
-      _showSuccessDialog(_t("Daily Reward: +50 XP!", "Hadiah Harian: +50 XP!"));
+    try {
+      await prefs.reload();
+      final String today = DateTime.now().toIso8601String().substring(0, 10);
+      final String? lastClaim = prefs.getString('gm_last_daily_claim');
+
+      if (lastClaim == today) {
+        setState(() {
+          _isDailyClaimedToday = true;
+          _isClaimingDaily = false;
+        });
+        if (mounted) {
+          _showErrorDialog(
+            _t("Already Claimed", "Sudah Diklaim"),
+            _t(
+              "Come back tomorrow for your next Daily Omikuji!",
+              "Kembali lagi besok untuk kejutan Omikuji berikutnya!",
+            ),
+          );
+        }
+        return;
+      }
+
+      // Draw random Omikuji fortune (Core Drive 7)
+      final int roll = Random().nextInt(3);
+      int totalXpReward = 50;
+      String fortuneTitle = "";
+      String fortuneDetail = "";
+
+      if (roll == 0) {
+        // Daikichi (大吉)
+        totalXpReward = 100;
+        fortuneTitle = "大吉 • Daikichi!";
+        fortuneDetail = _t(
+          "Great Blessing! You received +50 Base XP and +50 Surprise Bonus XP (+100 XP total)!",
+          "Keberuntungan Besar! Kamu mendapat +50 XP Dasar dan +50 XP Bonus Kejutan (Total +100 XP)!",
+        );
+      } else if (roll == 1) {
+        // Chuukichi (中吉)
+        totalXpReward = 75;
+        fortuneTitle = "中吉 • Chūkichi!";
+        fortuneDetail = _t(
+          "Middle Blessing! You received +50 Base XP and +25 Surprise Bonus XP (+75 XP total)!",
+          "Keberuntungan Menengah! Kamu mendapat +50 XP Dasar dan +25 XP Bonus Kejutan (Total +75 XP)!",
+        );
+      } else {
+        // Shoukichi (小吉)
+        totalXpReward = 60;
+        fortuneTitle = "小吉 • Shōkichi!";
+        fortuneDetail = _t(
+          "Good Blessing! You received +50 Base XP, +10 Bonus XP, and +1 Heart recovery!",
+          "Keberuntungan Baik! Kamu mendapat +50 XP Dasar, +10 XP Bonus, dan pemulihan +1 Nyawa!",
+        );
+        await GameManager.addHeart(1);
+      }
+
+      await prefs.setString('gm_last_daily_claim', today);
+      globalXP.value += totalXpReward;
+      await prefs.setInt('gm_xp', globalXP.value);
+
+      await LocalRepository.queueActionsBatch({
+        'gm_last_daily_claim': today,
+        'gm_xp': globalXP.value,
+      });
+
+      if (mounted) {
+        setState(() {
+          _isDailyClaimedToday = true;
+          _isClaimingDaily = false;
+        });
+        _showSuccessDialog(
+          "$fortuneTitle\n\n$fortuneDetail",
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isClaimingDaily = false;
+        });
+        _showErrorDialog(_t("Claim Failed", "Gagal Klaim"), e.toString());
+      }
+    }
+  }
+
+  Future<void> _buyStreakShield() async {
+    if (_isBuyingShield) return;
+    if (globalStreakShields.value >= GameManager.maxStreakShields) {
+      AppSnackbar.showSuccess(
+        context,
+        _t(
+          "Your Streak Shields are already at maximum (${GameManager.maxStreakShields}/${GameManager.maxStreakShields})!",
+          "Streak Shield kamu sudah penuh (${GameManager.maxStreakShields}/${GameManager.maxStreakShields})!",
+        ),
+      );
+      return;
+    }
+
+    if (globalXP.value < GameManager.streakShieldCostXP) {
+      AppSnackbar.showError(
+        context,
+        _t(
+          "Need ${GameManager.streakShieldCostXP} XP to equip a Streak Shield.",
+          "Butuh ${GameManager.streakShieldCostXP} XP untuk membeli Streak Shield.",
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isBuyingShield = true);
+    try {
+      final bool success = await GameManager.buyStreakShieldWithXP();
+      if (!mounted) return;
+      if (success) {
+        AppSnackbar.showSuccess(
+          context,
+          _t(
+            "Streak Shield equipped! Your streak is protected if you miss a day.",
+            "Streak Shield aktif! Streak kamu terlindungi jika terlewat 1 hari.",
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBuyingShield = false);
     }
   }
 
   Future<void> _claimAchievement(String key) async {
-    final meta = _supabase.auth.currentUser?.userMetadata;
-    if (meta != null && meta[key] == true) return;
+    final meta = await LocalRepository.getUserProgress();
+    if (meta[key] == true) return;
 
     try {
-      // 1. Eksekusi penambah XP dan simpan ke lokal untuk mencegah rate limit supabase
       globalXP.value += 200;
       await prefs.setInt('gm_xp', globalXP.value);
-
-      // 2. Update status achievement & XP sekaligus di backend
-      final response = await _supabase.auth.updateUser(UserAttributes(data: {
+      await LocalRepository.queueActionsBatch({
         'gm_xp': globalXP.value,
         key: true,
-      }));
+      });
 
-      // 3. Update state UI
-      if (response.user != null) {
-        final newMeta = response.user!.userMetadata;
-        if (newMeta != null) {
-          setState(() {
-            _claimedHiragana = newMeta['ach_hira'] ?? false;
-            _claimedKatakana = newMeta['ach_kata'] ?? false;
-            _claimedKanji = newMeta['ach_kanji'] ?? false;
-            _claimedAlphabetMaster = newMeta['ach_alphabet'] ?? false;
-            _claimedSim = newMeta['ach_sim'] ?? false;
-            _claimed3Days = newMeta['ach_3d'] ?? false;
-            _claimed7Days = newMeta['ach_7d'] ?? false;
-            _claimed14Days = newMeta['ach_14d'] ?? false;
-            _claimed30Days = newMeta['ach_30d'] ?? false;
-            _claimedMirai = newMeta['ach_mirai'] ?? false;
-          });
-        }
-      }
+      setState(() {
+        if (key == 'ach_hira') _claimedHiragana = true;
+        if (key == 'ach_kata') _claimedKatakana = true;
+        if (key == 'ach_kanji') _claimedKanji = true;
+        if (key == 'ach_alphabet') _claimedAlphabetMaster = true;
+        if (key == 'ach_sim') _claimedSim = true;
+        if (key == 'ach_3d') _claimed3Days = true;
+        if (key == 'ach_7d') _claimed7Days = true;
+        if (key == 'ach_14d') _claimed14Days = true;
+        if (key == 'ach_30d') _claimed30Days = true;
+        if (key == 'ach_mirai') _claimedMirai = true;
+      });
 
       if (mounted) {
-        _showSuccessDialog(_t("Achievement Claimed! +200 XP", "Pencapaian Diklaim! +200 XP"));
+        _showSuccessDialog(
+          _t("Achievement Claimed! +200 XP", "Pencapaian Diklaim! +200 XP"),
+        );
       }
     } catch (e) {
-      if (mounted) _showErrorDialog(_t("Claim Failed", "Gagal Klaim"), e.toString());
+      if (mounted) {
+        _showErrorDialog(_t("Claim Failed", "Gagal Klaim"), e.toString());
+      }
     }
   }
 
@@ -211,26 +336,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     VoidCallback? onClaim,
   }) {
     final isDark = globalDarkMode.value;
+    final primaryColor =
+        isDark ? AppColors.primaryDark : AppColors.primaryLight;
+    final textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final subTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor:
+            isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             Container(
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.1),
+                color: accentColor.withValues(alpha: 0.14),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   badge.text,
-                  style: TextStyle(
+                  style: (badge.isLabel
+                          ? AppTextStyles.titleLarge
+                          : AppTextStyles.japaneseTitle)
+                      .copyWith(
                     fontSize: badge.isLabel ? 18 : 32,
                     fontWeight: FontWeight.w900,
                     color: accentColor,
@@ -238,84 +376,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
+              style: AppTextStyles.headlineMedium.copyWith(
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : const Color(0xFF333333),
+                color: textColor,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: isDark ? Colors.white70 : const Color(0xFF666666),
-                height: 1.5,
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: subTextColor,
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxl),
             if (isClaimed)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCC6633).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.check_circle_rounded, color: Color(0xFFCC6633), size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      _t("CLAIMED", "SUDAH DIKLAIM"),
-                      style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900),
-                    ),
-                  ],
+              AppBadge(
+                label: _t("CLAIMED", "SUDAH DIKLAIM"),
+                icon: Icons.check_circle_rounded,
+                color: primaryColor,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
                 ),
               )
             else if (isCompleted)
-              SizedBox(
-                width: double.infinity,
+              AppButton(
+                label: _t("CLAIM 200 XP", "KLAIM 200 XP"),
                 height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC6633),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    if (onClaim != null) onClaim();
-                  },
-                  child: Text(
-                    _t("CLAIM 200 XP", "KLAIM 200 XP"),
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-                  ),
-                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  if (onClaim != null) onClaim();
+                },
               )
             else
-              SizedBox(
-                width: double.infinity,
+              AppButton(
+                label: _t("CLOSE", "TUTUP"),
+                variant: AppButtonVariant.secondary,
                 height: 50,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    _t("CLOSE", "TUTUP"),
-                    style: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.grey.shade600,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+                onPressed: () => Navigator.pop(context),
               ),
           ],
         ),
@@ -324,33 +427,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showErrorDialog(String title, String message) {
+    final isDark = globalDarkMode.value;
+    final errorColor = isDark ? AppColors.errorDark : AppColors.errorLight;
+    final textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final subTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor:
+            isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(color: Color(0xFFFFEBEE), shape: BoxShape.circle),
-              child: const Icon(Icons.error_outline_rounded, color: Color(0xFFE53935), size: 40),
-            ),
-            const SizedBox(height: 20),
-            Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF333333))),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5)),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: errorColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
               ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                color: errorColor,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              title,
+              style: AppTextStyles.headlineMedium.copyWith(
+                fontWeight: FontWeight.w900,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(color: subTextColor),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            AppButton(
+              label: "OK",
+              height: 50,
+              onPressed: () => Navigator.pop(context),
             ),
           ],
         ),
@@ -359,32 +485,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSuccessDialog(String message) {
+    final isDark = globalDarkMode.value;
+    final primaryColor =
+        isDark ? AppColors.primaryDark : AppColors.primaryLight;
+    final textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final subTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor:
+            isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(color: Color(0xFFFFF1EB), shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFFCC6633), size: 40),
-            ),
-            const SizedBox(height: 20),
-            Text(_t("Success", "Berhasil"), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF333333))),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5)),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                onPressed: () => Navigator.pop(context),
-                child: Text(_t("OK", "MANTAP!"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
               ),
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                color: primaryColor,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              _t("Success", "Berhasil"),
+              style: AppTextStyles.headlineMedium.copyWith(
+                fontWeight: FontWeight.w900,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(color: subTextColor),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            AppButton(
+              label: _t("AWESOME!", "MANTAP!"),
+              height: 50,
+              onPressed: () => Navigator.pop(context),
             ),
           ],
         ),
@@ -404,23 +555,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return globalLanguage.value == 'id' ? id : en;
   }
 
-
   @override
   Widget build(BuildContext context) {
     if (!_isPrefsInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryLight),
+        ),
+      );
     }
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
       builder: (context, isDark, _) {
-        final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-        final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final Color textColor = isDark ? Colors.white : const Color(0xFF333333);
-        final Color subTextColor = isDark ? Colors.white70 : const Color(0xFF8C8A87);
-        final Color borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE8E3DA);
+        final Color bgColor =
+            isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+        final Color cardColor =
+            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+        final Color textColor =
+            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+        final Color subTextColor =
+            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+        final Color borderColor =
+            isDark ? AppColors.borderDark : AppColors.borderLight;
+        final Color primaryColor =
+            isDark ? AppColors.primaryDark : AppColors.primaryLight;
+        final Color secondaryColor =
+            isDark ? AppColors.secondaryDark : AppColors.secondaryLight;
 
-        // LOCAL STATS
-        final int simulationCount = prefs.getInt('simulation_completed_count') ?? 0;
         final int finishedUnits = [
           (prefs.getInt('u1_test_stars') ?? 0) >= 1,
           (prefs.getInt('u2_test_stars') ?? 0) >= 1,
@@ -430,8 +591,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final bool isAllUnitsFinished = finishedUnits >= 4;
 
         final int claimedCount = [
-          _claimedHiragana, _claimedKatakana, _claimedKanji, _claimedAlphabetMaster,
-          _claimedSim, _claimed3Days, _claimed7Days, _claimed14Days, _claimed30Days, _claimedMirai
+          _claimedHiragana,
+          _claimedKatakana,
+          _claimedKanji,
+          _claimedAlphabetMaster,
+          _claimedSim,
+          _claimed3Days,
+          _claimed7Days,
+          _claimed14Days,
+          _claimed30Days,
+          _claimedMirai,
         ].where((c) => c).length;
 
         return Scaffold(
@@ -444,146 +613,342 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await _loadLocalStats();
               },
               child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
                 child: Column(
                   children: [
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxl),
 
                     // PROFILE HEADER
                     Center(
                       child: ValueListenableBuilder<String>(
                         valueListenable: globalAvatarUrl,
                         builder: (context, avatarUrl, _) {
-                          return Stack(
-                            children: [
-                              Container(
-                                width: 130,
-                                height: 130,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(32),
-                                  border: Border.all(color: const Color(0xFFCC6633), width: 3),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: Image(
-                                      image: _getAvatarImage(avatarUrl),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
+                          return Container(
+                            width: 130,
+                            height: 130,
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.radiusXxl),
+                              border: Border.all(
+                                color: primaryColor,
+                                width: 3,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(AppSpacing.radiusXl),
+                                child: Image(
+                                  image: _getAvatarImage(avatarUrl),
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                            ],
+                            ),
                           );
                         },
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Text(_userName, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: textColor)),
-                    const SizedBox(height: 8),
-                    Text(_userDesc, style: TextStyle(fontSize: 14, color: subTextColor, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      _userName,
+                      style: AppTextStyles.displayMedium.copyWith(
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      _userDesc,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: subTextColor,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(_userEmail, style: TextStyle(fontSize: 14, color: subTextColor.withValues(alpha: 0.6))),
+                    Text(
+                      _userEmail,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: subTextColor.withValues(alpha: 0.7),
+                      ),
+                    ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxl),
 
-                    // DAILY LOGIN REWARDS CARD
+                    // DAILY OMIKUJI SURPRISE REWARDS CARD (Core Drive 7)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: GestureDetector(
+                      padding: AppSpacing.screenHorizontal,
+                      child: AppCard(
                         onTap: _claimDailyReward,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: _isDailyClaimedToday ? borderColor : const Color(0xFFCC6633),
-                              width: _isDailyClaimedToday ? 1 : 2.5,
+                        borderColor: _isDailyClaimedToday
+                            ? borderColor
+                            : primaryColor,
+                        borderWidth: _isDailyClaimedToday ? 1.5 : 2.5,
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: (_isDailyClaimedToday
+                                        ? subTextColor
+                                        : primaryColor)
+                                    .withValues(alpha: 0.12),
+                                borderRadius:
+                                    BorderRadius.circular(AppSpacing.radiusLg),
+                              ),
+                              child: Icon(
+                                _isDailyClaimedToday
+                                    ? Icons.check_circle_rounded
+                                    : Icons.card_giftcard_rounded,
+                                color: _isDailyClaimedToday
+                                    ? subTextColor
+                                    : primaryColor,
+                                size: 32,
+                              ),
                             ),
-                            boxShadow: _isDailyClaimedToday ? [] : [
-                              BoxShadow(
-                                color: const Color(0xFFCC6633).withValues(alpha: 0.2),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
-                              )
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: (_isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633)).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Icon(
-                                    _isDailyClaimedToday ? Icons.check_circle_rounded : Icons.card_giftcard_rounded,
-                                    color: _isDailyClaimedToday ? subTextColor : const Color(0xFFCC6633),
-                                    size: 32
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(_t("Daily Login Rewards", "Hadiah Login Harian"), style: TextStyle(color: subTextColor, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          _isDailyClaimedToday ? _t("Already Claimed", "Sudah Diklaim") : "50",
-                                          style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w900),
-                                        ),
-                                        if (!_isDailyClaimedToday) ...[
-                                          const SizedBox(width: 6),
-                                          const Icon(Icons.flash_on, color: Color(0xFFCC6633), size: 22),
-                                          const SizedBox(width: 2),
-                                          const Text("XP", style: TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900, fontSize: 16)),
-                                        ]
-                                      ],
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _t(
+                                      "Daily Omikuji Surprise",
+                                      "Kejutan Omikuji Harian",
                                     ),
-                                  ],
-                                ),
+                                    style: AppTextStyles.labelMedium.copyWith(
+                                      color: subTextColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          _isDailyClaimedToday
+                                              ? _t(
+                                                  "Already Claimed Today",
+                                                  "Sudah Diklaim Hari Ini",
+                                                )
+                                              : _t(
+                                                  "Draw Fortune (+50~100 XP)",
+                                                  "Ambil Omikuji (+50~100 XP)",
+                                                ),
+                                          style: AppTextStyles.titleMedium
+                                              .copyWith(
+                                            color: textColor,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                      if (!_isDailyClaimedToday) ...[
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.starGold,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.auto_awesome_rounded,
+                                            color: Colors.black,
+                                            size: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // STREAK SHIELD PROTECTION CARD (Core Drive 8: Loss & Avoidance)
+                    Padding(
+                      padding: AppSpacing.screenHorizontal,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: globalStreakShields,
+                        builder: (context, shields, _) {
+                          final bool isFull =
+                              shields >= GameManager.maxStreakShields;
+                          return AppCard(
+                            onTap: _buyStreakShield,
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  decoration: BoxDecoration(
+                                    color: secondaryColor.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusLg,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.shield_rounded,
+                                    color: secondaryColor,
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            _t(
+                                              "Streak Shield (Omamori)",
+                                              "Pelindung Streak (Omamori)",
+                                            ),
+                                            style: AppTextStyles.labelMedium
+                                                .copyWith(color: subTextColor),
+                                          ),
+                                          const SizedBox(width: AppSpacing.xs),
+                                          AppBadge(
+                                            label:
+                                                "$shields/${GameManager.maxStreakShields}",
+                                            color: secondaryColor,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        isFull
+                                            ? _t(
+                                                "Fully Protected",
+                                                "Perlindungan Maksimal",
+                                              )
+                                            : _t(
+                                                "Equip Shield (${GameManager.streakShieldCostXP} XP)",
+                                                "Pasang Perisai (${GameManager.streakShieldCostXP} XP)",
+                                              ),
+                                        style:
+                                            AppTextStyles.titleMedium.copyWith(
+                                          color: textColor,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  isFull
+                                      ? Icons.verified_rounded
+                                      : Icons.add_circle_outline_rounded,
+                                  color: secondaryColor,
+                                  size: 22,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // JLPT READINESS TRACKER CARD
+                    Padding(
+                      padding: AppSpacing.screenHorizontal,
+                      child: AppCard(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const JLPTTrackerScreen(),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: secondaryColor.withValues(alpha: 0.12),
+                                borderRadius:
+                                    BorderRadius.circular(AppSpacing.radiusLg),
+                              ),
+                              child: Icon(
+                                Icons.analytics_outlined,
+                                color: secondaryColor,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _t("JLPT Readiness", "Kesiapan JLPT"),
+                                    style: AppTextStyles.labelMedium.copyWith(
+                                      color: subTextColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _t(
+                                      "Check your N5 progress",
+                                      "Cek progres N5 kamu",
+                                    ),
+                                    style: AppTextStyles.titleMedium.copyWith(
+                                      color: textColor,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 16,
+                              color: subTextColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.xxl),
 
                     // ACHIEVEMENTS SECTION
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: AppSpacing.screenHorizontal,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(_t("Achievements", "Pencapaian"), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFCC6633).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(16),
+                              Text(
+                                _t("Achievements", "Pencapaian"),
+                                style: AppTextStyles.headlineMedium.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: textColor,
                                 ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.emoji_events_rounded, color: Color(0xFFCC6633), size: 16),
-                                    const SizedBox(width: 4),
-                                    Text("$claimedCount / 10", style: const TextStyle(color: Color(0xFFCC6633), fontWeight: FontWeight.w900)),
-                                  ],
-                                ),
+                              ),
+                              AppBadge(
+                                label: "$claimedCount / 10",
+                                icon: Icons.emoji_events_rounded,
+                                color: primaryColor,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.lg),
                           ValueListenableBuilder<List<String>>(
                             valueListenable: globalLearnedHiragana,
                             builder: (context, learnedHira, _) {
@@ -599,84 +964,189 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         child: Row(
                                           children: [
                                             _buildAchievementCardH(
-                                              badge: _AchievementBadge.text("あ"),
-                                              bgColor: const Color(0xFFE8F5E9),
-                                              accentColor: const Color(0xFFCC6633),
-                                              title: _t("Hiragana Master", "Ahli Hiragana"),
-                                              description: _t(
-                                                  "Learn all 104 basic Hiragana characters by completing Hiragana lessons.",
-                                                  "Pelajari semua 104 karakter Hiragana dasar dengan menyelesaikan pelajaran Hiragana."
+                                              badge:
+                                                  _AchievementBadge.text("あ"),
+                                              accentColor: primaryColor,
+                                              title: _t(
+                                                "Hiragana Master",
+                                                "Ahli Hiragana",
                                               ),
-                                              progress: (learnedHira.length / 104).clamp(0.0, 1.0),
-                                              progressLabel: "${learnedHira.length}/104",
-                                              isCompleted: learnedHira.length >= 104,
+                                              description: _t(
+                                                "Learn all 104 basic Hiragana characters by completing Hiragana lessons.",
+                                                "Pelajari semua 104 karakter Hiragana dasar dengan menyelesaikan pelajaran Hiragana.",
+                                              ),
+                                              progress: _claimedHiragana
+                                                  ? 1.0
+                                                  : (learnedHira.length / 104)
+                                                      .clamp(0.0, 1.0),
+                                              progressLabel: _claimedHiragana
+                                                  ? _t("COMPLETED", "SELESAI")
+                                                  : "${learnedHira.length}/104",
+                                              isCompleted:
+                                                  learnedHira.length >= 104 ||
+                                                      _claimedHiragana,
                                               isClaimed: _claimedHiragana,
-                                              onClaim: () => _claimAchievement('ach_hira'),
-                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                              onClaim: () =>
+                                                  _claimAchievement('ach_hira'),
+                                              cardColor: cardColor,
+                                              textColor: textColor,
+                                              borderColor: borderColor,
+                                              isDark: isDark,
+                                              subTextColor: subTextColor,
+                                              primaryColor: primaryColor,
                                             ),
                                             _buildAchievementCardH(
-                                              badge: _AchievementBadge.text("ア"),
-                                              bgColor: const Color(0xFFE3F2FD),
-                                              accentColor: const Color(0xFF2196F3),
-                                              title: _t("Katakana Master", "Ahli Katakana"),
-                                              description: _t(
-                                                  "Learn all 104 basic Katakana characters by completing Katakana lessons.",
-                                                  "Pelajari semua 104 karakter Katakana dasar dengan menyelesaikan pelajaran Katakana."
+                                              badge:
+                                                  _AchievementBadge.text("ア"),
+                                              accentColor: secondaryColor,
+                                              title: _t(
+                                                "Katakana Master",
+                                                "Ahli Katakana",
                                               ),
-                                              progress: (learnedKata.length / 104).clamp(0.0, 1.0),
-                                              progressLabel: "${learnedKata.length}/104",
-                                              isCompleted: learnedKata.length >= 104,
+                                              description: _t(
+                                                "Learn all 104 basic Katakana characters by completing Katakana lessons.",
+                                                "Pelajari semua 104 karakter Katakana dasar dengan menyelesaikan pelajaran Katakana.",
+                                              ),
+                                              progress: _claimedKatakana
+                                                  ? 1.0
+                                                  : (learnedKata.length / 104)
+                                                      .clamp(0.0, 1.0),
+                                              progressLabel: _claimedKatakana
+                                                  ? _t("COMPLETED", "SELESAI")
+                                                  : "${learnedKata.length}/104",
+                                              isCompleted:
+                                                  learnedKata.length >= 104 ||
+                                                      _claimedKatakana,
                                               isClaimed: _claimedKatakana,
-                                              onClaim: () => _claimAchievement('ach_kata'),
-                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                              onClaim: () =>
+                                                  _claimAchievement('ach_kata'),
+                                              cardColor: cardColor,
+                                              textColor: textColor,
+                                              borderColor: borderColor,
+                                              isDark: isDark,
+                                              subTextColor: subTextColor,
+                                              primaryColor: primaryColor,
                                             ),
                                             _buildAchievementCardH(
-                                              badge: _AchievementBadge.text("漢"),
-                                              bgColor: const Color(0xFFF3E5F5),
-                                              accentColor: const Color(0xFF9C27B0),
-                                              title: _t("Kanji Learner", "Pembelajar Kanji"),
-                                              description: _t(
-                                                  "Learn all 68 essential N5 Kanji characters across all categories.",
-                                                  "Pelajari seluruh 68 karakter Kanji N5 penting di semua kategori."
+                                              badge:
+                                                  _AchievementBadge.text("漢"),
+                                              accentColor:
+                                                  AppColors.kanjiPurple,
+                                              title: _t(
+                                                "Kanji Learner",
+                                                "Pembelajar Kanji",
                                               ),
-                                              progress: (learnedKanji.length / 68).clamp(0.0, 1.0),
-                                              progressLabel: "${learnedKanji.length}/68",
-                                              isCompleted: learnedKanji.length >= 68,
+                                              description: _t(
+                                                "Learn all 68 essential N5 Kanji characters across all categories.",
+                                                "Pelajari seluruh 68 karakter Kanji N5 penting di semua kategori.",
+                                              ),
+                                              progress: _claimedKanji
+                                                  ? 1.0
+                                                  : (learnedKanji.length / 68)
+                                                      .clamp(0.0, 1.0),
+                                              progressLabel: _claimedKanji
+                                                  ? _t("COMPLETED", "SELESAI")
+                                                  : "${learnedKanji.length}/68",
+                                              isCompleted:
+                                                  learnedKanji.length >= 68 ||
+                                                      _claimedKanji,
                                               isClaimed: _claimedKanji,
-                                              onClaim: () => _claimAchievement('ach_kanji'),
-                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                              onClaim: () => _claimAchievement(
+                                                'ach_kanji',
+                                              ),
+                                              cardColor: cardColor,
+                                              textColor: textColor,
+                                              borderColor: borderColor,
+                                              isDark: isDark,
+                                              subTextColor: subTextColor,
+                                              primaryColor: primaryColor,
                                             ),
                                             _buildAchievementCardH(
-                                              badge: _AchievementBadge.label("ABC"),
-                                              bgColor: const Color(0xFFEFEBE9),
-                                              accentColor: const Color(0xFF795548),
-                                              title: _t("Alphabet Master", "Penguasa Alfabet"),
-                                              description: _t(
-                                                  "Master all Japanese writing systems by claiming Hiragana, Katakana, and Kanji achievements.",
-                                                  "Kuasai semua sistem penulisan Jepang dengan mengklaim pencapaian Hiragana, Katakana, dan Kanji."
+                                              badge: _AchievementBadge.label(
+                                                "ABC",
                                               ),
-                                              progress: (_claimedHiragana && _claimedKatakana && _claimedKanji) ? 1.0 : 0.0,
-                                              progressLabel: "HiraKataKanji",
-                                              isCompleted: _claimedHiragana && _claimedKatakana && _claimedKanji,
+                                              accentColor: primaryColor,
+                                              title: _t(
+                                                "Alphabet Master",
+                                                "Penguasa Alfabet",
+                                              ),
+                                              description: _t(
+                                                "Master all Japanese writing systems by claiming Hiragana, Katakana, and Kanji achievements.",
+                                                "Kuasai semua sistem penulisan Jepang dengan mengklaim pencapaian Hiragana, Katakana, dan Kanji.",
+                                              ),
+                                              progress: _claimedAlphabetMaster
+                                                  ? 1.0
+                                                  : ((_claimedHiragana &&
+                                                          _claimedKatakana &&
+                                                          _claimedKanji)
+                                                      ? 1.0
+                                                      : 0.0),
+                                              progressLabel:
+                                                  _claimedAlphabetMaster
+                                                      ? _t(
+                                                          "COMPLETED",
+                                                          "SELESAI",
+                                                        )
+                                                      : "HiraKataKanji",
+                                              isCompleted: (_claimedHiragana &&
+                                                      _claimedKatakana &&
+                                                      _claimedKanji) ||
+                                                  _claimedAlphabetMaster,
                                               isClaimed: _claimedAlphabetMaster,
-                                              onClaim: () => _claimAchievement('ach_alphabet'),
-                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
-                                            ),
-                                            _buildAchievementCardH(
-                                              badge: _AchievementBadge.label("JLPT"),
-                                              bgColor: const Color(0xFFFFF3E0),
-                                              accentColor: const Color(0xFFFF9800),
-                                              title: _t("Simulator Pro", "Pro Simulator"),
-                                              description: _t(
-                                                  "Put your skills to the test! Complete 10 writing and recognition simulations.",
-                                                  "Uji kemampuanmu! Selesaikan 10 simulasi penulisan dan pengenalan."
+                                              onClaim: () => _claimAchievement(
+                                                'ach_alphabet',
                                               ),
-                                              progress: (simulationCount / 10).clamp(0.0, 1.0),
-                                              progressLabel: "$simulationCount/10",
-                                              isCompleted: simulationCount >= 10,
-                                              isClaimed: _claimedSim,
-                                              onClaim: () => _claimAchievement('ach_sim'),
-                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                              cardColor: cardColor,
+                                              textColor: textColor,
+                                              borderColor: borderColor,
+                                              isDark: isDark,
+                                              subTextColor: subTextColor,
+                                              primaryColor: primaryColor,
+                                            ),
+                                            ValueListenableBuilder<int>(
+                                              valueListenable:
+                                                  globalSimulationCount,
+                                              builder: (context, simCount, _) {
+                                                return _buildAchievementCardH(
+                                                  badge:
+                                                      _AchievementBadge.label(
+                                                    "JLPT",
+                                                  ),
+                                                  accentColor:
+                                                      AppColors.streakFlame,
+                                                  title: _t(
+                                                    "Simulator Pro",
+                                                    "Pro Simulator",
+                                                  ),
+                                                  description: _t(
+                                                    "Put your skills to the test! Complete 10 writing and recognition simulations.",
+                                                    "Uji kemampuanmu! Selesaikan 10 simulasi penulisan dan pengenalan.",
+                                                  ),
+                                                  progress: _claimedSim
+                                                      ? 1.0
+                                                      : (simCount / 10)
+                                                          .clamp(0.0, 1.0),
+                                                  progressLabel: _claimedSim
+                                                      ? _t(
+                                                          "COMPLETED",
+                                                          "SELESAI",
+                                                        )
+                                                      : "$simCount/10",
+                                                  isCompleted: simCount >= 10 ||
+                                                      _claimedSim,
+                                                  isClaimed: _claimedSim,
+                                                  onClaim: () =>
+                                                      _claimAchievement(
+                                                    'ach_sim',
+                                                  ),
+                                                  cardColor: cardColor,
+                                                  textColor: textColor,
+                                                  borderColor: borderColor,
+                                                  isDark: isDark,
+                                                  subTextColor: subTextColor,
+                                                  primaryColor: primaryColor,
+                                                );
+                                              },
                                             ),
                                             ValueListenableBuilder<int>(
                                               valueListenable: globalStreak,
@@ -684,179 +1154,378 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 return Row(
                                                   children: [
                                                     _buildAchievementCardH(
-                                                      badge: _AchievementBadge.label("3"),
-                                                      bgColor: const Color(0xFFFCE4EC),
-                                                      accentColor: const Color(0xFFE91E63),
-                                                      title: _t("3 Days Streak", "3 Hari Beruntun"),
-                                                      description: _t(
-                                                          "Keep your learning momentum! Maintain a login streak for 3 consecutive days.",
-                                                          "Kasu momentum belajarmu! Pertahankan login selama 3 hari berturut-turut."
+                                                      badge: _AchievementBadge
+                                                          .label("3"),
+                                                      accentColor:
+                                                          AppColors.heartCrimson,
+                                                      title: _t(
+                                                        "3 Days Streak",
+                                                        "3 Hari Beruntun",
                                                       ),
-                                                      progress: (streak / 3).clamp(0.0, 1.0),
-                                                      progressLabel: "$streak/3",
-                                                      isCompleted: streak >= 3,
+                                                      description: _t(
+                                                        "Keep your learning momentum! Maintain a login streak for 3 consecutive days.",
+                                                        "Pertahankan momentum belajarmu! Login selama 3 hari berturut-turut.",
+                                                      ),
+                                                      progress: _claimed3Days
+                                                          ? 1.0
+                                                          : (streak / 3)
+                                                              .clamp(0.0, 1.0),
+                                                      progressLabel:
+                                                          _claimed3Days
+                                                              ? _t(
+                                                                  "COMPLETED",
+                                                                  "SELESAI",
+                                                                )
+                                                              : "$streak/3",
+                                                      isCompleted: streak >=
+                                                              3 ||
+                                                          _claimed3Days,
                                                       isClaimed: _claimed3Days,
-                                                      onClaim: () => _claimAchievement('ach_3d'),
-                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                      onClaim: () =>
+                                                          _claimAchievement(
+                                                        'ach_3d',
+                                                      ),
+                                                      cardColor: cardColor,
+                                                      textColor: textColor,
+                                                      borderColor: borderColor,
+                                                      isDark: isDark,
+                                                      subTextColor:
+                                                          subTextColor,
+                                                      primaryColor:
+                                                          primaryColor,
                                                     ),
                                                     _buildAchievementCardH(
-                                                      badge: _AchievementBadge.label("7"),
-                                                      bgColor: const Color(0xFFFCE4EC),
-                                                      accentColor: const Color(0xFFE91E63),
-                                                      title: _t("7 Days Streak", "7 Hari Beruntun"),
-                                                      description: _t(
-                                                          "Keep your learning momentum! Maintain a login streak for 7 consecutive days.",
-                                                          "Kasu momentum belajarmu! Pertahankan login selama 7 hari berturut-turut."
+                                                      badge: _AchievementBadge
+                                                          .label("7"),
+                                                      accentColor:
+                                                          AppColors.heartCrimson,
+                                                      title: _t(
+                                                        "7 Days Streak",
+                                                        "7 Hari Beruntun",
                                                       ),
-                                                      progress: (streak / 7).clamp(0.0, 1.0),
-                                                      progressLabel: "$streak/7",
-                                                      isCompleted: streak >= 7,
+                                                      description: _t(
+                                                        "Keep your learning momentum! Maintain a login streak for 7 consecutive days.",
+                                                        "Pertahankan momentum belajarmu! Login selama 7 hari berturut-turut.",
+                                                      ),
+                                                      progress: _claimed7Days
+                                                          ? 1.0
+                                                          : (streak / 7)
+                                                              .clamp(0.0, 1.0),
+                                                      progressLabel:
+                                                          _claimed7Days
+                                                              ? _t(
+                                                                  "COMPLETED",
+                                                                  "SELESAI",
+                                                                )
+                                                              : "$streak/7",
+                                                      isCompleted: streak >=
+                                                              7 ||
+                                                          _claimed7Days,
                                                       isClaimed: _claimed7Days,
-                                                      onClaim: () => _claimAchievement('ach_7d'),
-                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                      onClaim: () =>
+                                                          _claimAchievement(
+                                                        'ach_7d',
+                                                      ),
+                                                      cardColor: cardColor,
+                                                      textColor: textColor,
+                                                      borderColor: borderColor,
+                                                      isDark: isDark,
+                                                      subTextColor:
+                                                          subTextColor,
+                                                      primaryColor:
+                                                          primaryColor,
                                                     ),
                                                     _buildAchievementCardH(
-                                                      badge: _AchievementBadge.label("14"),
-                                                      bgColor: const Color(0xFFFCE4EC),
-                                                      accentColor: const Color(0xFFE91E63),
-                                                      title: _t("14 Days Streak", "14 Hari Beruntun"),
-                                                      description: _t(
-                                                          "Keep your learning momentum! Maintain a login streak for 14 consecutive days.",
-                                                          "Kasu momentum belajarmu! Pertahankan login selama 14 hari berturut-turut."
+                                                      badge: _AchievementBadge
+                                                          .label("14"),
+                                                      accentColor:
+                                                          AppColors.heartCrimson,
+                                                      title: _t(
+                                                        "14 Days Streak",
+                                                        "14 Hari Beruntun",
                                                       ),
-                                                      progress: (streak / 14).clamp(0.0, 1.0),
-                                                      progressLabel: "$streak/14",
-                                                      isCompleted: streak >= 14,
+                                                      description: _t(
+                                                        "Keep your learning momentum! Maintain a login streak for 14 consecutive days.",
+                                                        "Pertahankan momentum belajarmu! Login selama 14 hari berturut-turut.",
+                                                      ),
+                                                      progress: _claimed14Days
+                                                          ? 1.0
+                                                          : (streak / 14)
+                                                              .clamp(0.0, 1.0),
+                                                      progressLabel:
+                                                          _claimed14Days
+                                                              ? _t(
+                                                                  "COMPLETED",
+                                                                  "SELESAI",
+                                                                )
+                                                              : "$streak/14",
+                                                      isCompleted: streak >=
+                                                              14 ||
+                                                          _claimed14Days,
                                                       isClaimed: _claimed14Days,
-                                                      onClaim: () => _claimAchievement('ach_14d'),
-                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                      onClaim: () =>
+                                                          _claimAchievement(
+                                                        'ach_14d',
+                                                      ),
+                                                      cardColor: cardColor,
+                                                      textColor: textColor,
+                                                      borderColor: borderColor,
+                                                      isDark: isDark,
+                                                      subTextColor:
+                                                          subTextColor,
+                                                      primaryColor:
+                                                          primaryColor,
                                                     ),
                                                     _buildAchievementCardH(
-                                                      badge: _AchievementBadge.label("30"),
-                                                      bgColor: const Color(0xFFFCE4EC),
-                                                      accentColor: const Color(0xFFE91E63),
-                                                      title: _t("30 Days Streak", "30 Hari Beruntun"),
-                                                      description: _t(
-                                                          "Keep your learning momentum! Maintain a login streak for 30 consecutive days.",
-                                                          "Kasu momentum belajarmu! Pertahankan login selama 30 hari berturut-turut."
+                                                      badge: _AchievementBadge
+                                                          .label("30"),
+                                                      accentColor:
+                                                          AppColors.heartCrimson,
+                                                      title: _t(
+                                                        "30 Days Streak",
+                                                        "30 Hari Beruntun",
                                                       ),
-                                                      progress: (streak / 30).clamp(0.0, 1.0),
-                                                      progressLabel: "$streak/30",
-                                                      isCompleted: streak >= 30,
+                                                      description: _t(
+                                                        "Keep your learning momentum! Maintain a login streak for 30 consecutive days.",
+                                                        "Pertahankan momentum belajarmu! Login selama 30 hari berturut-turut.",
+                                                      ),
+                                                      progress: _claimed30Days
+                                                          ? 1.0
+                                                          : (streak / 30)
+                                                              .clamp(0.0, 1.0),
+                                                      progressLabel:
+                                                          _claimed30Days
+                                                              ? _t(
+                                                                  "COMPLETED",
+                                                                  "SELESAI",
+                                                                )
+                                                              : "$streak/30",
+                                                      isCompleted: streak >=
+                                                              30 ||
+                                                          _claimed30Days,
                                                       isClaimed: _claimed30Days,
-                                                      onClaim: () => _claimAchievement('ach_30d'),
-                                                      cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                                      onClaim: () =>
+                                                          _claimAchievement(
+                                                        'ach_30d',
+                                                      ),
+                                                      cardColor: cardColor,
+                                                      textColor: textColor,
+                                                      borderColor: borderColor,
+                                                      isDark: isDark,
+                                                      subTextColor:
+                                                          subTextColor,
+                                                      primaryColor:
+                                                          primaryColor,
                                                     ),
                                                   ],
                                                 );
-                                              }
+                                              },
                                             ),
                                             _buildAchievementCardH(
-                                              badge: _AchievementBadge.label("未来"),
-                                              bgColor: const Color(0xFFFCE4EC),
-                                              accentColor: const Color(0xFFE91E63),
+                                              badge:
+                                                  _AchievementBadge.label("未来"),
+                                              accentColor: primaryColor,
                                               title: _t("Mirai", "Mirai"),
                                               description: _t(
-                                                  "The ultimate goal! Complete all level tests from Unit 1 to Unit 4.",
-                                                  "Tujuan akhir! Selesaikan semua ujian level dari Unit 1 hingga Unit 4."
+                                                "The ultimate goal! Complete all level tests from Unit 1 to Unit 4.",
+                                                "Tujuan akhir! Selesaikan semua ujian level dari Unit 1 hingga Unit 4.",
                                               ),
-                                              progress: (finishedUnits / 4).clamp(0.0, 1.0),
-                                              progressLabel: isAllUnitsFinished ? _t("COMPLETED", "SELESAI") : _t("Unit $finishedUnits/4", "Unit $finishedUnits/4"),
+                                              progress: (finishedUnits / 4)
+                                                  .clamp(0.0, 1.0),
+                                              progressLabel: isAllUnitsFinished
+                                                  ? _t("COMPLETED", "SELESAI")
+                                                  : _t(
+                                                      "Unit $finishedUnits/4",
+                                                      "Unit $finishedUnits/4",
+                                                    ),
                                               isCompleted: isAllUnitsFinished,
                                               isClaimed: _claimedMirai,
-                                              onClaim: () => _claimAchievement('ach_mirai'),
-                                              cardColor: cardColor, textColor: textColor, borderColor: borderColor, isDark: isDark, subTextColor: subTextColor,
+                                              onClaim: () => _claimAchievement(
+                                                'ach_mirai',
+                                              ),
+                                              cardColor: cardColor,
+                                              textColor: textColor,
+                                              borderColor: borderColor,
+                                              isDark: isDark,
+                                              subTextColor: subTextColor,
+                                              primaryColor: primaryColor,
                                             ),
                                           ],
                                         ),
                                       );
-                                    }
+                                    },
                                   );
-                                }
+                                },
                               );
-                            }
+                            },
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxl),
 
                     // MENU OPTIONS
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(color: borderColor)
-                        ),
+                      padding: AppSpacing.screenHorizontal,
+                      child: AppCard(
+                        padding: EdgeInsets.zero,
                         child: Column(
                           children: [
                             _buildMenuTile(
-                                context: context,
-                                icon: Icons.settings_rounded,
-                                title: _t("Settings", "Pengaturan"),
-                                subtitle: _t("Manage your account preferences", "Kelola preferensi akunmu"),
-                                textColor: textColor,
-                                subTextColor: subTextColor,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
-                                isDark: isDark
+                              context: context,
+                              icon: Icons.settings_rounded,
+                              title: _t("Settings", "Pengaturan"),
+                              subtitle: _t(
+                                "Manage your account preferences",
+                                "Kelola preferensi akunmu",
+                              ),
+                              textColor: textColor,
+                              subTextColor: subTextColor,
+                              primaryColor: primaryColor,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsScreen(),
+                                ),
+                              ),
+                              isDark: isDark,
                             ),
                             Divider(height: 1, color: borderColor, indent: 70),
                             _buildMenuTile(
-                                context: context,
-                                icon: Icons.notifications_rounded,
-                                title: _t("Notifications", "Notifikasi"),
-                                subtitle: _t("Daily reminders & info", "Pengingat harian & info"),
-                                textColor: textColor,
-                                subTextColor: subTextColor,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
-                                isDark: isDark
+                              context: context,
+                              icon: Icons.notifications_rounded,
+                              title: _t("Notifications", "Notifikasi"),
+                              subtitle: _t(
+                                "Daily reminders & info",
+                                "Pengingat harian & info",
+                              ),
+                              textColor: textColor,
+                              subTextColor: subTextColor,
+                              primaryColor: primaryColor,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationsScreen(),
+                                ),
+                              ),
+                              isDark: isDark,
                             ),
                             Divider(height: 1, color: borderColor, indent: 70),
                             _buildMenuTile(
-                                context: context,
-                                icon: Icons.info_outline_rounded,
-                                title: _t("About", "Tentang"),
-                                subtitle: _t("Learn more about MIRAIku", "Pelajari lebih lanjut tentang MIRAIku"),
-                                textColor: textColor,
-                                subTextColor: subTextColor,
-                                onTap: () => AppDialogs.showAboutApp(context),
-                                isDark: isDark
+                              context: context,
+                              icon: Icons.info_outline_rounded,
+                              title: _t("About", "Tentang"),
+                              subtitle: _t(
+                                "Learn more about MIRAIku",
+                                "Pelajari lebih lanjut tentang MIRAIku",
+                              ),
+                              textColor: textColor,
+                              subTextColor: subTextColor,
+                              primaryColor: primaryColor,
+                              onTap: () => AppDialogs.showAboutApp(context),
+                              isDark: isDark,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    // LOGOUT AS DISTINCT ACTION
-                    Center(
-                      child: TextButton(
-                        onPressed: () => _showLogoutConfirmation(context, isDark),
-                        child: Text(
-                          _t("LOGOUT", "KELUAR"),
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // GLOBAL LEADERBOARD CARD
+                    Padding(
+                      padding: AppSpacing.screenHorizontal,
+                      child: AppCard(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LeaderboardScreen(),
                           ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.medalGold.withValues(alpha: 0.14),
+                                borderRadius:
+                                    BorderRadius.circular(AppSpacing.radiusLg),
+                              ),
+                              child: const Icon(
+                                Icons.emoji_events_outlined,
+                                color: AppColors.medalGold,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _t("Global Rankings", "Peringkat Global"),
+                                    style: AppTextStyles.labelMedium.copyWith(
+                                      color: subTextColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _t(
+                                      "See who is at the top",
+                                      "Lihat siapa yang teratas",
+                                    ),
+                                    style: AppTextStyles.titleMedium.copyWith(
+                                      color: textColor,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 16,
+                              color: subTextColor,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // LOGOUT AS DISTINCT ACTION
+                    Center(
+                      child: AppButton(
+                        label: _t("LOGOUT", "KELUAR"),
+                        variant: AppButtonVariant.text,
+                        expand: false,
+                        height: 48,
+                        foregroundColor: isDark
+                            ? AppColors.errorDark
+                            : AppColors.errorLight,
+                        onPressed: () =>
+                            _showLogoutConfirmation(context, isDark),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+
                     // VERSION FOOTER
                     Center(
                       child: Text(
                         "MIRAIku Version v$_appVersion",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: subTextColor.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w500,
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: subTextColor.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                    SizedBox(
+                      height:
+                          MediaQuery.of(context).padding.bottom + AppSpacing.md,
+                    ),
                   ],
                 ),
               ),
@@ -869,7 +1538,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildAchievementCardH({
     required _AchievementBadge badge,
-    required Color bgColor,
     required Color accentColor,
     required String title,
     required String description,
@@ -883,23 +1551,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required Color borderColor,
     required bool isDark,
     required Color subTextColor,
+    required Color primaryColor,
   }) {
-    Widget bottomWidget;
+    Widget bottomWidget = const SizedBox.shrink();
     if (isClaimed) {
-      bottomWidget = Row(children: [
-        const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFFCC6633)),
-        const SizedBox(width: 4),
-        Text(_t("Already Claimed", "Sudah Diklaim"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFCC6633)))
-      ]);
+      bottomWidget = Row(
+        children: [
+          Icon(Icons.check_circle_rounded, size: 12, color: primaryColor),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              _t("Already Claimed", "Sudah Diklaim"),
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelSmall.copyWith(
+                fontSize: 10,
+                color: primaryColor,
+              ),
+            ),
+          ),
+        ],
+      );
     } else if (isCompleted) {
       bottomWidget = Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(color: const Color(0xFFCC6633), borderRadius: BorderRadius.circular(8)),
-        child: const Center(child: Text("KLAIM 200 XP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white))),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        decoration: BoxDecoration(
+          color: primaryColor,
+          borderRadius: BorderRadius.circular(AppSpacing.xs),
+        ),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              _t("CLAIM 200 XP", "KLAIM 200 XP"),
+              style: AppTextStyles.labelSmall.copyWith(
+                fontSize: 10,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
       );
     } else {
-      bottomWidget = Text(progressLabel ?? "", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: subTextColor));
+      bottomWidget = Text(
+        progressLabel ?? "",
+        style: AppTextStyles.labelSmall.copyWith(
+          fontSize: 10,
+          color: subTextColor,
+        ),
+      );
     }
 
     return GestureDetector(
@@ -913,73 +1613,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onClaim: onClaim,
       ),
       child: Container(
-          width: 150,
-          height: 240,
-          margin: const EdgeInsets.only(right: 16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-                color: isCompleted && !isClaimed ? const Color(0xFFCC6633).withValues(alpha: 0.5) : borderColor,
-                width: isCompleted && !isClaimed ? 2 : 1
-            ),
+        width: 154,
+        height: 244,
+        margin: const EdgeInsets.only(right: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          border: Border.all(
+            color: isCompleted && !isClaimed
+                ? primaryColor.withValues(alpha: 0.6)
+                : borderColor,
+            width: isCompleted && !isClaimed ? 2 : 1.5,
           ),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-                      shape: BoxShape.circle
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariantLight,
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(
+                    badge.text,
+                    style: (badge.isLabel
+                            ? AppTextStyles.titleMedium
+                            : AppTextStyles.japaneseTitle)
+                        .copyWith(
+                      fontSize: badge.isLabel ? 14 : 24,
+                      fontWeight: FontWeight.w900,
+                      color: isCompleted ? accentColor : subTextColor,
+                    ),
                   ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Text(
-                          badge.text,
-                          style: TextStyle(
-                              fontSize: badge.isLabel ? 14 : 24,
-                              fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white38 : Colors.black26
-                          )
-                      ),
-                      if (isCompleted)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(color: Color(0xFFCC6633), shape: BoxShape.circle),
-                            child: const Icon(Icons.check_rounded, size: 12, color: Colors.white),
-                          ),
+                  if (isCompleted)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          shape: BoxShape.circle,
                         ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: textColor, height: 1.1)
-                ),
-                const Spacer(),
-                ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 8,
-                        backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFF1EFE8),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFCC6633))
-                    )
-                ),
-                const SizedBox(height: 12),
-                bottomWidget
-              ]
-          )
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.titleMedium.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+                height: 1.15,
+              ),
+            ),
+            const Spacer(),
+            AppProgressBar(
+              progress: progress,
+              height: 8,
+              color: primaryColor,
+              semanticLabel: title,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            bottomWidget,
+          ],
+        ),
       ),
     );
   }
@@ -991,98 +1707,165 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String subtitle,
     required Color textColor,
     required Color subTextColor,
+    required Color primaryColor,
     required VoidCallback onTap,
     String? trailingText,
     required bool isDark,
   }) {
-    final Color iconBg = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF5F5F5);
-    const Color primaryColor = Color(0xFFCC6633);
+    final Color iconBg = isDark
+        ? AppColors.surfaceVariantDark
+        : AppColors.surfaceVariantLight;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
       leading: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: iconBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
         child: Icon(icon, color: primaryColor, size: 22),
       ),
-      title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)),
-      subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: subTextColor, fontWeight: FontWeight.w500)),
-      trailing: trailingText != null
-          ? Text(
-              trailingText,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8C8A87)),
-            )
-          : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFB5B0A8)),
+      title: Text(
+        title,
+        style: AppTextStyles.titleMedium.copyWith(
+          fontWeight: FontWeight.w900,
+          color: textColor,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: AppTextStyles.bodyMedium.copyWith(
+          fontSize: 12,
+          color: subTextColor,
+        ),
+      ),
+      trailing: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: trailingText != null
+            ? Text(
+                trailingText,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: subTextColor,
+                ),
+              )
+            : Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: subTextColor,
+              ),
+      ),
       onTap: trailingText != null ? null : onTap,
     );
   }
 
   void _showLogoutConfirmation(BuildContext context, bool isDark) {
+    final textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final subTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final primaryColor =
+        isDark ? AppColors.primaryDark : AppColors.primaryLight;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(_t("Logout?", "Keluar?"), style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black87)),
-        content: Text(_t("Are you sure you want to sign out?", "Apakah anda yakin ingin keluar dari akun?"), style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+        backgroundColor:
+            isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
+        title: Text(
+          _t("Logout?", "Keluar?"),
+          style: AppTextStyles.headlineMedium.copyWith(
+            fontWeight: FontWeight.w900,
+            color: textColor,
+          ),
+        ),
+        content: Text(
+          _t(
+            "Are you sure you want to sign out?",
+            "Apakah anda yakin ingin keluar dari akun?",
+          ),
+          style: AppTextStyles.bodyMedium.copyWith(color: subTextColor),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(_t("CANCEL", "BATAL"), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCC6633), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            onPressed: () async {
-              // 1. Show non-dismissible loading overlay immediately
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (dialogContext) => PopScope(
-                  canPop: false,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const CircularProgressIndicator(color: Color(0xFFCC6633)),
-                    ),
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: _t("CANCEL", "BATAL"),
+                  variant: AppButtonVariant.text,
+                  height: 48,
+                  onPressed: () => Navigator.pop(context),
                 ),
-              );
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: AppButton(
+                  label: _t("LOGOUT", "KELUAR"),
+                  height: 48,
+                  borderRadius: AppSpacing.radiusMd,
+                  onPressed: () async {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (dialogContext) => PopScope(
+                        canPop: false,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.surfaceLight,
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.radiusMd),
+                            ),
+                            child: CircularProgressIndicator(
+                              color: primaryColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
 
-              try {
-                // 2. Clear both Supabase and native Google instance
-                await _supabase.auth.signOut();
-                try {
-                  await GoogleSignIn().signOut();
-                } catch (_) {}
+                    try {
+                      await LocalRepository.flushQueue();
+                      await _supabase.auth.signOut();
+                      try {
+                        await GoogleSignIn().signOut();
+                      } catch (_) {}
 
-                // 3. Reset local progress to prevent data leakage
-                await GameManager.resetProgress();
-                
-                if (!context.mounted) return;
+                      await GameManager.resetProgress();
 
-                // 4. Force navigate to AuthScreen and clear stack
-                // We do NOT pop the loading dialog manually to prevent background flashes.
-                // pushAndRemoveUntil will clear the entire stack including the dialog.
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const AuthScreen()),
-                  (route) => false,
-                );
-              } catch (e) {
-                debugPrint("Error during logout: $e");
-                // Final fallback: reset progress and force redirect even on error
-                await GameManager.resetProgress();
-                if (!context.mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const AuthScreen()),
-                  (route) => false,
-                );
-              }
-            },
-            child: Text(_t("LOGOUT", "KELUAR"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      if (!context.mounted) return;
+
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    } catch (e) {
+                      debugPrint("Error during logout: $e");
+                      await GameManager.resetProgress();
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),

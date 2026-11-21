@@ -1,20 +1,29 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
+
+import 'core/config/app_config.dart';
+import 'core/game_manager.dart';
+import 'core/notification_service.dart';
+import 'core/repository/local_repository.dart';
+import 'core/settings_controller.dart';
+import 'core/theme/app_theme.dart';
+
+import 'features/common/screen_greeting_overlay.dart';
+import 'features/kana/screen_kana.dart';
+import 'features/learn/screen_learn.dart';
+import 'features/login/screen_welcome.dart';
+import 'features/profile/screen_profile.dart';
+import 'features/simulation/screen_simulation.dart';
 
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/top_status_bar.dart';
-
-import 'features/learn/screen_learn.dart';
-import 'features/simulation/screen_simulation.dart';
-import 'features/kana/screen_kana.dart';
-import 'features/profile/screen_profile.dart';
-import 'features/login/screen_welcome.dart';
-import 'core/game_manager.dart';
-import 'core/notification_service.dart';
 
 // ==========================================
 // 🌍 GLOBAL NAVIGATOR KEY
@@ -22,39 +31,47 @@ import 'core/notification_service.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  final WidgetsBinding widgetsBinding =
+      WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Lock orientation to Portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // Lock orientation to Portrait only on mobile phones (allow desktop/tablet flexibility)
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
-  // Initialize Timezones early
+  // 1. INITIALIZE TIMEZONES
   tz.initializeTimeZones();
 
   try {
-    // 📦 LOAD PERSISTENT SETTINGS
-    final prefs = await SharedPreferences.getInstance();
-    globalDarkMode.value = prefs.getBool('is_dark_mode') ?? false;
-    globalLanguage.value = prefs.getString('app_language') ?? 'en';
-
-    // 🔗 INISIALISASI SUPABASE
+    // 🔗 INITIALIZE SUPABASE
     await Supabase.initialize(
-      url: 'https://zvtxkamtmkqsbgoijroc.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2dHhrYW10bWtxc2Jnb2lqcm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDQyNjYsImV4cCI6MjA5NDgyMDI2Nn0.7aABG8Tk0JBjxzmtZtaq8kwITHTtQ9dpx0CZVwCwlnY',
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
     );
 
+    // 2. INITIALIZE GLOBAL SETTINGS (Theme & Language) - FORCE AWAIT
+    await SettingsController.instance.init();
+
     await GameManager.init();
-    
+
+    // 🌐 START OFFLINE SYNC LISTENER
+    LocalRepository.startSyncListener();
+
+    // 3. INITIALIZE NOTIFICATION SERVICE
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.requestPermissions(); // Request early for Android 13+ support
+    await notificationService.requestPermissions();
 
+    final prefs = await SharedPreferences.getInstance();
     final isReminderOn = prefs.getBool('is_daily_reminder_on') ?? false;
     if (isReminderOn) {
-      await notificationService.scheduleDailyStudyReminder(globalLanguage.value);
+      await notificationService.scheduleDailyStudyReminder(
+        globalLanguage.value,
+      );
     }
   } catch (e) {
     debugPrint("Startup Error: $e");
@@ -70,110 +87,68 @@ class MIRAIkuApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: globalDarkMode,
-      builder: (context, isDark, _) {
-        return ValueListenableBuilder<String>(
-          valueListenable: globalLanguage,
-          builder: (context, language, _) {
-            return MaterialApp(
-              navigatorKey: navigatorKey,
-              debugShowCheckedModeBanner: false,
-              title: 'MIRAIku',
-              theme: ThemeData(
-                useMaterial3: true,
-                fontFamily: 'Nunito',
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color(0xFFCC6633),
-                  primary: const Color(0xFFCC6633),
-                  surface: const Color(0xFFF9F6F0),
-                ),
-                pageTransitionsTheme: const PageTransitionsTheme(
-                  builders: {
-                    TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-                    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-                  },
-                ),
-                scaffoldBackgroundColor: const Color(0xFFF9F6F0),
-                appBarTheme: const AppBarTheme(
-                  backgroundColor: Color(0xFFF9F6F0),
-                  elevation: 0,
-                  centerTitle: true,
-                  titleTextStyle: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                dialogTheme: DialogThemeData(
-                  backgroundColor: const Color(0xFFFAF7F2),
-                  surfaceTintColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                ),
-                brightness: Brightness.light,
-              ),
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                fontFamily: 'Nunito',
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color(0xFFCC6633),
-                  primary: const Color(0xFFCC6633),
-                  surface: const Color(0xFF121212),
-                  brightness: Brightness.dark,
-                ),
-                pageTransitionsTheme: const PageTransitionsTheme(
-                  builders: {
-                    TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-                    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-                  },
-                ),
-                scaffoldBackgroundColor: const Color(0xFF121212),
-                appBarTheme: const AppBarTheme(
-                  backgroundColor: Color(0xFF121212),
-                  elevation: 0,
-                  centerTitle: true,
-                  titleTextStyle: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
-                ),
-                dialogTheme: DialogThemeData(
-                  backgroundColor: const Color(0xFF1E1E1E),
-                  surfaceTintColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                ),
-                brightness: Brightness.dark,
-              ),
-              themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+    final settings = SettingsController.instance;
 
-              home: StreamBuilder<AuthState>(
-                stream: Supabase.instance.client.auth.onAuthStateChange,
-                builder: (context, snapshot) {
-                  // Handle loading state
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(
-                      body: Center(
-                        child: CircularProgressIndicator(color: Color(0xFFCC6633)),
-                      ),
-                    );
-                  }
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        settings.themeMode,
+        settings.locale,
+        globalDarkMode,
+        globalLanguage,
+      ]),
+      builder: (context, _) {
+        final ThemeMode effectiveThemeMode =
+            globalDarkMode.value ? ThemeMode.dark : ThemeMode.light;
+        final Locale effectiveLocale = Locale(globalLanguage.value);
 
-                  // Auth session check
-                  final session = snapshot.data?.session;
-                  
-                  if (session != null) {
-                    return const MainNavigationScreen();
-                  }
-                  
-                  // Default fallback for null session or during sign-out transition
-                  return const WelcomeScreen();
-                },
-              ),
-            );
-          },
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          debugShowCheckedModeBanner: false,
+          title: 'MIRAIku',
+
+          // 🌍 Localization
+          locale: effectiveLocale,
+          supportedLocales: const [
+            Locale('en'),
+            Locale('id'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+
+          // 🎨 Centralized Material 3 Design System
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: effectiveThemeMode,
+
+          home: StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            builder: (context, authSnapshot) {
+              if (authSnapshot.connectionState == ConnectionState.waiting) {
+                return Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                );
+              }
+
+              final session =
+                  authSnapshot.data?.session ??
+                  Supabase.instance.client.auth.currentSession;
+
+              if (session != null) {
+                return const GreetingOverlayScreen(
+                  nextScreen: MainNavigationScreen(),
+                );
+              }
+
+              return const WelcomeScreen();
+            },
+          ),
         );
       },
     );
@@ -213,7 +188,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void _handleUnit1Completed() {
     setState(() {
       _isUnit1Completed = true;
-      // Re-initialize LearnScreen with the new completion status
       _screens[0] = LearnScreen(
         isUnit1Completed: _isUnit1Completed,
         onUnit1Completed: _handleUnit1Completed,

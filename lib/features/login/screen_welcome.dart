@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'screen_auth.dart';
 import 'package:miraiku/core/game_manager.dart';
 import 'package:miraiku/core/notification_service.dart';
+import 'package:miraiku/core/settings_controller.dart';
+import 'package:miraiku/core/theme/app_colors.dart';
+import 'package:miraiku/core/theme/app_shadows.dart';
+import 'package:miraiku/core/theme/app_spacing.dart';
+import 'package:miraiku/core/theme/app_text_styles.dart';
+import 'package:miraiku/core/widgets/app_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'screen_auth.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -16,13 +22,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   int _currentPage = 0;
 
   @override
-  void initState() {
-    super.initState();
-    // Set defaults to light and english as requested
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      globalDarkMode.value = false;
-      globalLanguage.value = 'en';
-    });
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   String _t(String en, String id) {
@@ -33,31 +35,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     {
       "title_en": "Learn Japanese",
       "title_id": "Belajar Bahasa Jepang",
-      "subtitle_en": "Master Hiragana, Katakana, and Kanji with interactive and fun learning modules.",
-      "subtitle_id": "Kuasai Hiragana, Katakana, dan Kanji dengan modul pembelajaran yang interaktif dan menyenangkan.",
+      "subtitle_en":
+          "Master Hiragana, Katakana, and Kanji with interactive and fun learning modules.",
+      "subtitle_id":
+          "Kuasai Hiragana, Katakana, dan Kanji dengan modul pembelajaran yang interaktif dan menyenangkan.",
       "image": "assets/images/belajar.png",
     },
     {
       "title_en": "Interactive Simulation",
       "title_id": "Simulasi Interaktif",
-      "subtitle_en": "Test your skills with JLPT N5 exam simulations designed according to official standards.",
-      "subtitle_id": "Uji kemampuan Anda dengan simulasi ujian JLPT N5 yang dirancang sesuai standar resmi.",
+      "subtitle_en":
+          "Test your skills with JLPT N5 exam simulations designed according to official standards.",
+      "subtitle_id":
+          "Uji kemampuan Anda dengan simulasi ujian JLPT N5 yang dirancang sesuai standar resmi.",
       "image": "assets/images/simulasi.png",
     },
     {
       "title_en": "Track Your Progress",
       "title_id": "Pantau Progresmu",
-      "subtitle_en": "See your achievements and learning history in real-time to keep motivating yourself.",
-      "subtitle_id": "Lihat pencapaian dan riwayat belajar Anda secara real-time untuk terus memotivasi diri.",
+      "subtitle_en":
+          "See your achievements and learning history in real-time to keep motivating yourself.",
+      "subtitle_id":
+          "Lihat pencapaian dan riwayat belajar Anda secara real-time untuk terus memotivasi diri.",
       "image": "assets/images/progres.png",
     },
   ];
 
   Future<void> _completeOnboarding() async {
     if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const AuthScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const AuthScreen()));
     }
   }
 
@@ -69,8 +77,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         return ValueListenableBuilder<String>(
           valueListenable: globalLanguage,
           builder: (context, lang, _) {
-            final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-            final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
+            final Color bgColor =
+                isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+            final Color textColor =
+                isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+            final Color primaryColor =
+                isDark ? AppColors.primaryDark : AppColors.primaryLight;
 
             return Scaffold(
               backgroundColor: bgColor,
@@ -83,51 +95,75 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           flex: 3,
                           child: PageView.builder(
                             controller: _pageController,
-                            onPageChanged: (value) => setState(() => _currentPage = value),
+                            onPageChanged: (value) =>
+                                setState(() => _currentPage = value),
                             itemCount: _onboardingData.length,
                             itemBuilder: (context, index) => _buildPageContent(
-                              title: _t(_onboardingData[index]["title_en"]!, _onboardingData[index]["title_id"]!),
-                              subtitle: _t(_onboardingData[index]["subtitle_en"]!, _onboardingData[index]["subtitle_id"]!),
+                              title: _t(
+                                _onboardingData[index]["title_en"]!,
+                                _onboardingData[index]["title_id"]!,
+                              ),
+                              subtitle: _t(
+                                _onboardingData[index]["subtitle_en"]!,
+                                _onboardingData[index]["subtitle_id"]!,
+                              ),
                               image: _onboardingData[index]["image"]!,
                               textColor: textColor,
+                              isDark: isDark,
+                              primaryColor: primaryColor,
                             ),
                           ),
                         ),
                         Expanded(
                           flex: 1,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xl,
+                            ),
                             child: Column(
                               children: [
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: List.generate(
                                     _onboardingData.length,
-                                    (index) => _buildDotIndicator(index),
+                                    (index) => _buildDotIndicator(
+                                      index,
+                                      isDark,
+                                      primaryColor,
+                                    ),
                                   ),
                                 ),
                                 const Spacer(),
                                 _currentPage == _onboardingData.length - 1
                                     ? _buildGetStartedButton()
                                     : _buildNavigationButtons(),
-                                const SizedBox(height: 40),
+                                const SizedBox(height: AppSpacing.xxxl),
                               ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                    // Theme and Language Toggle (Same as AuthScreen)
+                    // Theme and Language Toggle
                     Positioned(
-                      top: 16,
-                      right: 16,
+                      top: AppSpacing.lg,
+                      right: AppSpacing.lg,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(30),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusPill,
+                          ),
                           border: Border.all(
-                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                            color: isDark
+                                ? AppColors.outlineDark
+                                : AppColors.outlineLight,
                           ),
                         ),
                         child: Row(
@@ -135,45 +171,58 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           children: [
                             GestureDetector(
                               onTap: () async {
-                                final newLang = globalLanguage.value == 'en' ? 'id' : 'en';
-                                globalLanguage.value = newLang;
-                                final prefs = await SharedPreferences.getInstance();
-                                if (prefs.getBool('is_daily_reminder_on') ?? false) {
-                                  NotificationService().scheduleDailyStudyReminder(newLang);
+                                await SettingsController.instance
+                                    .toggleLanguage();
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                if (prefs.getBool('is_daily_reminder_on') ??
+                                    false) {
+                                  NotificationService()
+                                      .scheduleDailyStudyReminder(
+                                        globalLanguage.value,
+                                      );
                                 }
-                                await prefs.setString('app_language', newLang);
-                                await prefs.setString('setting_lang', newLang);
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm,
+                                  vertical: AppSpacing.xs,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFCC6633).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: primaryColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusLg,
+                                  ),
                                 ),
                                 child: Text(
                                   lang.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Color(0xFFCC6633),
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: primaryColor,
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 12,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Container(width: 1, height: 16, color: isDark ? Colors.white38 : Colors.black26),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.sm),
+                            Container(
+                              width: 1,
+                              height: 16,
+                              color: isDark
+                                  ? AppColors.outlineDark
+                                  : AppColors.outlineLight,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
                             GestureDetector(
                               onTap: () async {
-                                final newDark = !globalDarkMode.value;
-                                globalDarkMode.value = newDark;
-                                final prefs = await SharedPreferences.getInstance();
-                                await prefs.setBool('is_dark_mode', newDark);
-                                await prefs.setBool('setting_dark', newDark);
+                                await SettingsController.instance.toggleTheme();
                               },
                               child: Icon(
-                                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                                color: isDark ? Colors.amberAccent : const Color(0xFF5D4037),
+                                isDark
+                                    ? Icons.light_mode_rounded
+                                    : Icons.dark_mode_rounded,
+                                color: isDark
+                                    ? AppColors.accentDark
+                                    : AppColors.secondaryLight,
                                 size: 20,
                               ),
                             ),
@@ -196,59 +245,56 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     required String subtitle,
     required String image,
     required Color textColor,
+    required bool isDark,
+    required Color primaryColor,
   }) {
+    final subColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // New Circular Design: Outer Red Ring with White Gap
           Container(
             width: 200,
             height: 200,
-            padding: const EdgeInsets.all(6), // The "white gap"
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: Colors.redAccent, width: 4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                )
-              ],
-            ),
-            child: Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
+              color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: primaryColor.withValues(alpha: isDark ? 0.5 : 0.8),
+                width: 4,
               ),
+              boxShadow: AppShadows.dialog(isDark),
+            ),
+            child: ClipOval(
               child: Image.asset(
                 image,
+                width: double.infinity,
+                height: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported_rounded, size: 100, color: Colors.grey),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.image_not_supported_rounded,
+                  size: 100,
+                  color: subColor,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: AppSpacing.xxxl),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: textColor,
-            ),
+            style: AppTextStyles.headlineLarge.copyWith(color: textColor),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Color(0xFF8C8A87),
-              height: 1.5,
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: subColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -257,36 +303,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  Widget _buildDotIndicator(int index) {
+  Widget _buildDotIndicator(int index, bool isDark, Color primaryColor) {
+    final inactiveColor = isDark
+        ? AppColors.outlineDark
+        : AppColors.outlineLight;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(right: 8),
+      duration: AppSpacing.animNormal,
+      margin: const EdgeInsets.only(right: AppSpacing.sm),
       height: 8,
       width: _currentPage == index ? 24 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index ? const Color(0xFFCC6633) : const Color(0xFFE8E3DA),
-        borderRadius: BorderRadius.circular(4),
+        color: _currentPage == index ? primaryColor : inactiveColor,
+        borderRadius: BorderRadius.circular(AppSpacing.xs),
       ),
     );
   }
 
   Widget _buildGetStartedButton() {
-    return SizedBox(
-      width: double.infinity,
+    return AppButton(
+      label: _t("GET STARTED", "MULAI SEKARANG"),
       height: 58,
-      child: ElevatedButton(
-        onPressed: _completeOnboarding,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFCC6633),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          elevation: 0,
-        ),
-        child: Text(
-          _t("GET STARTED", "MULAI SEKARANG"),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
-        ),
-      ),
+      onPressed: _completeOnboarding,
     );
   }
 
@@ -294,39 +331,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        TextButton(
-          onPressed: _completeOnboarding,
-          child: Text(
-            _t("SKIP", "LEWATI"),
-            style: const TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(
+        AppButton(
+          label: _t("SKIP", "LEWATI"),
+          variant: AppButtonVariant.text,
+          expand: false,
           height: 50,
-          child: ElevatedButton(
-            onPressed: () {
-              _pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFCC6633),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(_t("NEXT", "LANJUT"), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_forward_rounded, size: 16),
-              ],
-            ),
-          ),
+          onPressed: _completeOnboarding,
+        ),
+        AppButton(
+          label: _t("NEXT", "LANJUT"),
+          trailingIcon: Icons.arrow_forward_rounded,
+          expand: false,
+          height: 50,
+          borderRadius: AppSpacing.radiusMd,
+          onPressed: () {
+            _pageController.nextPage(
+              duration: AppSpacing.animNormal,
+              curve: Curves.easeInOut,
+            );
+          },
         ),
       ],
     );
