@@ -1,367 +1,511 @@
 import 'package:flutter/material.dart';
 import '../core/game_manager.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_spacing.dart';
+import '../core/theme/app_text_styles.dart';
+import '../core/widgets/app_button.dart';
 
 class TopStatusBar extends StatelessWidget {
   const TopStatusBar({super.key});
 
+  String _t(String en, String id) {
+    return globalLanguage.value == 'id' ? id : en;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: globalDarkMode,
-      builder: (context, isDark, child) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
-        final Color containerBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEFE8DD);
-        final Color dividerColor = isDark ? const Color(0xFF555555) : const Color(0xFFC7C1B5);
-        final Color barBg = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-        final Color textColor = isDark ? Colors.white : const Color(0xFF4B4B4B);
+    final Color containerBg = isDark
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.surfaceContainer;
+    final Color barBg = theme.scaffoldBackgroundColor;
+    final Color textColor = colorScheme.onSurface;
+    final Color dividerColor = colorScheme.outlineVariant;
 
-        return Container(
-          color: barBg,
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0), // Padding disesuaikan
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      color: barBg,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xs,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
             children: [
-              // ==========================================
-              // 👑 BAGIAN KIRI: LOGO MIRAIku GANTENG
-              // ==========================================
-              Row(
-                children: [
-                  const SizedBox(width: 12),
-                  // Teks Gradient tanpa Hiragana, font lebih modern
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [Color(0xFFCC6633), Color(0xFFFF9600)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ).createShader(bounds),
-                    child: const Text(
-                      "MIRAIku",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2.0,
-                        fontStyle: FontStyle.italic, // Bikin miring biar ganteng & dinamis
-                      ),
-                    ),
+              const SizedBox(width: AppSpacing.sm),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [AppColors.primaryLight, AppColors.streakFlame],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: Text(
+                  "MIRAIku",
+                  style: AppTextStyles.headlineLarge.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 2.0,
+                    fontStyle: FontStyle.italic,
                   ),
-                ],
-              ),
-
-              // ==========================================
-              // 📊 BAGIAN KANAN: STATUS BAR KLIKABEL
-              // ==========================================
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: containerBg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: isDark ? const Color(0xFF333333) : Colors.transparent
-                  ),
-                ),
-                child: ValueListenableBuilder<int>(
-                  valueListenable: globalStreak,
-                  builder: (context, streak, _) {
-                    return ValueListenableBuilder<int>(
-                      valueListenable: globalHearts,
-                      builder: (context, hearts, _) {
-                        return ValueListenableBuilder<int>(
-                          valueListenable: globalXP,
-                          builder: (context, xp, _) {
-                            return ValueListenableBuilder<String>(
-                              valueListenable: globalTimerText,
-                              builder: (context, timerText, _) {
-
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // --- 1. STREAK (KLIKABEL) ---
-                                    GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => _showStatDialog(context, 'streak', isDark),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF8A00), size: 20),
-                                          const SizedBox(width: 4),
-                                          Text("$streak", style: const TextStyle(color: Color(0xFFFF8A00), fontWeight: FontWeight.w900, fontSize: 14)),
-                                        ],
-                                      ),
-                                    ),
-
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                                      child: Text("|", style: TextStyle(color: dividerColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-
-                                    // --- 2. NYAWA & TIMER (KLIKABEL) ---
-                                    GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => _showStatDialog(context, 'hearts', isDark),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.favorite_rounded, color: Color(0xFFE53935), size: 20),
-                                          const SizedBox(width: 4),
-                                          Text("$hearts", style: const TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w900, fontSize: 14)),
-                                        ],
-                                      ),
-                                    ),
-
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                                      child: Text("|", style: TextStyle(color: dividerColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-
-                                    // --- 3. XP (KLIKABEL) ---
-                                    GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => _showStatDialog(context, 'xp', isDark),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.stars_rounded, color: Color(0xFFFFC107), size: 20),
-                                          const SizedBox(width: 4),
-                                          Text("$xp", style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 14)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
                 ),
               ),
             ],
           ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: containerBg,
+              borderRadius: BorderRadius.circular(AppSpacing.lg),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.5),
+              ),
+            ),
+            child: ValueListenableBuilder<int>(
+              valueListenable: globalStreak,
+              builder: (context, streak, _) {
+                return ValueListenableBuilder<int>(
+                  valueListenable: globalHearts,
+                  builder: (context, hearts, _) {
+                    return ValueListenableBuilder<int>(
+                      valueListenable: globalXP,
+                      builder: (context, xp, _) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Semantics(
+                              button: true,
+                              label: 'Streak: $streak',
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => _showStatDialog(context, 'streak'),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.xxs,
+                                    vertical: AppSpacing.xxs,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.local_fire_department_rounded,
+                                        color: AppColors.streakFlame,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: AppSpacing.xxs),
+                                      Text(
+                                        "$streak",
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          color: AppColors.streakFlame,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: Text(
+                                "|",
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  color: dividerColor,
+                                ),
+                              ),
+                            ),
+                            Semantics(
+                              button: true,
+                              label: 'Hearts: $hearts',
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => _showStatDialog(context, 'hearts'),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.xxs,
+                                    vertical: AppSpacing.xxs,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.favorite_rounded,
+                                        color: AppColors.heartCrimson,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: AppSpacing.xxs),
+                                      Text(
+                                        "$hearts",
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          color: AppColors.heartCrimson,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: Text(
+                                "|",
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  color: dividerColor,
+                                ),
+                              ),
+                            ),
+                            Semantics(
+                              button: true,
+                              label: 'XP: $xp',
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => _showStatDialog(context, 'xp'),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.xxs,
+                                    vertical: AppSpacing.xxs,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.stars_rounded,
+                                        color: AppColors.starGold,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: AppSpacing.xxs),
+                                      Text(
+                                        "$xp",
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          color: textColor,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStatDialog(BuildContext context, String type) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    String title = "";
+    IconData icon = Icons.info;
+    Color iconColor = colorScheme.onSurfaceVariant;
+
+    if (type == 'streak') {
+      title = _t("Learning Streak", "Runtutan Belajar");
+      icon = Icons.local_fire_department_rounded;
+      iconColor = AppColors.streakFlame;
+    } else if (type == 'hearts') {
+      title = _t("Your Hearts", "Nyawa Anda");
+      icon = Icons.favorite_rounded;
+      iconColor = AppColors.heartCrimson;
+    } else if (type == 'xp') {
+      title = _t("Experience Points (XP)", "Poin Pengalaman (XP)");
+      icon = Icons.stars_rounded;
+      iconColor = AppColors.starGold;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return ValueListenableBuilder<int>(
+          valueListenable: globalHearts,
+          builder: (context, currentHearts, _) {
+            return ValueListenableBuilder<int>(
+              valueListenable: globalXP,
+              builder: (context, currentXP, _) {
+                return AlertDialog(
+                  backgroundColor: colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                  ),
+                  title: Column(
+                    children: [
+                      Icon(icon, size: 48, color: iconColor),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.headlineMedium.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (type == 'streak') ...[
+                        Text(
+                          _t(
+                            "You have opened the app for ${globalStreak.value} consecutive days! Don't miss a single day or your streak will reset to 1.",
+                            "Kamu sudah membuka aplikasi selama ${globalStreak.value} hari berturut-turut! Jangan sampai terlewat 1 hari pun atau runtutanmu akan kembali ke 1.",
+                          ),
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: iconColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusMd,
+                            ),
+                          ),
+                          child: Text(
+                            _t(
+                              "🎁 Login every day to claim 50 XP & Weekly bonuses in Profile!",
+                              "🎁 Login setiap hari untuk klaim 50 XP & bonus Mingguan di Profil!",
+                            ),
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: colorScheme.onSurface,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (type == 'hearts') ...[
+                        Text(
+                          _t(
+                            "Remaining hearts: $currentHearts / ${GameManager.maxHearts}\nHearts decrease every time you answer a quiz incorrectly. 1 heart will recover automatically every 20 minutes.",
+                            "Sisa nyawa: $currentHearts / ${GameManager.maxHearts}\nNyawa berkurang setiap kamu salah menjawab kuis. 1 nyawa akan pulih secara otomatis setiap 20 menit.",
+                          ),
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        if (currentHearts < GameManager.maxHearts)
+                          ValueListenableBuilder<String>(
+                            valueListenable: globalTimerText,
+                            builder: (context, timerText, _) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.heartCrimson.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusMd,
+                                  ),
+                                ),
+                                child: Text(
+                                  _t(
+                                    "⏳ Cooldown: $timerText",
+                                    "⏳ Waktu Cooldown: $timerText",
+                                  ),
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: AppColors.heartCrimson,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        const SizedBox(height: AppSpacing.lg),
+                        AppButton(
+                          label: currentHearts >= GameManager.maxHearts
+                              ? _t("FULL HEARTS", "NYAWA PENUH")
+                              : (currentXP < 150
+                                    ? _t(
+                                        "NOT ENOUGH XP (Needs 150)",
+                                        "XP TIDAK CUKUP (Butuh 150)",
+                                      )
+                                    : _t(
+                                        "BUY 1 HEART (150 XP)",
+                                        "BELI 1 NYAWA (150 XP)",
+                                      )),
+                          icon: Icons.stars_rounded,
+                          height: 48,
+                          borderRadius: AppSpacing.radiusMd,
+                          onPressed:
+                              (currentHearts >= GameManager.maxHearts ||
+                                  currentXP < 150)
+                              ? null
+                              : () {
+                                  _showBuyConfirmationDialog(context);
+                                },
+                        ),
+                      ],
+                      if (type == 'xp') ...[
+                        Text(
+                          _t(
+                            "Your total XP currently: $currentXP\nYou will get 25 XP every time you successfully answer a practice question correctly.",
+                            "Total XP kamu saat ini: $currentXP\nKamu akan mendapatkan 25 XP setiap kali berhasil menjawab soal latihan dengan benar.",
+                          ),
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: iconColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusMd,
+                            ),
+                          ),
+                          child: Text(
+                            _t(
+                              "🎯 Collect 1500 XP to unlock JLPT N5 Simulation mode!",
+                              "🎯 Kumpulkan 1500 XP untuk membuka mode Simulasi JLPT N5!",
+                            ),
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: colorScheme.onSurface,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  actionsAlignment: MainAxisAlignment.center,
+                  actions: [
+                    AppButton(
+                      label: _t("CLOSE", "TUTUP"),
+                      variant: AppButtonVariant.text,
+                      expand: false,
+                      height: 48,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         );
       },
     );
   }
 
-  // ==========================================
-  // 🍿 FUNGSI POP-UP DETAILS (DIALOG)
-  // ==========================================
-  void _showStatDialog(BuildContext context, String type, bool isDark) {
-    String title = "";
-    IconData icon = Icons.info;
-    Color iconColor = Colors.grey;
+  void _showBuyConfirmationDialog(BuildContext parentContext) {
+    final colorScheme = Theme.of(parentContext).colorScheme;
 
-    if (type == 'streak') {
-      title = "Runtutan Belajar";
-      icon = Icons.local_fire_department_rounded;
-      iconColor = const Color(0xFFFF8A00);
-    } else if (type == 'hearts') {
-      title = "Nyawa Anda";
-      icon = Icons.favorite_rounded;
-      iconColor = const Color(0xFFE53935);
-    } else if (type == 'xp') {
-      title = "Poin Pengalaman (XP)";
-      icon = Icons.stars_rounded;
-      iconColor = const Color(0xFFFFC107);
-    }
-
-    showDialog(
-        context: context,
-        builder: (context) {
-          // Gunakan ValueListenableBuilder di dalam dialog agar data update real-time
-          return ValueListenableBuilder<int>(
-              valueListenable: globalHearts,
-              builder: (context, currentHearts, _) {
-                return ValueListenableBuilder<int>(
-                    valueListenable: globalXP,
-                    builder: (context, currentXP, _) {
-                      return AlertDialog(
-                        backgroundColor: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF9F6F0),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        title: Column(
-                          children: [
-                            Icon(icon, size: 48, color: iconColor),
-                            const SizedBox(height: 12),
-                            Text(
-                                title,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333))
-                            ),
-                          ],
-                        ),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // KONTEN STREAK
-                            if (type == 'streak') ...[
-                              Text(
-                                "Kamu sudah membuka aplikasi selama ${globalStreak.value} hari berturut-turut! Jangan sampai terlewat 1 hari pun atau runtutanmu akan kembali ke 1.",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5),
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎁 Login setiap hari untuk klaim 50 XP & bonus Mingguan di Profil!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                              )
-                            ],
-
-                            // KONTEN NYAWA & TOMBOL BELI
-                            if (type == 'hearts') ...[
-                              Text(
-                                "Sisa nyawa: $currentHearts / ${GameManager.maxHearts}\nNyawa berkurang setiap kamu salah menjawab kuis. 1 nyawa akan pulih secara otomatis setiap 20 menit.",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5),
-                              ),
-                              const SizedBox(height: 12),
-
-                              // 🔥 TIMER MUNCUL DI SINI JIKA NYAWA KURANG DARI 5
-                              if (currentHearts < GameManager.maxHearts)
-                                ValueListenableBuilder<String>(
-                                    valueListenable: globalTimerText,
-                                    builder: (context, timerText, _) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        decoration: BoxDecoration(
-                                            color: const Color(0xFFE53935).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(12)
-                                        ),
-                                        child: Text(
-                                            "⏳ +1 Nyawa dalam: $timerText",
-                                            style: const TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w900, fontSize: 14)
-                                        ),
-                                      );
-                                    }
-                                ),
-
-                              const SizedBox(height: 20),
-
-                              // TOMBOL BELI NYAWA PAKAI XP
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFCC6633),
-                                    disabledBackgroundColor: isDark ? const Color(0xFF444444) : const Color(0xFFE8E3DA),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onPressed: (currentHearts >= GameManager.maxHearts || currentXP < 150)
-                                      ? null
-                                      : () {
-                                    // Hanya panggil pop-up konfirmasinya saja.
-                                    // Logika memotong XP dan menambah nyawa sudah diurus di dalam tombol "YAKIN".
-                                    _showBuyConfirmationDialog(context, isDark);
-                                  },
-                                  icon: const Icon(Icons.stars_rounded, color: Colors.white, size: 20),
-                                  label: Text(
-                                    currentHearts >= GameManager.maxHearts
-                                        ? "NYAWA PENUH"
-                                        : (currentXP < 150 ? "XP TIDAK CUKUP (Butuh 150)" : "BELI 1 NYAWA (150 XP)"),
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                ),
-                              )
-                            ],
-
-                            // KONTEN XP
-                            if (type == 'xp') ...[
-                              Text(
-                                "Total XP kamu saat ini: $currentXP\nKamu akan mendapatkan 25 XP setiap kali berhasil menjawab soal latihan dengan benar.",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.5),
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                child: const Text("🎯 Kumpulkan 1500 XP untuk membuka mode Simulasi JLPT N5!", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                              )
-                            ],
-                          ],
-                        ),
-                        actionsAlignment: MainAxisAlignment.center,
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("TUTUP", style: TextStyle(color: Color(0xFF8C8A87), fontWeight: FontWeight.bold, letterSpacing: 1)),
-                          )
-                        ],
-                      );
-                    }
-                );
-              }
-          );
-        }
-    );
-  }
-  // ==========================================
-  // 🛒 POP-UP KONFIRMASI BELI NYAWA (UKURAN LEBIH KECIL)
-  // ==========================================
-  void _showBuyConfirmationDialog(BuildContext parentContext, bool isDark) {
     showDialog(
       context: parentContext,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-
-        // 1. MENEKAN KOTAK AGAR LEBIH RAMPING DAN KECIL
-        insetPadding: const EdgeInsets.symmetric(horizontal: 56),
-        contentPadding: const EdgeInsets.only(left: 20, right: 20, top: 12, bottom: 20),
-        titlePadding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 0),
-
+        backgroundColor: colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 48),
+        contentPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.xl,
+          AppSpacing.lg,
+          0,
+        ),
         title: Column(
           children: [
-            const Icon(Icons.shopping_cart_rounded, color: Color(0xFFCC6633), size: 40), // Ukuran ikon disesuaikan
-            const SizedBox(height: 8),
-            const Text('本当ですか?', style: TextStyle(color: Color(0xFFCC6633), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
-            Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF333333), fontSize: 20), textAlign: TextAlign.center),
+            Icon(
+              Icons.shopping_cart_rounded,
+              color: colorScheme.primary,
+              size: 40,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '本当ですか?',
+              style: AppTextStyles.labelSmall.copyWith(
+                fontFamily: AppTextStyles.fontFamilyJP,
+                color: colorScheme.primary,
+                letterSpacing: 2,
+              ),
+            ),
+            Text(
+              _t("Confirmation", "Konfirmasi"),
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w900,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
         content: Text(
-          'Yakin ingin menukarkan 150 XP dengan 1 Nyawa?', // Teks diringkas agar lebih pas
+          _t(
+            "Are you sure you want to exchange 150 XP for 1 Heart?",
+            "Yakin ingin menukarkan 150 XP dengan 1 Nyawa?",
+          ),
           textAlign: TextAlign.center,
-          style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF666666), height: 1.4, fontSize: 14),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.only(bottom: 20, left: 20, right: 20), // Merapikan jarak tombol bawah
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
         actions: [
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: isDark ? const Color(0xFF8C8A87) : const Color(0xFFB5B0A8), width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => Navigator.pop(context), // Batal beli
-                  child: Text('BATAL', style: TextStyle(color: isDark ? const Color(0xFF8C8A87) : const Color(0xFF8C8A87), fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 12)),
+                child: AppButton(
+                  label: _t("CANCEL", "BATAL"),
+                  variant: AppButtonVariant.secondary,
+                  height: 48,
+                  borderRadius: AppSpacing.radiusMd,
+                  borderColor: colorScheme.outline,
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC6633),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
-                  ),
+                child: AppButton(
+                  label: _t("SURE", "YAKIN"),
+                  height: 48,
+                  borderRadius: AppSpacing.radiusMd,
                   onPressed: () async {
-                    Navigator.pop(context); // Tutup dialog konfirmasi
-                    bool success = await GameManager.buyHeartWithXP();
-                    // Jika sukses beli, tutup juga dialog detail statusnya
+                    Navigator.pop(context);
+                    final bool success = await GameManager.buyHeartWithXP();
                     if (success && parentContext.mounted) {
                       Navigator.pop(parentContext);
                     }
                   },
-                  child: const Text('YAKIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 12)),
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );

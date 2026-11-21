@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.9+9
+version: 1.0.15+15
 
 environment:
   sdk: ^3.11.5
@@ -45,6 +45,10 @@ dependencies:
   flutter_native_splash: ^2.4.0
   timezone: ^0.10.0
   flutter_timezone: ^5.1.0
+  connectivity_plus: ^7.1.1
+  home_widget: ^0.9.3
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -77,9 +81,12 @@ flutter:
   fonts:
     - family: Nunito
       fonts:
-            - asset: assets/fonts/Nunito-VariableFont_wght.ttf
-            - asset: assets/fonts/Nunito-Italic-VariableFont_wght.ttf
-            - style: italic
+        - asset: assets/fonts/Nunito-VariableFont_wght.ttf
+        - asset: assets/fonts/Nunito-Italic-VariableFont_wght.ttf
+          style: italic
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-VariableFont_wght.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

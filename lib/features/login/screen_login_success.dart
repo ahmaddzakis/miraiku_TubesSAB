@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/game_manager.dart';
-import '../../main.dart'; // To navigate to MainScreen or Home
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shadows.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../main.dart';
 
 class LoginSuccessScreen extends StatefulWidget {
   const LoginSuccessScreen({super.key});
@@ -19,10 +23,11 @@ class _LoginSuccessScreenState extends State<LoginSuccessScreen> {
   void _startNavigationTimer() {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        // Navigate to the main/home screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+          MaterialPageRoute(
+            builder: (context) => const MainNavigationScreen(),
+          ),
         );
       }
     });
@@ -34,18 +39,25 @@ class _LoginSuccessScreenState extends State<LoginSuccessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
       builder: (context, isDark, _) {
-        final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F6F0);
-        final Color textColor = isDark ? Colors.white : const Color(0xFF2D2622);
+        final Color bgColor =
+            isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+        final Color textColor =
+            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+        final Color subTextColor =
+            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+        final Color primaryColor =
+            isDark ? AppColors.primaryDark : AppColors.primaryLight;
 
         return Scaffold(
           backgroundColor: bgColor,
           body: Center(
             child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 800),
+              tween: Tween<double>(begin: reduceMotion ? 1.0 : 0.0, end: 1.0),
+              duration: reduceMotion ? Duration.zero : AppSpacing.animSlow,
               builder: (context, opacity, child) {
                 return Opacity(
                   opacity: opacity,
@@ -55,32 +67,48 @@ class _LoginSuccessScreenState extends State<LoginSuccessScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Image.asset(
-                      'assets/images/iconUtama.png',
-                      width: 150,
-                      height: 150,
-                      fit: BoxFit.contain,
+                  Container(
+                    width: 170,
+                    height: 170,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.surfaceLight,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: primaryColor.withValues(
+                          alpha: isDark ? 0.5 : 0.8,
+                        ),
+                        width: 4,
+                      ),
+                      boxShadow: AppShadows.dialog(isDark),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/iconUtama.png',
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppSpacing.xxl),
                   Text(
                     _t("Welcome to MIRAIku", "Selamat Datang di MIRAIku"),
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
+                    style: AppTextStyles.headlineLarge.copyWith(
                       color: textColor,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
-                    _t("Preparing your journey...", "Menyiapkan perjalananmu..."),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textColor.withValues(alpha: 0.5),
-                      fontWeight: FontWeight.w500,
+                    _t(
+                      "Preparing your journey...",
+                      "Menyiapkan perjalananmu...",
+                    ),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: subTextColor,
                     ),
                   ),
                 ],
