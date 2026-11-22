@@ -37,7 +37,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _supabase = Supabase.instance.client;
+  SupabaseClient? get _supabase {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // User Metadata
   String _userName = 'MIRAIku User';
@@ -73,12 +79,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _initAppVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _appVersion = info.version;
-      });
-    }
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = info.version;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _initPrefs() async {
@@ -92,7 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _loadSupabaseUserData() async {
     final meta = await LocalRepository.getUserProgress();
-    final user = _supabase.auth.currentUser;
+    final user = _supabase?.auth.currentUser;
 
     if (mounted) {
       setState(() {
@@ -652,24 +660,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      _userName,
-                      style: AppTextStyles.displayMedium.copyWith(
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      _userDesc,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: subTextColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _userEmail,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: subTextColor.withValues(alpha: 0.7),
+                    Padding(
+                      padding: AppSpacing.screenHorizontal,
+                      child: Column(
+                        children: [
+                          Text(
+                            _userName,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.displayMedium.copyWith(
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            _userDesc,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: subTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _userEmail,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: subTextColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -804,7 +828,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(
+                                      Wrap(
+                                        spacing: AppSpacing.xs,
+                                        runSpacing: 4,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
                                         children: [
                                           Text(
                                             _t(
@@ -814,7 +842,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             style: AppTextStyles.labelMedium
                                                 .copyWith(color: subTextColor),
                                           ),
-                                          const SizedBox(width: AppSpacing.xs),
                                           AppBadge(
                                             label:
                                                 "$shields/${GameManager.maxStreakShields}",
@@ -934,13 +961,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                _t("Achievements", "Pencapaian"),
-                                style: AppTextStyles.headlineMedium.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: textColor,
+                              Expanded(
+                                child: Text(
+                                  _t("Achievements", "Pencapaian"),
+                                  style: AppTextStyles.headlineMedium.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: textColor,
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: AppSpacing.xs),
                               AppBadge(
                                 label: "$claimedCount / 10",
                                 icon: Icons.emoji_events_rounded,
@@ -1835,8 +1865,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
 
                     try {
-                      await LocalRepository.flushQueue();
-                      await _supabase.auth.signOut();
+                      if (!GameManager.isDevSession) {
+                        await LocalRepository.flushQueue();
+                      }
+                      await _supabase?.auth.signOut();
                       try {
                         await GoogleSignIn().signOut();
                       } catch (_) {}

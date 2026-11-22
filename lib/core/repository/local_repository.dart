@@ -14,17 +14,31 @@ class LocalRepository {
   static DateTime? _nextAllowedRetry;
   static StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
+  /// When `true` (e.g. during ephemeral Developer Quick Login sessions),
+  /// progress changes are kept in local cache only and never pushed to Supabase.
+  static bool Function()? isCloudSyncDisabled;
+
   /// Indicates whether a cloud metadata update is currently in flight,
   /// allowing auth listeners to avoid redundant re-sync loops.
   static bool get isSyncing => _isSyncing;
 
   // --- 1. FALLBACK PATTERN: FETCH DATA ---
   static Future<Map<String, dynamic>> getUserProgress() async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
     final prefs = await SharedPreferences.getInstance();
+    if (isCloudSyncDisabled?.call() == true) {
+      return _getLocalCachedMetadata(prefs);
+    }
 
-    if (user == null) return {};
+    final SupabaseClient supabase;
+    try {
+      supabase = Supabase.instance.client;
+    } catch (_) {
+      return _getLocalCachedMetadata(prefs);
+    }
+
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return _getLocalCachedMetadata(prefs);
 
     try {
       // Attempt Supabase fetch only if a valid session exists
@@ -62,6 +76,14 @@ class LocalRepository {
     if (actions.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
+
+    if (isCloudSyncDisabled?.call() == true) {
+      for (final entry in actions.entries) {
+        await _saveSingleCacheValue(prefs, entry.key, entry.value);
+      }
+      return;
+    }
+
     final List<String> pending = prefs.getStringList(_pendingActionsKey) ?? [];
 
     // Parse existing pending items into a map keyed by action key (deduplicated)
@@ -123,6 +145,9 @@ class LocalRepository {
   /// throttled, offline, or an error occurred. Never throws an unhandled
   /// exception on background/fire-and-forget invocations.
   static Future<bool> syncPendingActions({bool ignoreBackoff = false}) async {
+    if (isCloudSyncDisabled?.call() == true) {
+      return false;
+    }
     if (_isSyncing) {
       _hasPendingWhileSyncing = true;
       return false;
@@ -254,6 +279,11 @@ class LocalRepository {
     }
   }
 
+  /// Writes metadata key-value pairs into local `cache_*` keys without queueing
+  /// a cloud sync request (useful when hydrating or persisting offline dev state).
+  static Future<void> cacheMetadata(Map<String, dynamic> meta) =>
+      _cacheUserMetadata(meta);
+
   // Helper: Cache metadata to SharedPreferences
   static Future<void> _cacheUserMetadata(Map<String, dynamic> meta) async {
     final prefs = await SharedPreferences.getInstance();
@@ -268,7 +298,17 @@ class LocalRepository {
     final keys = prefs.getKeys();
     for (final key in keys) {
       if (key.startsWith('cache_')) {
-        cache[key.replaceFirst('cache_', '')] = prefs.get(key);
+        final String cleanKey = key.replaceFirst('cache_', '');
+        final Object? rawVal = prefs.get(key);
+        if (cleanKey == 'simulation_history' && rawVal is String) {
+          try {
+            cache[cleanKey] = jsonDecode(rawVal);
+          } catch (_) {
+            cache[cleanKey] = [];
+          }
+        } else {
+          cache[cleanKey] = rawVal;
+        }
       }
     }
     return cache;

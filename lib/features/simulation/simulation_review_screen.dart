@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../core/game_manager.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_badge.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/app_progress_bar.dart';
 import '../../data/simulation_data.dart';
+import 'widgets/exam_shared_widgets.dart';
+
+enum _ReviewFilter { all, wrong, correct }
 
 class SimulationReviewScreen extends StatefulWidget {
   final List<int?> userAnswers;
@@ -24,7 +28,8 @@ class SimulationReviewScreen extends StatefulWidget {
 }
 
 class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
-  int _currentIndex = 0;
+  int _filteredCursor = 0;
+  _ReviewFilter _activeFilter = _ReviewFilter.all;
   late final List<SimulationQuestion> _questions;
 
   @override
@@ -33,8 +38,32 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
     _questions = widget.questions ?? SimulationData.n5Questions;
   }
 
-  String _t(String en, String id) {
-    return globalLanguage.value == 'id' ? id : en;
+  bool _isQuestionCorrect(int originalIndex) {
+    final userAnswer = originalIndex < widget.userAnswers.length
+        ? widget.userAnswers[originalIndex]
+        : null;
+    return userAnswer == _questions[originalIndex].correctAnswerIndex;
+  }
+
+  List<int> get _filteredIndices {
+    final List<int> indices = [];
+    for (int i = 0; i < _questions.length; i++) {
+      final bool correct = _isQuestionCorrect(i);
+      if (_activeFilter == _ReviewFilter.all ||
+          (_activeFilter == _ReviewFilter.correct && correct) ||
+          (_activeFilter == _ReviewFilter.wrong && !correct)) {
+        indices.add(i);
+      }
+    }
+    return indices;
+  }
+
+  void _setFilter(_ReviewFilter filter) {
+    if (_activeFilter == filter) return;
+    setState(() {
+      _activeFilter = filter;
+      _filteredCursor = 0;
+    });
   }
 
   @override
@@ -42,316 +71,468 @@ class _SimulationReviewScreenState extends State<SimulationReviewScreen> {
     return ValueListenableBuilder<bool>(
       valueListenable: globalDarkMode,
       builder: (context, isDark, _) {
-        final Color bgColor =
-            isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
-        final Color cardColor =
-            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-        final Color accentColor =
-            isDark ? AppColors.primaryDark : AppColors.primaryLight;
-        final Color successColor =
-            isDark ? AppColors.successDark : AppColors.successLight;
-        final Color errorColor =
-            isDark ? AppColors.errorDark : AppColors.errorLight;
+        return ValueListenableBuilder<String>(
+          valueListenable: globalLanguage,
+          builder: (context, lang, _) {
+            final Color bgColor =
+                isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+            final Color cardColor =
+                isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+            final Color primaryColor =
+                isDark ? AppColors.primaryDark : AppColors.primaryLight;
+            final Color secondaryColor =
+                isDark ? AppColors.secondaryDark : AppColors.secondaryLight;
+            final Color successColor =
+                isDark ? AppColors.successDark : AppColors.successLight;
+            final Color errorColor =
+                isDark ? AppColors.errorDark : AppColors.errorLight;
 
-        final question = _questions[_currentIndex];
-        final userAnswer = _currentIndex < widget.userAnswers.length
-            ? widget.userAnswers[_currentIndex]
-            : null;
-        final isCorrect = userAnswer == question.correctAnswerIndex;
+            int totalCorrect = 0;
+            for (int i = 0; i < _questions.length; i++) {
+              if (_isQuestionCorrect(i)) totalCorrect++;
+            }
+            final int totalWrong = _questions.length - totalCorrect;
 
-        return Scaffold(
-          backgroundColor: bgColor,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: textColor(isDark),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              _t("Exam Review", "Tinjau Ujian"),
-              style: AppTextStyles.titleLarge.copyWith(
-                color: textColor(isDark),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            centerTitle: true,
-          ),
-          body: Column(
-            children: [
-              // Progress indicator for review
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.xs,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppProgressBar(
-                        progress: (_currentIndex + 1) / _questions.length,
-                        color: accentColor,
-                      ),
+            final List<int> visibleIndices = _filteredIndices;
+            final int safeCursor = visibleIndices.isEmpty
+                ? 0
+                : _filteredCursor.clamp(0, visibleIndices.length - 1);
+
+            return Scaffold(
+              backgroundColor: bgColor,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: Semantics(
+                  button: true,
+                  label: AppLocalizations.simReviewBackSemantics(),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: _textColor(isDark),
+                      size: 20,
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Text(
-                      "${_currentIndex + 1}/${_questions.length}",
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: subTextColor(isDark),
-                      ),
-                    ),
-                  ],
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
+                title: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppLocalizations.simReviewAppBarTitle(),
+                    style: AppTextStyles.titleLarge.copyWith(
+                      color: _textColor(isDark),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                centerTitle: true,
               ),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(AppSpacing.xl),
+              body: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppSpacing.maxContentWidth,
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Question Card
-                      AppCard(
+                      // 1. Filter Chips & Horizontal Question Number Strip
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                          vertical: AppSpacing.xs,
+                        ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                AppBadge(
-                                  label: question.section.toUpperCase(),
-                                  color: accentColor,
+                                Expanded(
+                                  child: _buildFilterChip(
+                                    label: AppLocalizations.simReviewFilterAll(
+                                      _questions.length,
+                                    ),
+                                    isSelected:
+                                        _activeFilter == _ReviewFilter.all,
+                                    activeColor: primaryColor,
+                                    isDark: isDark,
+                                    onTap: () => _setFilter(_ReviewFilter.all),
+                                  ),
                                 ),
-                                AppBadge(
-                                  label: isCorrect
-                                      ? _t("CORRECT", "BENAR")
-                                      : _t("WRONG", "SALAH"),
-                                  color: isCorrect ? successColor : errorColor,
+                                const SizedBox(width: AppSpacing.xs),
+                                Expanded(
+                                  child: _buildFilterChip(
+                                    label:
+                                        AppLocalizations.simReviewFilterWrong(
+                                      totalWrong,
+                                    ),
+                                    isSelected:
+                                        _activeFilter == _ReviewFilter.wrong,
+                                    activeColor: errorColor,
+                                    isDark: isDark,
+                                    onTap: () =>
+                                        _setFilter(_ReviewFilter.wrong),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Expanded(
+                                  child: _buildFilterChip(
+                                    label:
+                                        AppLocalizations.simReviewFilterCorrect(
+                                      totalCorrect,
+                                    ),
+                                    isSelected:
+                                        _activeFilter == _ReviewFilter.correct,
+                                    activeColor: successColor,
+                                    isDark: isDark,
+                                    onTap: () =>
+                                        _setFilter(_ReviewFilter.correct),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: AppSpacing.lg),
-                            Text(
-                              question.question,
-                              style: AppTextStyles.japaneseTitle.copyWith(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: textColor(isDark),
-                                height: 1.4,
+                            if (visibleIndices.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              ExamProgressHeader(
+                                current: safeCursor + 1,
+                                total: visibleIndices.length,
+                                color: primaryColor,
+                                subTextColor: _subTextColor(isDark),
+                                semanticLabel: AppLocalizations
+                                    .simReviewProgressSemantics(),
                               ),
-                            ),
-                            if (question.romaji != null) ...[
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                question.romaji!,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: subTextColor(isDark),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                            if (question.subQuestion != null) ...[
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: AppSpacing.md,
-                                ),
-                                child: Divider(),
-                              ),
-                              Text(
-                                question.subQuestion!,
-                                style: AppTextStyles.japaneseBody.copyWith(
-                                  color: textColor(isDark).withValues(alpha: 0.9),
-                                ),
+                              const SizedBox(height: AppSpacing.sm),
+                              QuestionNumberStrip(
+                                mode: ExamDisplayMode.review,
+                                itemNumbers: visibleIndices
+                                    .map((origIdx) => origIdx + 1)
+                                    .toList(),
+                                activeIndex: safeCursor,
+                                correctStates: visibleIndices
+                                    .map(_isQuestionCorrect)
+                                    .toList(),
+                                isDark: isDark,
+                                onTapItem: (idx) =>
+                                    setState(() => _filteredCursor = idx),
                               ),
                             ],
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xl),
 
-                      // Options
-                      ...List.generate(question.options.length, (index) {
-                        final isCorrectOption =
-                            index == question.correctAnswerIndex;
-                        final isUserSelected = index == userAnswer;
+                      // 2. Question, Answer Comparison, and Study Note Explanation
+                      Expanded(
+                        child: visibleIndices.isEmpty
+                            ? _buildEmptyFilterState(
+                                isDark: isDark,
+                                primaryColor: primaryColor,
+                              )
+                            : _buildQuestionReviewContent(
+                                originalIndex: visibleIndices[safeCursor],
+                                isDark: isDark,
+                                primaryColor: primaryColor,
+                                secondaryColor: secondaryColor,
+                                successColor: successColor,
+                                errorColor: errorColor,
+                              ),
+                      ),
 
-                        Color optionBorderColor = isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight;
-                        Color optionBgColor = cardColor;
-                        IconData? icon;
-                        Color? iconColor;
-
-                        if (isCorrectOption) {
-                          optionBorderColor = successColor;
-                          optionBgColor = isDark
-                              ? AppColors.successContainerDark
-                              : AppColors.successContainerLight;
-                          icon = Icons.check_circle_rounded;
-                          iconColor = successColor;
-                        } else if (isUserSelected && !isCorrectOption) {
-                          optionBorderColor = errorColor;
-                          optionBgColor = isDark
-                              ? AppColors.errorContainerDark
-                              : AppColors.errorContainerLight;
-                          icon = Icons.cancel_rounded;
-                          iconColor = errorColor;
-                        }
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          padding: const EdgeInsets.all(AppSpacing.md),
+                      // 3. Bottom Navigation Bar
+                      if (visibleIndices.isNotEmpty)
+                        Container(
+                          padding: EdgeInsets.fromLTRB(
+                            AppSpacing.xl,
+                            AppSpacing.md,
+                            AppSpacing.xl,
+                            MediaQuery.of(context).padding.bottom +
+                                AppSpacing.md,
+                          ),
                           decoration: BoxDecoration(
-                            color: optionBgColor,
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusMd),
-                            border: Border.all(
-                              color: optionBorderColor,
-                              width: (isCorrectOption || isUserSelected) ? 2 : 1,
+                            color: cardColor,
+                            border: Border(
+                              top: BorderSide(
+                                color: isDark
+                                    ? AppColors.borderDark
+                                    : AppColors.borderLight,
+                              ),
                             ),
+                            boxShadow: AppShadows.navBar(isDark),
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? AppColors.surfaceVariantDark
-                                      : AppColors.surfaceVariantLight,
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.xs,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    String.fromCharCode(65 + index),
-                                    style: AppTextStyles.labelLarge.copyWith(
-                                      color: subTextColor(isDark),
+                              if (safeCursor > 0) ...[
+                                Expanded(
+                                  child: AppButton(
+                                    label: AppLocalizations
+                                        .simReviewPreviousCta(),
+                                    icon: Icons.arrow_back_rounded,
+                                    variant: AppButtonVariant.secondary,
+                                    onPressed: () => setState(
+                                      () => _filteredCursor = safeCursor - 1,
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
+                                const SizedBox(width: AppSpacing.md),
+                              ],
                               Expanded(
-                                child: Text(
-                                  question.options[index],
-                                  style: AppTextStyles.japaneseBody.copyWith(
-                                    fontSize: 16,
-                                    fontWeight:
-                                        (isCorrectOption || isUserSelected)
-                                            ? FontWeight.w800
-                                            : FontWeight.w500,
-                                    color: textColor(isDark),
-                                  ),
+                                child: AppButton(
+                                  label: safeCursor < visibleIndices.length - 1
+                                      ? AppLocalizations.simReviewNextCta()
+                                      : AppLocalizations.simReviewDoneCta(),
+                                  trailingIcon:
+                                      safeCursor < visibleIndices.length - 1
+                                          ? Icons.arrow_forward_rounded
+                                          : Icons.check_rounded,
+                                  onPressed:
+                                      safeCursor < visibleIndices.length - 1
+                                          ? () => setState(
+                                                () => _filteredCursor =
+                                                    safeCursor + 1,
+                                              )
+                                          : () => Navigator.pop(context),
                                 ),
                               ),
-                              if (icon != null)
-                                Icon(icon, color: iconColor, size: 24),
                             ],
                           ),
-                        );
-                      }),
-
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // Explanation
-                      if (question.explanationId != null ||
-                          question.explanationEn != null) ...[
-                        Text(
-                          _t("EXPLANATION", "PENJELASAN"),
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: subTextColor(isDark),
-                            letterSpacing: 1.5,
-                          ),
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          decoration: BoxDecoration(
-                            color: accentColor.withValues(alpha: 0.08),
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusLg),
-                            border: Border.all(
-                              color: accentColor.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: Text(
-                            (globalLanguage.value == 'id'
-                                    ? question.explanationId
-                                    : question.explanationEn) ??
-                                question.explanationId ??
-                                "",
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              height: 1.6,
-                              color: textColor(isDark),
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.xxxl),
                     ],
                   ),
                 ),
               ),
-
-              // Navigation Buttons
-              Container(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.md,
-                  AppSpacing.xl,
-                  MediaQuery.of(context).padding.bottom + AppSpacing.md,
-                ),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  border: Border(
-                    top: BorderSide(
-                      color: isDark
-                          ? AppColors.borderDark
-                          : AppColors.borderLight,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    if (_currentIndex > 0) ...[
-                      Expanded(
-                        child: AppButton(
-                          label: _t("PREVIOUS", "SEBELUMNYA"),
-                          variant: AppButtonVariant.secondary,
-                          onPressed: () => setState(() => _currentIndex--),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                    ],
-                    Expanded(
-                      child: AppButton(
-                        label: _currentIndex < _questions.length - 1
-                            ? _t("NEXT", "SELANJUTNYA")
-                            : _t("DONE", "SELESAI"),
-                        onPressed: _currentIndex < _questions.length - 1
-                            ? () => setState(() => _currentIndex++)
-                            : () => Navigator.pop(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Color textColor(bool isDark) =>
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required Color activeColor,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final Color borderColor = isSelected
+        ? activeColor
+        : (isDark ? AppColors.borderDark : AppColors.borderLight);
+    final Color bgColor = isSelected
+        ? activeColor.withValues(alpha: isDark ? 0.2 : 0.14)
+        : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight);
+    final Color labelColor =
+        isSelected ? activeColor : _subTextColor(isDark);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 40),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+            border: Border.all(
+              color: borderColor,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: labelColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterState({
+    required bool isDark,
+    required Color primaryColor,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: AppCard(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle_outline_rounded,
+                size: 56,
+                color: primaryColor,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                AppLocalizations.simReviewEmptyFilterTitle(),
+                textAlign: TextAlign.center,
+                style: AppTextStyles.titleLarge.copyWith(
+                  color: _textColor(isDark),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
+                label: AppLocalizations.simReviewShowAllCta(),
+                expand: false,
+                onPressed: () => _setFilter(_ReviewFilter.all),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionReviewContent({
+    required int originalIndex,
+    required bool isDark,
+    required Color primaryColor,
+    required Color secondaryColor,
+    required Color successColor,
+    required Color errorColor,
+  }) {
+    final question = _questions[originalIndex];
+    final bool isReading = question.section == 'Reading';
+    final Color sectionColor = isReading ? secondaryColor : primaryColor;
+    final int? userAnswer = originalIndex < widget.userAnswers.length
+        ? widget.userAnswers[originalIndex]
+        : null;
+    final bool isCorrect = userAnswer == question.correctAnswerIndex;
+
+    return SingleChildScrollView(
+      key: ValueKey<int>(originalIndex),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Question & Passage Card (shared, Wrap prevents badge ellipsis)
+          ExamQuestionCard(
+            questionNumber: originalIndex + 1,
+            question: question,
+            sectionLabel: isReading
+                ? AppLocalizations.simExamSectionReading()
+                : AppLocalizations.simExamSectionLanguage(),
+            sectionColor: sectionColor,
+            isDark: isDark,
+            trailingBadge: AppBadge(
+              label: isCorrect
+                  ? AppLocalizations.simReviewStatusCorrect()
+                  : AppLocalizations.simReviewStatusWrong(),
+              icon: isCorrect
+                  ? Icons.check_circle_rounded
+                  : Icons.cancel_rounded,
+              color: isCorrect ? successColor : errorColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Options Comparison List (shared)
+          ...List.generate(question.options.length, (index) {
+            final bool isCorrectOption = index == question.correctAnswerIndex;
+            final bool isUserSelected = index == userAnswer;
+
+            String? statusTag;
+            if (isCorrectOption) {
+              statusTag = isUserSelected
+                  ? AppLocalizations.simReviewTagYourAnswer()
+                  : AppLocalizations.simReviewTagCorrectAnswer();
+            } else if (isUserSelected && !isCorrectOption) {
+              statusTag = AppLocalizations.simReviewTagYourChoice();
+            }
+
+            return AnswerOptionTile(
+              mode: ExamDisplayMode.review,
+              index: index,
+              text: question.options[index],
+              isDark: isDark,
+              isSelected: isUserSelected,
+              isCorrectOption: isCorrectOption,
+              reviewStatusTag: statusTag,
+            );
+          }),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // Study Note Explanation Box
+          if (question.explanationId != null ||
+              question.explanationEn != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.primaryContainerDark.withValues(alpha: 0.45)
+                    : AppColors.primaryContainerLight.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                border: Border.all(
+                  color: primaryColor.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.16),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                        child: Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 18,
+                          color: primaryColor,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.simReviewExplanationHeader(),
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    (globalLanguage.value == 'id'
+                            ? question.explanationId
+                            : question.explanationEn) ??
+                        question.explanationId ??
+                        "",
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: _textColor(isDark),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.xxl),
+        ],
+      ),
+    );
+  }
+
+  Color _textColor(bool isDark) =>
       isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-  Color subTextColor(bool isDark) =>
+  Color _subTextColor(bool isDark) =>
       isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 }

@@ -387,22 +387,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   boxShadow: AppShadows.dialog(isDark),
                 ),
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: subTextColor.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(10),
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: subTextColor.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      Text(
-                        _t("Edit Profile", "Edit Profil"),
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          _t("Edit Profile", "Edit Profil"),
                         style: AppTextStyles.headlineMedium.copyWith(
                           fontWeight: FontWeight.w900,
                           color: textColor,
@@ -681,6 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
+              ),
             );
           },
         );
@@ -736,22 +738,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   boxShadow: AppShadows.dialog(isDark),
                 ),
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: subTextColor.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(10),
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: subTextColor.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      Text(
-                        _t("Change Password", "Ubah Kata Sandi"),
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          _t("Change Password", "Ubah Kata Sandi"),
                         style: AppTextStyles.headlineMedium.copyWith(
                           fontWeight: FontWeight.w900,
                           color: textColor,
@@ -1073,6 +1076,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
+              ),
               ),
             );
           },

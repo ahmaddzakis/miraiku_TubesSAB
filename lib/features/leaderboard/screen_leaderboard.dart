@@ -286,15 +286,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: _rankings.asMap().entries.map((entry) {
           final int idx = entry.key;
           final user = entry.value;
           final Color color = idx == 0
               ? AppColors.medalGold
               : (idx == 1 ? AppColors.medalSilver : AppColors.medalBronze);
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-            child: _buildPodiumItem(user, idx + 1, 150, color, isDark),
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+              child: _buildPodiumItem(user, idx + 1, 150, color, isDark),
+            ),
           );
         }).toList(),
       ),
@@ -311,32 +314,47 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildAnimatedPodiumItem(
-            _rankings[1],
-            2,
-            140,
-            AppColors.medalSilver,
-            isDark,
-            150,
-            reduceMotion,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+              child: _buildAnimatedPodiumItem(
+                _rankings[1],
+                2,
+                140,
+                AppColors.medalSilver,
+                isDark,
+                150,
+                reduceMotion,
+              ),
+            ),
           ),
-          _buildAnimatedPodiumItem(
-            _rankings[0],
-            1,
-            170,
-            AppColors.medalGold,
-            isDark,
-            0,
-            reduceMotion,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+              child: _buildAnimatedPodiumItem(
+                _rankings[0],
+                1,
+                170,
+                AppColors.medalGold,
+                isDark,
+                0,
+                reduceMotion,
+              ),
+            ),
           ),
-          _buildAnimatedPodiumItem(
-            _rankings[2],
-            3,
-            130,
-            AppColors.medalBronze,
-            isDark,
-            300,
-            reduceMotion,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+              child: _buildAnimatedPodiumItem(
+                _rankings[2],
+                3,
+                130,
+                AppColors.medalBronze,
+                isDark,
+                300,
+                reduceMotion,
+              ),
+            ),
           ),
         ],
       ),

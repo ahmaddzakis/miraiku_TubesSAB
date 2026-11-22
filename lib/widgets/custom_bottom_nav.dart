@@ -51,41 +51,49 @@ class CustomBottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(
-                context: context,
-                index: 0,
-                label: _t("LEARN", "BELAJAR"),
-                inactiveColor: inactiveColor,
-                isDark: isDark,
-                reduceMotion: reduceMotion,
-                iconData: Icons.menu_book_rounded,
+              Expanded(
+                child: _buildNavItem(
+                  context: context,
+                  index: 0,
+                  label: _t("LEARN", "BELAJAR"),
+                  inactiveColor: inactiveColor,
+                  isDark: isDark,
+                  reduceMotion: reduceMotion,
+                  iconData: Icons.menu_book_rounded,
+                ),
               ),
-              _buildNavItem(
-                context: context,
-                index: 1,
-                label: _t("SIMULATION", "SIMULASI"),
-                inactiveColor: inactiveColor,
-                isDark: isDark,
-                reduceMotion: reduceMotion,
-                iconData: Icons.edit_note_rounded,
+              Expanded(
+                child: _buildNavItem(
+                  context: context,
+                  index: 1,
+                  label: _t("SIMULATION", "SIMULASI"),
+                  inactiveColor: inactiveColor,
+                  isDark: isDark,
+                  reduceMotion: reduceMotion,
+                  iconData: Icons.edit_note_rounded,
+                ),
               ),
-              _buildNavItem(
-                context: context,
-                index: 2,
-                label: _t("ALPHABET", "ALFABET"),
-                inactiveColor: inactiveColor,
-                isDark: isDark,
-                reduceMotion: reduceMotion,
-                textIcon: "あ",
+              Expanded(
+                child: _buildNavItem(
+                  context: context,
+                  index: 2,
+                  label: _t("ALPHABET", "ALFABET"),
+                  inactiveColor: inactiveColor,
+                  isDark: isDark,
+                  reduceMotion: reduceMotion,
+                  textIcon: "あ",
+                ),
               ),
-              _buildNavItem(
-                context: context,
-                index: 3,
-                label: _t("PROFILE", "PROFIL"),
-                inactiveColor: inactiveColor,
-                isDark: isDark,
-                reduceMotion: reduceMotion,
-                iconData: Icons.account_circle_outlined,
+              Expanded(
+                child: _buildNavItem(
+                  context: context,
+                  index: 3,
+                  label: _t("PROFILE", "PROFIL"),
+                  inactiveColor: inactiveColor,
+                  isDark: isDark,
+                  reduceMotion: reduceMotion,
+                  iconData: Icons.account_circle_outlined,
+                ),
               ),
             ],
           ),
@@ -138,7 +146,6 @@ class CustomBottomNavBar extends StatelessWidget {
           highlightColor: Colors.transparent,
           child: ConstrainedBox(
             constraints: const BoxConstraints(
-              minWidth: 68,
               minHeight: AppSpacing.minTapTarget,
             ),
             child: AnimatedContainer(
@@ -146,8 +153,9 @@ class CustomBottomNavBar extends StatelessWidget {
                   ? Duration.zero
                   : const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
+                horizontal: AppSpacing.xs,
                 vertical: AppSpacing.xs,
               ),
               decoration: BoxDecoration(
@@ -160,13 +168,18 @@ class CustomBottomNavBar extends StatelessWidget {
                 children: [
                   iconWidget,
                   const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    label,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: itemColor,
-                      fontSize: 10,
-                      fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
-                      letterSpacing: 0.5,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: itemColor,
+                        fontSize: 10,
+                        fontWeight:
+                            isActive ? FontWeight.w900 : FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ],

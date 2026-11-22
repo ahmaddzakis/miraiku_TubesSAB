@@ -200,8 +200,11 @@ class AppDialogs {
                             ),
                             const SizedBox(height: AppSpacing.xxl),
                             // Actions
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                            Wrap(
+                              alignment: WrapAlignment.end,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: AppSpacing.sm,
+                              runSpacing: AppSpacing.xs,
                               children: [
                                 AppButton(
                                   label: _t("VIEW LICENSES", "LIHAT LISENSI"),
@@ -230,7 +233,6 @@ class AppDialogs {
                                     );
                                   },
                                 ),
-                                const SizedBox(width: AppSpacing.sm),
                                 AppButton(
                                   label: _t("CLOSE", "TUTUP"),
                                   expand: false,
