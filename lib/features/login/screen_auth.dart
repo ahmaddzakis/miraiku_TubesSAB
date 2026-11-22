@@ -51,44 +51,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
   /// Developer Quick Login (Active in debug mode).
   ///
-  /// Attempts to sign in with saved developer credentials or user input,
-  /// and gracefully falls back to offline local state hydration so the
-  /// developer can immediately enter and test all screens of the app.
+  /// Always starts a fresh, ephemeral developer session (resetting all
+  /// previous progress, locking JLPT simulation, resetting Kana/Units/Hearts,
+  /// and seeding default 2000 XP). Progress during this session is never
+  /// persisted across logouts or re-logins.
   Future<void> _handleDevQuickLogin() async {
     setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final typedEmail = _emailController.text.trim();
-      final typedPassword = _passwordController.text.trim();
-      final savedEmail = prefs.getString('dev_quick_email') ?? '';
-      final savedPassword = prefs.getString('dev_quick_password') ?? '';
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
 
-      final emailToUse = typedEmail.isNotEmpty ? typedEmail : savedEmail;
-      final passwordToUse =
-          typedPassword.isNotEmpty ? typedPassword : savedPassword;
-
-      if (emailToUse.isNotEmpty && passwordToUse.isNotEmpty) {
-        try {
-          await Supabase.instance.client.auth.signInWithPassword(
-            email: emailToUse,
-            password: passwordToUse,
-          );
-          await prefs.setString('dev_quick_email', emailToUse);
-          await prefs.setString('dev_quick_password', passwordToUse);
-        } catch (e) {
-          debugPrint('Dev Quick Login: Supabase auth bypassed ($e)');
-        }
-      }
-
-      await GameManager.fetchAndHydrateState();
-
-      // Seed starter XP & shields in local state if empty so dev can test all features
-      if (globalXP.value < 500) {
-        await GameManager.addXP(1500);
-      }
-      if (globalStreakShields.value == 0) {
-        globalStreakShields.value = 1;
-      }
+      await GameManager.startDevQuickLogin();
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -483,6 +457,7 @@ class _AuthScreenState extends State<AuthScreen> {
             UserAttributes(data: updateData),
           );
 
+          await GameManager.setDevSession(false);
           await GameManager.fetchAndHydrateState();
 
           if (mounted) {
@@ -555,6 +530,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         );
 
+        await GameManager.setDevSession(false);
         await GameManager.fetchAndHydrateState();
 
         if (mounted) {
@@ -588,6 +564,7 @@ class _AuthScreenState extends State<AuthScreen> {
           );
 
           await supabase.auth.updateUser(UserAttributes(data: newUserMetadata));
+          await GameManager.setDevSession(false);
           await GameManager.initializeNewAccount();
 
           if (mounted) {
@@ -628,6 +605,7 @@ class _AuthScreenState extends State<AuthScreen> {
               await prefs.setString('dev_quick_password', password);
             }
 
+            await GameManager.setDevSession(false);
             await GameManager.initializeNewAccount();
             if (mounted) {
               Navigator.pushReplacement(

@@ -40,17 +40,30 @@ class GameManager {
   static const int maxStreakShields = 3;
   static const int streakShieldCostXP = 300;
   static const int cooldownMinutes = 20; // 20 Menit per 1 Nyawa
+  static const int devQuickDefaultXP = 2000;
+  static const String _devSessionKey = 'dev_quick_session_active';
+  static const String _devSnapshotKey = 'dev_quick_progress_snapshot';
+
   static Timer? _uiTimer;
   static DateTime? _lastHeartLossTime;
+  static bool _isDevSession = false;
+
+  static bool get isDevSession => _isDevSession;
 
   static StreamSubscription<AuthState>? _authSubscription;
 
   // 1. FUNGSI INISIALISASI (Dipanggil saat aplikasi baru dibuka)
   static Future<void> init() async {
     try {
+      LocalRepository.isCloudSyncDisabled = () => _isDevSession;
       final prefs = await SharedPreferences.getInstance();
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
+
+      // Sesi Developer Quick Login tidak pernah disimpan permanen
+      _isDevSession = false;
+      await prefs.remove(_devSessionKey);
+      await prefs.remove(_devSnapshotKey);
 
       // Ambil data dari Supabase jika user sedang login
       final meta = user?.userMetadata ?? {};
@@ -154,9 +167,19 @@ class GameManager {
 
     // 4. Simulation History
     if (meta['simulation_history'] != null) {
-      globalSimulationHistory.value = List<dynamic>.from(
-        meta['simulation_history'],
-      );
+      final rawHistory = meta['simulation_history'];
+      if (rawHistory is List) {
+        globalSimulationHistory.value = List<dynamic>.from(rawHistory);
+      } else if (rawHistory is String) {
+        try {
+          final decoded = jsonDecode(rawHistory);
+          globalSimulationHistory.value =
+              decoded is List ? List<dynamic>.from(decoded) : [];
+        } catch (e) {
+          debugPrint("Error decoding simulation history string: $e");
+          globalSimulationHistory.value = [];
+        }
+      }
     } else {
       final historyJson = prefs.getString('simulation_history') ?? '[]';
       try {
@@ -169,7 +192,7 @@ class GameManager {
 
     // 5. Timestamps for Streak/Heart Sync
     if (meta['gm_last_login'] != null) {
-      prefs.setString('gm_last_login', meta['gm_last_login']);
+      prefs.setString('gm_last_login', meta['gm_last_login'].toString());
     }
     if (meta['gm_last_heart_loss'] != null) {
       final String lossStr = meta['gm_last_heart_loss'].toString();
@@ -182,9 +205,16 @@ class GameManager {
           : null;
     }
     if (meta['gm_last_daily_claim'] != null) {
-      prefs.setString('gm_last_daily_claim', meta['gm_last_daily_claim']);
-    } else {
+      prefs.setString(
+        'gm_last_daily_claim',
+        meta['gm_last_daily_claim'].toString(),
+      );
+    } else if (meta.containsKey('gm_last_daily_claim')) {
       prefs.remove('gm_last_daily_claim');
+    }
+
+    if (meta['setting_sound'] is bool) {
+      prefs.setBool('setting_sound', meta['setting_sound'] as bool);
     }
 
     // 6. Unit Progress (u1_, u2_, u3_, u4_)
@@ -193,8 +223,8 @@ class GameManager {
           key.startsWith('u2_') ||
           key.startsWith('u3_') ||
           key.startsWith('u4_')) {
-        if (value is int) {
-          prefs.setInt(key, value);
+        if (value is num) {
+          prefs.setInt(key, value.toInt());
         }
       }
     });
@@ -230,6 +260,10 @@ class GameManager {
   static Future<void> resetProgress() async {
     final prefs = await SharedPreferences.getInstance();
 
+    _isDevSession = false;
+    await prefs.remove(_devSessionKey);
+    await prefs.remove(_devSnapshotKey);
+
     // 1. Reset ValueNotifiers & in-memory state to defaults
     globalHearts.value = 5;
     globalXP.value = 0;
@@ -260,7 +294,11 @@ class GameManager {
           key.startsWith('learned_') ||
           key.startsWith('setting_') ||
           key.startsWith('cache_') || // Wipe cache keys
+          key == 'display_name' ||
+          key == 'bio' ||
           key == 'is_premium' ||
+          key == 'is_simulation_unlocked' ||
+          key == 'unlocked_sim_n5' ||
           key == 'simulation_completed_count' ||
           key == 'simulation_history' ||
           key == 'last_claimed_streak' ||
@@ -270,6 +308,87 @@ class GameManager {
         await prefs.remove(key);
       }
     }
+  }
+
+  static Future<void> setDevSession(bool active) async {
+    LocalRepository.isCloudSyncDisabled = () => _isDevSession;
+    _isDevSession = active;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_devSessionKey);
+    await prefs.remove(_devSnapshotKey);
+  }
+
+  /// Starts a fresh, ephemeral Developer Quick Login session.
+  ///
+  /// Every login via Developer Quick Login resets all game progress (Kana,
+  /// Unit 1-4 stars, JLPT Simulation lock & history, achievements, hearts,
+  /// streak, shields) and seeds the default `2000` XP without ever persisting
+  /// progress across logouts or re-logins.
+  static Future<void> startDevQuickLogin() async {
+    LocalRepository.isCloudSyncDisabled = () => _isDevSession;
+    final bool currentDarkMode = globalDarkMode.value;
+    final String currentLanguage = globalLanguage.value;
+
+    // 1. Wipe all previous progress (units, kana, sim lock, achievements, XP, hearts)
+    await resetProgress();
+
+    final prefs = await SharedPreferences.getInstance();
+    _isDevSession = true;
+
+    // 2. Preserve UI theme & language preferences while resetting all game stats
+    globalDarkMode.value = currentDarkMode;
+    globalLanguage.value = currentLanguage;
+    globalHearts.value = maxHearts;
+    globalXP.value = devQuickDefaultXP;
+    globalStreak.value = 1;
+    globalStreakShields.value = 1;
+    globalSimulationCount.value = 0;
+    globalIsPremium.value = false;
+    globalAvatarUrl.value = '';
+    globalLearnedHiragana.value = [];
+    globalLearnedKatakana.value = [];
+    globalLearnedKanji.value = [];
+    globalSimulationHistory.value = [];
+    globalTimerText.value = "Penuh";
+    _lastHeartLossTime = null;
+
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final String todayIso = today.toIso8601String();
+    await prefs.setString('gm_last_login', todayIso);
+    await prefs.setString('display_name', 'Developer MIRAIku');
+    await prefs.setString('bio', 'Semangat Belajar Bahasa Jepang!');
+
+    _saveProgressToLocal(prefs);
+
+    await LocalRepository.cacheMetadata({
+      'gm_xp': devQuickDefaultXP,
+      'gm_hearts': maxHearts,
+      'gm_streak': 1,
+      'gm_streak_shields': 1,
+      'gm_simulation_count': 0,
+      'unlocked_sim_n5': false,
+      'is_premium': false,
+      'learned_hiragana': <String>[],
+      'learned_katakana': <String>[],
+      'learned_kanji': <String>[],
+      'simulation_history': <dynamic>[],
+      'gm_last_login': todayIso,
+      'display_name': 'Developer MIRAIku',
+      'bio': 'Semangat Belajar Bahasa Jepang!',
+      'ach_hira': false,
+      'ach_kata': false,
+      'ach_kanji': false,
+      'ach_alphabet': false,
+      'ach_sim': false,
+      'ach_3d': false,
+      'ach_7d': false,
+      'ach_14d': false,
+      'ach_30d': false,
+      'ach_mirai': false,
+    });
+
+    _startTicker();
   }
 
   // Inisialisasi akun baru dengan nilai default
@@ -363,68 +482,81 @@ class GameManager {
     String? avatarUrl,
     Map<String, dynamic>? extraData,
   }) async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user != null) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final Map<String, dynamic> updateData = {
-          'gm_xp': globalXP.value,
-          'gm_hearts': globalHearts.value,
-          'gm_streak': globalStreak.value,
-          'gm_streak_shields': globalStreakShields.value,
-          'gm_simulation_count': globalSimulationCount.value,
-          'avatar_url': globalAvatarUrl.value,
-          'setting_dark': globalDarkMode.value,
-          'setting_lang': globalLanguage.value,
-          'is_daily_reminder_on':
-              prefs.getBool('is_daily_reminder_on') ?? false,
-          'reminder_hour': globalReminderTime.value.hour,
-          'reminder_minute': globalReminderTime.value.minute,
-          'is_premium': globalIsPremium.value,
-          'learned_hiragana': globalLearnedHiragana.value,
-          'learned_katakana': globalLearnedKatakana.value,
-          'learned_kanji': globalLearnedKanji.value,
-          'simulation_history': globalSimulationHistory.value,
-          'gm_last_login': prefs.getString('gm_last_login'),
-          'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
-          'gm_last_daily_claim': prefs.getString('gm_last_daily_claim'),
-        };
+    User? user;
+    try {
+      user = Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      user = null;
+    }
 
-        // --- SYNC ALL UNIT PROGRESS ---
-        final keys = prefs.getKeys();
-        for (final String key in keys) {
-          if (key.startsWith('u1_') ||
-              key.startsWith('u2_') ||
-              key.startsWith('u3_') ||
-              key.startsWith('u4_')) {
-            updateData[key] = prefs.getInt(key);
-          }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _saveProgressToLocal(prefs);
+
+      final Map<String, dynamic> updateData = {
+        'gm_xp': globalXP.value,
+        'gm_hearts': globalHearts.value,
+        'gm_streak': globalStreak.value,
+        'gm_streak_shields': globalStreakShields.value,
+        'gm_simulation_count': globalSimulationCount.value,
+        'avatar_url': globalAvatarUrl.value,
+        'setting_dark': globalDarkMode.value,
+        'setting_lang': globalLanguage.value,
+        'is_daily_reminder_on':
+            prefs.getBool('is_daily_reminder_on') ?? false,
+        'reminder_hour': globalReminderTime.value.hour,
+        'reminder_minute': globalReminderTime.value.minute,
+        'is_premium': globalIsPremium.value,
+        'learned_hiragana': globalLearnedHiragana.value,
+        'learned_katakana': globalLearnedKatakana.value,
+        'learned_kanji': globalLearnedKanji.value,
+        'simulation_history': globalSimulationHistory.value,
+        'gm_last_login': prefs.getString('gm_last_login'),
+        'gm_last_heart_loss': prefs.getString('gm_last_heart_loss'),
+        'gm_last_daily_claim': prefs.getString('gm_last_daily_claim'),
+      };
+
+      // --- SYNC ALL UNIT PROGRESS ---
+      final keys = prefs.getKeys();
+      for (final String key in keys) {
+        if (key.startsWith('u1_') ||
+            key.startsWith('u2_') ||
+            key.startsWith('u3_') ||
+            key.startsWith('u4_')) {
+          updateData[key] = prefs.getInt(key);
         }
+      }
 
-        // Tambahkan data profil jika disediakan
-        if (displayName != null) updateData['display_name'] = displayName;
-        if (bio != null) updateData['bio'] = bio;
-        if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
-        if (extraData != null) updateData.addAll(extraData);
+      // Tambahkan data profil jika disediakan
+      if (displayName != null) updateData['display_name'] = displayName;
+      if (bio != null) updateData['bio'] = bio;
+      if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+      if (extraData != null) updateData.addAll(extraData);
 
+      if (_isDevSession) {
+        await LocalRepository.cacheMetadata(updateData);
+      } else if (user != null) {
         // Enqueue all actions in a single batch and trigger one cloud sync
         await LocalRepository.queueActionsBatch(updateData);
-      } catch (e) {
-        debugPrint("Gagal sinkronisasi progress ke Cloud: $e");
       }
+    } catch (e) {
+      debugPrint("Gagal sinkronisasi progress ke Cloud/Lokal: $e");
     }
   }
 
   // 2. LOGIKA STREAK HARIAN + STREAK SHIELD (Core Drive 2 & Core Drive 8)
   static Future<void> _checkDailyStreak(SharedPreferences prefs) async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    User? user;
+    try {
+      user = Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      user = null;
+    }
+    if (user == null && !_isDevSession) return;
 
-    final meta = user.userMetadata ?? {};
+    final meta = user?.userMetadata ?? {};
     final String? lastLoginStr =
-        meta['gm_last_login'] ?? prefs.getString('gm_last_login');
+        meta['gm_last_login']?.toString() ?? prefs.getString('gm_last_login');
 
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);

@@ -34,168 +34,189 @@ class TopStatusBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const SizedBox(width: AppSpacing.sm),
-              ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [AppColors.primaryLight, AppColors.streakFlame],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ).createShader(bounds),
-                child: Text(
-                  "MIRAIku",
-                  style: AppTextStyles.headlineLarge.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 2.0,
-                    fontStyle: FontStyle.italic,
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: AppSpacing.sm),
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [AppColors.primaryLight, AppColors.streakFlame],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: Text(
+                      "MIRAIku",
+                      style: AppTextStyles.headlineLarge.copyWith(
+                        color: Colors.white,
+                        letterSpacing: 2.0,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: containerBg,
+                  borderRadius: BorderRadius.circular(AppSpacing.lg),
+                  border: Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.5),
                   ),
                 ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: containerBg,
-              borderRadius: BorderRadius.circular(AppSpacing.lg),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.5),
-              ),
-            ),
-            child: ValueListenableBuilder<int>(
-              valueListenable: globalStreak,
-              builder: (context, streak, _) {
-                return ValueListenableBuilder<int>(
-                  valueListenable: globalHearts,
-                  builder: (context, hearts, _) {
+                child: ValueListenableBuilder<int>(
+                  valueListenable: globalStreak,
+                  builder: (context, streak, _) {
                     return ValueListenableBuilder<int>(
-                      valueListenable: globalXP,
-                      builder: (context, xp, _) {
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Semantics(
-                              button: true,
-                              label: 'Streak: $streak',
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => _showStatDialog(context, 'streak'),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.xxs,
-                                    vertical: AppSpacing.xxs,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.local_fire_department_rounded,
-                                        color: AppColors.streakFlame,
-                                        size: 20,
+                      valueListenable: globalHearts,
+                      builder: (context, hearts, _) {
+                        return ValueListenableBuilder<int>(
+                          valueListenable: globalXP,
+                          builder: (context, xp, _) {
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Semantics(
+                                  button: true,
+                                  label: 'Streak: $streak',
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () =>
+                                        _showStatDialog(context, 'streak'),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.xxs,
+                                        vertical: AppSpacing.xxs,
                                       ),
-                                      const SizedBox(width: AppSpacing.xxs),
-                                      Text(
-                                        "$streak",
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.streakFlame,
-                                          fontWeight: FontWeight.w900,
-                                        ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.local_fire_department_rounded,
+                                            color: AppColors.streakFlame,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: AppSpacing.xxs),
+                                          Text(
+                                            "$streak",
+                                            style: AppTextStyles.bodyMedium
+                                                .copyWith(
+                                              color: AppColors.streakFlame,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
-                              child: Text(
-                                "|",
-                                style: AppTextStyles.labelLarge.copyWith(
-                                  color: dividerColor,
-                                ),
-                              ),
-                            ),
-                            Semantics(
-                              button: true,
-                              label: 'Hearts: $hearts',
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => _showStatDialog(context, 'hearts'),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.xxs,
-                                    vertical: AppSpacing.xxs,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.favorite_rounded,
-                                        color: AppColors.heartCrimson,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: AppSpacing.xxs),
-                                      Text(
-                                        "$hearts",
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.heartCrimson,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
-                              child: Text(
-                                "|",
-                                style: AppTextStyles.labelLarge.copyWith(
-                                  color: dividerColor,
-                                ),
-                              ),
-                            ),
-                            Semantics(
-                              button: true,
-                              label: 'XP: $xp',
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => _showStatDialog(context, 'xp'),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.xxs,
-                                    vertical: AppSpacing.xxs,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.stars_rounded,
-                                        color: AppColors.starGold,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: AppSpacing.xxs),
-                                      Text(
-                                        "$xp",
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: textColor,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ],
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    "|",
+                                    style: AppTextStyles.labelLarge.copyWith(
+                                      color: dividerColor,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
+                                Semantics(
+                                  button: true,
+                                  label: 'Hearts: $hearts',
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () =>
+                                        _showStatDialog(context, 'hearts'),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.xxs,
+                                        vertical: AppSpacing.xxs,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.favorite_rounded,
+                                            color: AppColors.heartCrimson,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: AppSpacing.xxs),
+                                          Text(
+                                            "$hearts",
+                                            style: AppTextStyles.bodyMedium
+                                                .copyWith(
+                                              color: AppColors.heartCrimson,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    "|",
+                                    style: AppTextStyles.labelLarge.copyWith(
+                                      color: dividerColor,
+                                    ),
+                                  ),
+                                ),
+                                Semantics(
+                                  button: true,
+                                  label: 'XP: $xp',
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => _showStatDialog(context, 'xp'),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.xxs,
+                                        vertical: AppSpacing.xxs,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.stars_rounded,
+                                            color: AppColors.starGold,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: AppSpacing.xxs),
+                                          Text(
+                                            "$xp",
+                                            style: AppTextStyles.bodyMedium
+                                                .copyWith(
+                                              color: textColor,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         );
                       },
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],

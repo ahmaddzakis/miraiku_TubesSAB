@@ -45,11 +45,15 @@ class AppBadge extends StatelessWidget {
             Icon(icon, size: 15, color: effectiveColor),
             const SizedBox(width: 6),
           ],
-          Text(
-            label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: effectiveColor,
-              fontWeight: FontWeight.w900,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: effectiveColor,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],

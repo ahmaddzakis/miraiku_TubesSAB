@@ -49,6 +49,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   bool _isAnswered = false;
   bool _isCurrentAnswerCorrect = false;
+  bool _hasCompletedQuiz = false;
 
   late List<Map<String, dynamic>> _questions;
   late int _originalQuestionCount;
@@ -268,9 +269,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       if (isCorrect) {
         _score++;
         SoundManager.playSound('benar.mp3');
-        if (!widget.isReplay) {
-          GameManager.addXP(25);
-        }
       } else {
         SoundManager.playSound('salah.mp3');
       }
@@ -297,7 +295,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
   }
 
-  void _nextQuestion() {
+  Future<void> _nextQuestion() async {
     if (!isTestMode && globalHearts.value <= 0) {
       _showGameOverDialog();
       return;
@@ -312,12 +310,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         _setupWordBank();
       });
     } else {
+      if (_hasCompletedQuiz) return;
+      _hasCompletedQuiz = true;
       _countdownTimer?.cancel();
+
+      final int xpGained = !widget.isReplay ? _score * 25 : 0;
+      if (xpGained > 0) {
+        await GameManager.addXP(xpGained);
+      }
+
       const bool isPassed = true;
       if (widget.onQuizPassed != null) {
         widget.onQuizPassed!();
       }
-      _showResultDialog(isPassed);
+      if (mounted) {
+        _showResultDialog(isPassed);
+      }
     }
   }
 
@@ -462,12 +470,18 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     size: 20,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    _t("Needs 150 XP for 1 Heart", "Butuh 150 XP untuk 1 Nyawa"),
-                    style: AppTextStyles.labelLarge.copyWith(
-                      color: isDark
-                          ? AppColors.warningDark
-                          : AppColors.warningLight,
+                  Flexible(
+                    child: Text(
+                      _t(
+                        "Needs 150 XP for 1 Heart",
+                        "Butuh 150 XP untuk 1 Nyawa",
+                      ),
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.labelLarge.copyWith(
+                        color: isDark
+                            ? AppColors.warningDark
+                            : AppColors.warningLight,
+                      ),
                     ),
                   ),
                 ],
@@ -765,17 +779,24 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                 ),
                               ),
                             ),
-                            Text(
-                              isTestMode
-                                  ? "UNIT TEST"
-                                  : (widget.isReplay
-                                      ? "REPLAY QUIZ"
-                                      : "UNIT ${widget.unit} • QUIZ"),
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: primaryColor,
-                                letterSpacing: 2.0,
+                            const SizedBox(width: AppSpacing.xs),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  isTestMode
+                                      ? "UNIT TEST"
+                                      : (widget.isReplay
+                                          ? "REPLAY QUIZ"
+                                          : "UNIT ${widget.unit} • QUIZ"),
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: primaryColor,
+                                    letterSpacing: 2.0,
+                                  ),
+                                ),
                               ),
                             ),
+                            const SizedBox(width: AppSpacing.xs),
                             if (isTestMode)
                               Row(
                                 children: [
